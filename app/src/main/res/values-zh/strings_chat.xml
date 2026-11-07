@@ -6,6 +6,7 @@
     <string name="chat_greeting_evening">晚上好</string>
     <string name="chat_greeting_night">夜深了</string>
     <string name="chat_empty_prompt">想让 Mika 做什么？</string>
+    <string name="chat_example_draft_warning">输入框中有草稿，请先清空再选择推荐任务</string>
     <string name="chat_example_follow">打开小红书，搜索博主“王赞不赞”，点击关注，然后加入群聊</string>
     <string name="chat_example_group_summary">帮我总结微信群聊，Mika内测体验群今天都聊了些啥</string>
     <string name="chat_example_jobs">在Boss直聘上帮我投递AI产品经理岗位，150个投满</string>

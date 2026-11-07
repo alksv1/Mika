@@ -6,6 +6,7 @@
     <string name="chat_greeting_evening">Good evening</string>
     <string name="chat_greeting_night">Up late</string>
     <string name="chat_empty_prompt">What should Mika do?</string>
+    <string name="chat_example_draft_warning">You have a draft. Clear it before choosing a suggested task.</string>
     <string name="chat_example_follow">Open X, search for Wang Zan (@wangzan101), and follow the account.</string>
     <string name="chat_example_group_summary">Open WhatsApp and summarize today\'s unread messages, highlighting anything that needs my reply.</string>
     <string name="chat_example_jobs">Open LinkedIn, find five remote AI product manager jobs, and compare their requirements.</string>

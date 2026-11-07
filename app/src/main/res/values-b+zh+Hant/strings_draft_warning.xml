@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_example_draft_warning">輸入框中有草稿，請先清空再選擇推薦任務</string>
+</resources>

@@ -12,6 +12,9 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.longClick
@@ -91,6 +94,35 @@ class ChatDeleteAndSelectTest {
             }
         }
         compose.waitForIdle()
+    }
+
+    @Test fun suggestedTaskPreservesDraftAndWarningExpires() {
+        val vm = vm()
+        show(vm, drawerOpen = false)
+        val example = ChatCopy.examples.first().text
+        val input = compose.onNode(hasSetTextAction())
+
+        // 空输入框照常预填，随后再次点击不能覆盖草稿。
+        compose.onNodeWithText(example).performClick()
+        input.assertTextContains(example)
+        input.performTextClearance()
+        input.performTextReplacement("未发送的草稿")
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.onNodeWithText(example).performClick()
+            input.assertTextContains("未发送的草稿")
+            compose.onNodeWithTag("draft-warning").assertIsDisplayed()
+            compose.mainClock.advanceTimeBy(1_000)
+            compose.onNodeWithText(example).performClick()
+            compose.mainClock.advanceTimeBy(1_500)
+            compose.onNodeWithTag("draft-warning").assertIsDisplayed()
+            compose.mainClock.advanceTimeBy(600)
+            compose.onNodeWithTag("draft-warning").assertDoesNotExist()
+            input.assertTextContains("未发送的草稿")
+            assertTrue(started.isEmpty())
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
     }
 
     @Test fun longPressARowAsksThenDeletes() {

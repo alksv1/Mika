@@ -101,6 +101,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
@@ -200,6 +203,13 @@ fun ChatScreen(
     val frame = live ?: lastFrame.takeIf { ui.pip.visible && ui.pip.mode == PipMode.Done }
     val webContent = if (ui.pip.mode == PipMode.Done) lastFrameWasWeb else webLive
     var input by rememberSaveable { mutableStateOf("") }
+    var draftWarning by remember(ui.conversationId) { mutableIntStateOf(0) }
+    LaunchedEffect(draftWarning) {
+        if (draftWarning != 0) {
+            delay(2_000)
+            draftWarning = 0
+        }
+    }
     // 系统分享仍走这个输入框:只预填,不发送;进程恢复后同一份草稿也不会重复执行。
     LaunchedEffect(ui.sharedDraft?.conversationId) {
         ui.sharedDraft?.let { input = it.text }
@@ -305,7 +315,11 @@ fun ChatScreen(
                 },
             ) {
                 if (ui.exchanges.isEmpty() && ui.blocked == null) {
-                    item("empty") { EmptyState(ui.conversationId) { input = it } }
+                    item("empty") {
+                        EmptyState(ui.conversationId) {
+                            if (input.isNotEmpty()) draftWarning++ else input = it
+                        }
+                    }
                 }
                 ui.exchanges.forEachIndexed { i, ex ->
                     val backgroundNote = i == ui.exchanges.lastIndex && ui.operatingPhone
@@ -390,6 +404,18 @@ fun ChatScreen(
             onVoiceHolding = { voiceHolding = it },
             editRequest = editRequest,
         )
+
+        if (draftWarning != 0) {
+            Text(
+                stringResource(R.string.chat_example_draft_warning),
+                Modifier.align(Alignment.TopCenter)
+                    .padding(start = 24.dp, end = 24.dp, top = with(density) { topHeight.toDp() } + 24.dp)
+                    .background(c.ink.copy(alpha = 0.88f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 16.dp, vertical = 9.dp)
+                    .testTag("draft-warning").semantics { liveRegion = LiveRegionMode.Polite },
+                style = MikaType.Body, color = c.bg,
+            )
+        }
 
         AgentPip(
             pip = ui.pip,
