@@ -17,7 +17,9 @@ class ChatCopyTest {
 
     @Test fun sixDistinctNonBlankExamples() {
         assertEquals(6, ChatCopy.examples.size)
-        assertEquals(6, ChatCopy.examples.map { it.text }.filter { it.isNotBlank() }.toSet().size)
+        assertEquals(6, ChatCopy.examples.filter { it.isNotBlank() }.toSet().size)
+        assertEquals(ChatCopy.examples, ChatCopy.recommendationSeeds().map { it.first })
+        assertEquals(ChatCopy.examples, ChatCopy.recommendationSeeds().map { it.second })
     }
 
     /** 分支标题:源标题后面加后缀,总长不超过 24 字;截的是源标题,后缀留着,emoji 不截半个。 */

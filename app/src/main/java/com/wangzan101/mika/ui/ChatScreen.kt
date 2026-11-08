@@ -114,11 +114,14 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.cap.web.KeptPage
 import com.wangzan101.mika.chat.SharedFile
 import com.wangzan101.mika.confirm.ConfirmationCopy
 import com.wangzan101.mika.settings.Prerequisites
+import com.wangzan101.mika.settings.RecommendedTask
+import com.wangzan101.mika.settings.RecommendedTaskStore
 import com.wangzan101.mika.takeover.Takeover
 import com.wangzan101.mika.task.SteerNote
 import com.wangzan101.mika.task.SteerState
@@ -148,6 +151,7 @@ import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.voice.HoldToTalk
 import com.wangzan101.mika.voice.VoiceSource
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -183,7 +187,16 @@ fun ChatScreen(
     openSpeechModel: () -> Unit = {},
     /** 输入框里还没发出的字，交给「教 Mika」预填，不会自己开始。 */
     onOpenTeach: (String) -> Unit = {},
+    /** 首页推荐任务。不传时用本机保存的那一份;测试传入单独的存储,避免改到用户的数据。 */
+    recommendations: RecommendedTaskStore? = null,
 ) {
+    val recommendationStore = recommendations
+        ?: (LocalContext.current.applicationContext as? MikaApp)?.recommendedTasks
+    val recommendedTasksFlow = remember(recommendationStore) {
+        recommendationStore?.also { it.ensureLoaded { ChatCopy.recommendationSeeds() } }?.tasks
+            ?: MutableStateFlow<List<RecommendedTask>>(emptyList())
+    }
+    val recommendedTasks by recommendedTasksFlow.collectAsState()
     val ui by vm.ui.collectAsState()
     val others by vm.otherRunning.collectAsState()
     val keptAny by vm.keptPage.collectAsState()
@@ -313,8 +326,8 @@ fun ChatScreen(
             ) {
                 if (ui.exchanges.isEmpty() && ui.blocked == null) {
                     item("empty") {
-                        EmptyState(ui.conversationId) { example ->
-                            if (input.isEmpty()) vm.input(example) else pendingExample = example
+                        EmptyState(ui.conversationId, recommendedTasks) { prompt ->
+                            if (input.isEmpty()) vm.input(prompt) else pendingExample = prompt
                         }
                     }
                 }
@@ -525,9 +538,9 @@ private fun LazyListState.nearTail(thresholdPx: Int): Boolean {
 
 // ---------- 空对话 ----------
 
-/** 问候、一句「想让 Mika 做什么？」和一列示例;点示例把它填进输入框,改好了再发。 */
+/** 问候、一句「想让 Mika 做什么？」和推荐任务。点一条把提示词填进输入框,改好了再发;一条都没有时不显示列表。 */
 @Composable
-private fun EmptyState(conversation: String?, onPick: (String) -> Unit) {
+private fun EmptyState(conversation: String?, tasks: List<RecommendedTask>, onPick: (String) -> Unit) {
     val c = MikaTheme.colors
     val hour = remember(conversation) { LocalTime.now().hour }
     Column(Modifier.fillMaxWidth()) {
@@ -535,20 +548,14 @@ private fun EmptyState(conversation: String?, onPick: (String) -> Unit) {
             Text(ChatCopy.greeting(hour), style = MikaType.LargeTitle, color = c.ink)
             Text(ChatCopy.EMPTY_PROMPT, Modifier.padding(top = 6.dp), style = EmptyLead, color = c.ink2)
         }
-        MikaCard(Modifier.padding(top = 28.dp)) {
-            ChatCopy.examples.forEachIndexed { i, ex ->
-                ExampleRow(exampleIcon(ex.kind), ex.text, first = i == 0) { onPick(ex.text) }
+        if (tasks.isNotEmpty()) {
+            MikaCard(Modifier.padding(top = 28.dp)) {
+                tasks.forEachIndexed { i, task ->
+                    ExampleRow(MikaIcons.Message, task.title, first = i == 0) { onPick(task.prompt) }
+                }
             }
         }
     }
-}
-
-private fun exampleIcon(kind: ChatCopy.ExampleKind): ImageVector = when (kind) {
-    ChatCopy.ExampleKind.App -> MikaIcons.Apps
-    ChatCopy.ExampleKind.Web -> MikaIcons.Globe
-    ChatCopy.ExampleKind.File -> MikaIcons.Doc
-    ChatCopy.ExampleKind.Schedule -> MikaIcons.Clock
-    ChatCopy.ExampleKind.Device -> MikaIcons.Alarm
 }
 
 @Composable
@@ -567,7 +574,7 @@ private fun ExampleRow(icon: ImageVector, text: String, first: Boolean, onClick:
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Icon(icon, null, Modifier.size(MikaSize.Icon), tint = c.ink2)
-        Text(text, Modifier.weight(1f), style = ExampleText, color = c.ink)
+        Text(text, Modifier.weight(1f), style = ExampleText, color = c.ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -251,6 +251,11 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         com.wangzan101.mika.settings.AppAccessStore(java.io.File(filesDir, "app-access.json"))
     }
 
+    /** 首页推荐任务。文件还不存在时,由界面用当前语言的内置示例初始化一次。 */
+    val recommendedTasks: com.wangzan101.mika.settings.RecommendedTaskStore by lazy {
+        com.wangzan101.mika.settings.RecommendedTaskStore(java.io.File(filesDir, com.wangzan101.mika.settings.RecommendedTaskStore.FILE))
+    }
+
     /** 全局的询问 / 自主和各任务自己的那一份;开发者选项里的「自主模式」经它改。 */
     val approvalControl: ApprovalControl by lazy { ApprovalControl(approvals) }
 
