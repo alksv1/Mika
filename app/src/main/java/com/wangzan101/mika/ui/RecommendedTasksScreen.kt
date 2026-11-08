@@ -165,10 +165,12 @@ private fun RecommendedTaskDialog(store: RecommendedTaskStore, initial: Recommen
 
     fun save() {
         if (saving) return
+        val titleToSave = title
+        val promptToSave = prompt
         saving = true
         scope.launch {
             val result = withContext(Dispatchers.IO) {
-                if (initial == null) store.add(title, prompt) else store.update(initial.id, title, prompt)
+                if (initial == null) store.add(titleToSave, promptToSave) else store.update(initial.id, titleToSave, promptToSave)
             }
             saving = false
             if (result == null) onDismiss() else error = result
@@ -184,6 +186,7 @@ private fun RecommendedTaskDialog(store: RecommendedTaskStore, initial: Recommen
                     title, { title = it; error = null },
                     label = { Text(stringResource(R.string.recommendations_title_label)) },
                     singleLine = true,
+                    enabled = !saving,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -191,6 +194,7 @@ private fun RecommendedTaskDialog(store: RecommendedTaskStore, initial: Recommen
                     label = { Text(stringResource(R.string.recommendations_prompt_label)) },
                     minLines = 4,
                     maxLines = 8,
+                    enabled = !saving,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
                 error?.let {
