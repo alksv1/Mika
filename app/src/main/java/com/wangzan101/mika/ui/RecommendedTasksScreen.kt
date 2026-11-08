@@ -1,8 +1,13 @@
 package com.wangzan101.mika.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -13,9 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.wangzan101.mika.R
@@ -30,8 +38,8 @@ import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.PageScaffold
-import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,15 +52,18 @@ fun RecommendedTasksScreen(store: RecommendedTaskStore, onBack: () -> Unit) {
     val tasks by store.tasks.collectAsState()
     val unreadable by store.unreadable.collectAsState()
     var editing by remember { mutableStateOf<RecommendedTask?>(null) }
+    var deleting by remember { mutableStateOf<RecommendedTask?>(null) }
+    var deleteError by remember { mutableStateOf<RecommendedTaskError?>(null) }
     var adding by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf(false) }
     var resetError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    val c = MikaTheme.colors
     PageScaffold(stringResource(R.string.recommendations_title), onBack) {
         if (unreadable) {
-            FooterNote(stringResource(R.string.recommendations_unreadable), color = MikaTheme.colors.bad)
-            if (resetError) FooterNote(stringResource(R.string.recommendations_save_failed), color = MikaTheme.colors.bad)
+            FooterNote(stringResource(R.string.recommendations_unreadable), color = c.bad)
+            if (resetError) FooterNote(stringResource(R.string.recommendations_save_failed), color = c.bad)
             MikaButton(
                 stringResource(R.string.recommendations_reset),
                 { resetting = true },
@@ -78,7 +89,12 @@ fun RecommendedTasksScreen(store: RecommendedTaskStore, onBack: () -> Unit) {
                             preview.takeIf { it != task.title },
                             first = index == 0,
                             onClick = { editing = task },
-                        ) { RowChevron() }
+                        ) {
+                            DeleteTaskButton {
+                                deleteError = null
+                                deleting = task
+                            }
+                        }
                     }
                 }
                 if (tasks.size < RecommendedTaskStore.MAX_TASKS) {
@@ -97,6 +113,27 @@ fun RecommendedTasksScreen(store: RecommendedTaskStore, onBack: () -> Unit) {
             store = store,
             initial = editing,
             onDismiss = { adding = false; editing = null },
+        )
+    }
+    deleting?.let { task ->
+        MikaDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text(stringResource(R.string.recommendations_delete_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.recommendations_delete_body))
+                    deleteError?.let { Text(recommendationError(it), Modifier.padding(top = 8.dp), color = c.bad) }
+                }
+            },
+            confirmButton = {
+                TextButton({
+                    scope.launch {
+                        val result = withContext(Dispatchers.IO) { store.delete(task.id) }
+                        if (result == null) deleting = null else deleteError = result
+                    }
+                }, Modifier.testTag("recommendations-delete")) { Text(stringResource(R.string.recommendations_delete)) }
+            },
+            dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
     if (resetting) {
@@ -124,7 +161,6 @@ private fun RecommendedTaskDialog(store: RecommendedTaskStore, initial: Recommen
     var prompt by remember { mutableStateOf(initial?.prompt.orEmpty()) }
     var error by remember { mutableStateOf<RecommendedTaskError?>(null) }
     var saving by remember { mutableStateOf(false) }
-    var confirmingDelete by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     fun save() {
@@ -160,11 +196,6 @@ private fun RecommendedTaskDialog(store: RecommendedTaskStore, initial: Recommen
                 error?.let {
                     Text(recommendationError(it), Modifier.padding(top = 8.dp), color = MikaTheme.colors.bad)
                 }
-                if (initial != null) {
-                    TextButton({ confirmingDelete = true }, Modifier.padding(top = 4.dp)) {
-                        Text(stringResource(R.string.recommendations_delete), color = MikaTheme.colors.bad)
-                    }
-                }
             }
         },
         confirmButton = {
@@ -175,25 +206,17 @@ private fun RecommendedTaskDialog(store: RecommendedTaskStore, initial: Recommen
         dismissButton = { TextButton({ if (!saving) onDismiss() }) { Text(stringResource(R.string.cancel)) } },
         properties = DialogProperties(dismissOnClickOutside = false),
     )
+}
 
-    if (confirmingDelete && initial != null) {
-        MikaDialog(
-            onDismissRequest = { confirmingDelete = false },
-            title = { Text(stringResource(R.string.recommendations_delete_title)) },
-            text = { Text(stringResource(R.string.recommendations_delete_body)) },
-            confirmButton = {
-                TextButton({
-                    confirmingDelete = false
-                    scope.launch {
-                        val result = withContext(Dispatchers.IO) { store.delete(initial.id) }
-                        if (result == null) onDismiss() else error = result
-                    }
-                }, Modifier.testTag("recommendations-delete")) {
-                    Text(stringResource(R.string.recommendations_delete), color = MikaTheme.colors.bad)
-                }
-            },
-            dismissButton = { TextButton({ confirmingDelete = false }) { Text(stringResource(R.string.cancel)) } },
-        )
+/** 行尾的删除。单独可点,不会连着打开编辑。 */
+@Composable
+private fun DeleteTaskButton(onClick: () -> Unit) {
+    val label = stringResource(R.string.recommendations_delete)
+    Box(
+        Modifier.size(MikaSize.IconButton).clip(CircleShape).clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(MikaIcons.Trash, label, Modifier.size(MikaSize.Icon), tint = MikaTheme.colors.ink3)
     }
 }
 
