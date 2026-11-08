@@ -784,6 +784,92 @@ class ChatViewModelTest {
         assertEquals("answer:A", calls.last())
     }
 
+    @Test fun shareIntoCurrentUsesTheOpenConversationAndNeverRuns() = runTest {
+        val shared = SharedDraftStore(tmp.newFolder())
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), sharedDrafts = shared)
+        runCurrent()
+        vm.openConversation("a")
+        calls.clear()
+        assertEquals(ShareIntoCurrent.Applied, vm.shareIntoCurrent(SharedDraft("", "shared text")))
+        assertEquals("a", vm.ui.value.conversationId)
+        assertEquals("shared text", vm.ui.value.input)
+        assertEquals("shared text", vm.ui.value.sharedDraft?.text)
+        assertEquals("shared text", shared.read()?.text)
+        assertTrue(calls.isEmpty())
+    }
+
+    @Test fun shareIntoCurrentAsksBeforeReplacingAndReplaceClearsTheOldDraft() = runTest {
+        val shared = SharedDraftStore(tmp.newFolder())
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), sharedDrafts = shared)
+        runCurrent()
+        vm.openConversation("a")
+        vm.input("old draft")
+        vm.quote(QuoteMessage.From.Mika, "answer")
+        calls.clear()
+        assertEquals(ShareIntoCurrent.NeedsReplace, vm.shareIntoCurrent(SharedDraft("", "new share")))
+        // 问用户之前什么都不动,也不落盘;待确认的那份留着。
+        assertEquals("old draft", vm.ui.value.input)
+        assertEquals("answer", vm.ui.value.quote?.text)
+        assertEquals("new share", vm.pendingShare.value?.text)
+        assertTrue(shared.readAll().isEmpty())
+        assertTrue(vm.replaceCurrentDraftWithShared(SharedDraft("", "new share")))
+        assertNull(vm.pendingShare.value)
+        assertEquals("new share", vm.ui.value.input)
+        assertNull(vm.ui.value.quote)
+        assertEquals(FollowUpMode.Steer, vm.ui.value.followUpMode)
+        assertEquals("new share", shared.read()?.text)
+        assertTrue(calls.isEmpty())
+    }
+
+    @Test fun cancelPendingShareDropsThePrivateImageAndKeepsTheDraft() = runTest {
+        val shared = SharedDraftStore(tmp.newFolder())
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), sharedDrafts = shared)
+        runCurrent()
+        vm.openConversation("a")
+        vm.input("keep me")
+        shared.imageFile("pic.jpg")!!.writeBytes(byteArrayOf(1))
+        val image = com.wangzan101.mika.chat.SharedDraftImage("pic.jpg", "pic.jpg", 1)
+        assertEquals(ShareIntoCurrent.NeedsReplace, vm.shareIntoCurrent(SharedDraft("", "look", image)))
+        assertTrue(shared.imageFile("pic.jpg")!!.exists())
+        vm.cancelPendingShare()
+        assertNull(vm.pendingShare.value)
+        assertFalse(shared.imageFile("pic.jpg")!!.exists())
+        assertEquals("keep me", vm.ui.value.input)
+        assertTrue(vm.ui.value.attachments.isEmpty())
+    }
+
+    @Test fun shareIntoCurrentWithImageWhileTaskRunsQueuesIt() = runTest {
+        val shared = SharedDraftStore(tmp.newFolder())
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), sharedDrafts = shared)
+        runCurrent()
+        assertTrue(vm.send("do it", ok))
+        assertEquals(ComposerMode.Busy, vm.ui.value.composer)
+        shared.imageFile("pic.jpg")!!.writeBytes(byteArrayOf(1))
+        val image = com.wangzan101.mika.chat.SharedDraftImage("pic.jpg", "pic.jpg", 1)
+        assertEquals(ShareIntoCurrent.Applied, vm.shareIntoCurrent(SharedDraft("", "look", image)))
+        // 任务在跑时附件只能排队;发送时也不会被当成插话。
+        assertEquals(FollowUpMode.Queue, vm.ui.value.followUpMode)
+        assertEquals("pic.jpg", vm.ui.value.attachments.single().name)
+        assertTrue(vm.send("look", ok))
+        runCurrent()
+        assertTrue(calls.contains("queue:look"))
+        assertFalse(calls.contains("steer:look"))
+    }
+
+    @Test fun shareIntoCurrentWithImageWhileAnsweringFailsInsteadOfDroppingIt() = runTest {
+        val shared = SharedDraftStore(tmp.newFolder())
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), sharedDrafts = shared)
+        runCurrent()
+        assertTrue(vm.send("ask me", ok))
+        // 服务问到用户时进入回答模式,这时消息带不了附件。
+        emit(TaskState.WaitingInput("pick one"))
+        assertEquals(ComposerMode.Answer, vm.ui.value.composer)
+        shared.imageFile("pic.jpg")!!.writeBytes(byteArrayOf(1))
+        val image = com.wangzan101.mika.chat.SharedDraftImage("pic.jpg", "pic.jpg", 1)
+        assertEquals(ShareIntoCurrent.Failed, vm.shareIntoCurrent(SharedDraft("", "look", image)))
+        assertTrue(vm.ui.value.attachments.isEmpty())
+    }
+
     @Test fun sharedDraftIsFreshPersistentAndNeverRunsBeforeExplicitSend() = runTest {
         val conversations = ConversationStore(tmp.newFolder())
         val drafts = SharedDraftStore(tmp.newFolder())

@@ -279,6 +279,9 @@ enum class ComposerMode {
 /** 任务进行中发补充消息时,这句话交给谁:当前任务(下一步带上),还是这个对话的下一件任务。 */
 enum class FollowUpMode { Steer, Queue }
 
+/** 外部分享放进当前对话的结果:已放入、输入框已有草稿要先问用户、放不进去。 */
+enum class ShareIntoCurrent { Applied, NeedsReplace, Failed }
+
 data class ChatUi(
     val conversationId: String? = null,
     val exchanges: List<Exchange> = emptyList(),
@@ -456,8 +459,14 @@ class ChatViewModel(
     private val _ui = MutableStateFlow(ChatUi())
     val ui: StateFlow<ChatUi> = _ui.asStateFlow()
 
+    /** 分享进来时输入框已有草稿、等用户选「替换 / 取消」的那一份;放在这里,转屏重建后弹窗还在。 */
+    private val _pendingShare = MutableStateFlow<SharedDraft?>(null)
+    val pendingShare: StateFlow<SharedDraft?> = _pendingShare.asStateFlow()
+
     private val drafts = MutableStateFlow<Map<String, ComposerDraft>>(emptyMap())
     private var draftStateChanged = false
+    /** 每把分享内容放进当前对话加一;在途的附件导入据它判断输入框是否已被换掉。 */
+    private var composerGeneration = 0L
 
     /** 尚未发送第一句话的草稿也能从侧栏找回来;已有历史的对话由侧栏沿用原标题。 */
     val draftConversations = combine(drafts, _ui) { saved, current ->
@@ -911,6 +920,7 @@ class ChatViewModel(
         }
         val id = draftConversation()
         val submitted = _ui.value.draft()
+        val generation = composerGeneration
         _ui.update { it.copy(importing = true, rejectedAttachments = emptyList(), overLimit = 0) }
         scope.launch {
             val r = try { importAttachments(id, items.map { it.uri }) } catch (e: CancellationException) { throw e } catch (e: Exception) { ImportResult(emptyList(), items.map { it.name }) }
@@ -918,12 +928,14 @@ class ChatViewModel(
             updateDraft(id) { it.copy(importing = false, rejected = r.rejected) }
             val now = _ui.value
             if (goal.isEmpty() || now.conversationId != id || id in _deleted.value) return@launch
+            // 导入期间分享换掉了输入框:这条已提交的消息照发,但别清掉刚放进去的分享草稿。
+            val unchanged = generation == composerGeneration
             val accepted = when {
-                now.composer == ComposerMode.Idle -> { begin(goal, id); true }
+                now.composer == ComposerMode.Idle -> { begin(goal, id, preserveComposer = !unchanged); true }
                 now.composer == ComposerMode.Busy && now.followUpMode == FollowUpMode.Queue -> enqueue(goal, check)
                 else -> false
             }
-            if (accepted) {
+            if (accepted && unchanged) {
                 discardSharedDraft()
                 _ui.update { it.copy(input = if (it.input == submitted.input) "" else it.input,
                     quote = if (it.quote == submitted.quote) null else it.quote, attachments = emptyList()) }
@@ -932,11 +944,14 @@ class ChatViewModel(
         return true
     }
 
-    /** 在对话 [id] 里开始新任务 [goal]:界面上加一问一答,交给服务(并行关着、服务还忙时排在它收尾后面)。 */
-    private fun begin(goal: String, id: String) {
+    /**
+     * 在对话 [id] 里开始新任务 [goal]:界面上加一问一答,交给服务(并行关着、服务还忙时排在它收尾后面)。
+     * [preserveComposer] 表示输入框在附件导入期间已被分享换掉:这条任务照常开始,但不清理现在的草稿。
+     */
+    private fun begin(goal: String, id: String, preserveComposer: Boolean = false) {
         lingerJob?.cancel()
         // 真正开始任务后,草稿图片已在工作区(纯文字不需要图片),可以清掉私有暂存副本。
-        discardSharedDraft()
+        if (!preserveComposer) discardSharedDraft()
         // 这个对话的编号定下来了:胶囊之后接着它(新开的对话到这一刻才有编号)
         markCurrent(CurrentChat.Open(id))
         // 上一个任务收尾时先撤屏再报结束,这里读到的就是新任务开始前的样子;
@@ -950,10 +965,10 @@ class ChatViewModel(
                 conversationId = id,
                 exchanges = it.exchanges + Exchange(goal, emptyList(), ExchangeStatus.Working, live = true, startedAt = clock()),
                 blocked = null,
-                attachments = emptyList(),
+                attachments = if (preserveComposer) it.attachments else emptyList(),
                 pip = gated(PipUi(visible = true)),
                 composer = ComposerMode.Busy,
-                followUpMode = FollowUpMode.Steer,
+                followUpMode = if (preserveComposer) it.followUpMode else FollowUpMode.Steer,
                 // 这一句如果本来在排队条上乐观挂着、现在已经开始,就不能再显示一行
                 queued = it.queued.filterNot { q -> q.text == goal },
             )
@@ -1323,6 +1338,70 @@ class ChatViewModel(
         return true
     }
 
+    /**
+     * 外部分享放进当前打开的对话:输入框空着就直接放入;已有草稿时返回 [ShareIntoCurrent.NeedsReplace],
+     * 由用户决定替换还是取消。只填草稿,不发送,也不碰排队列表。
+     */
+    fun shareIntoCurrent(prepared: SharedDraft): ShareIntoCurrent {
+        val ui = _ui.value
+        val previous = _pendingShare.value
+        if (ui.draft().hasContent) {
+            // 新分享取代上一份还没确认的,上一份的私有图片直接丢掉。
+            if (previous != null) sharedDrafts?.discard(previous.image)
+            _pendingShare.value = prepared
+            return ShareIntoCurrent.NeedsReplace
+        }
+        if (previous != null) {
+            sharedDrafts?.discard(previous.image)
+            _pendingShare.value = null
+        }
+        val id = ui.conversationId ?: store.newConversation()
+        return if (placeSharedDraft(prepared, id, replace = false)) ShareIntoCurrent.Applied else ShareIntoCurrent.Failed
+    }
+
+    /** 用户确认替换:清掉输入框的文字、附件、引用和引导/排队选择,只留分享进来的内容。 */
+    fun replaceCurrentDraftWithShared(prepared: SharedDraft): Boolean {
+        _pendingShare.value = null
+        val id = _ui.value.conversationId ?: return false
+        return placeSharedDraft(prepared, id, replace = true)
+    }
+
+    /** 用户取消(或界面离开):丢掉还没确认的分享和它的私有图片。 */
+    fun cancelPendingShare() {
+        val draft = _pendingShare.value ?: return
+        sharedDrafts?.discard(draft.image)
+        _pendingShare.value = null
+    }
+
+    private fun placeSharedDraft(prepared: SharedDraft, id: String, replace: Boolean): Boolean {
+        val drafts = sharedDrafts ?: return false
+        val draft = prepared.copy(conversationId = id)
+        val attachments = sharedAttachments(draft)
+        // 回答 Mika 提问时带不了附件:宁可当场说放不进去,也不留一张发不出去的图。
+        if (draft.image != null && (_ui.value.composer == ComposerMode.Answer || attachments.size != 1)) return false
+        if (!drafts.save(draft)) return false
+        // 有任务在跑时只有「排队」能把附件发出去;纯文字按替换规则回到默认的「引导」。
+        val mode = if (_ui.value.composer == ComposerMode.Busy && attachments.isNotEmpty()) FollowUpMode.Queue else FollowUpMode.Steer
+        composerGeneration++
+        _ui.update {
+            it.copy(
+                conversationId = id,
+                input = draft.text,
+                attachments = attachments,
+                quote = if (replace) null else it.quote,
+                followUpMode = mode,
+                sharedDraft = draft,
+                importing = false,
+                rejectedAttachments = emptyList(),
+                overLimit = 0,
+            )
+        }
+        // 存进按对话的草稿:切走再切回来、重启后都还看得到这份分享。
+        keepDraft()
+        markCurrent(CurrentChat.Open(id))
+        return true
+    }
+
     private fun discardSharedDraft() {
         val draft = _ui.value.sharedDraft ?: return
         val imageUri = draft.image?.let { image -> runCatching { sharedDraftUri(image.fileName) }.getOrNull() }
@@ -1481,6 +1560,7 @@ class ChatViewModel(
     private fun startOver(id: String) {
         draftStateChanged = true
         discardSharedDraft()
+        cancelPendingShare()
         lingerJob?.cancel()
         pendingStart?.cancel()
         pendingStart = null

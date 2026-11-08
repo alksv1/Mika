@@ -17,7 +17,10 @@
     <string name="chat_example_replace_action">取代草稿</string>
     <string name="chat_working_on">正在操作%1$s</string>
     <string name="chat_working">正在處理</string>
-    <string name="share_draft_failed">沒能把分享內容放進新對話</string>
+    <string name="share_draft_failed">沒能把分享內容放進去</string>
+    <string name="share_draft_replace_title">替換目前草稿？</string>
+    <string name="share_draft_replace_body">分享的內容會替換這個會話輸入框裡已有的內容。</string>
+    <string name="share_draft_replace_action">替換</string>
     <string name="chat_wait_previous_task">等前一個任務做完再開始</string>
     <string name="chat_wait_unlock">等你解鎖手機</string>
     <string name="chat_waiting_for_you">等你處理</string>

@@ -9,6 +9,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /** 系统分享图片的私有副本;[fileName] 只由本 App 生成,不保留外部路径。 */
 data class SharedDraftImage(val fileName: String, val name: String, val size: Long)
@@ -95,7 +97,9 @@ class SharedDraftStore(private val dir: File) {
             val tmp = File(dir, "$METADATA.tmp")
             val written = runCatching {
                 tmp.writeText(json)
-                tmp.renameTo(metadata) && metadata.isFile && metadata.readText() == json
+                // renameTo 在运行测试的 Windows 上不能覆盖已有文件;它在安卓上也只是同一套改名。
+                Files.move(tmp.toPath(), metadata.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                metadata.isFile && metadata.readText() == json
             }.getOrDefault(false)
             if (!written) {
                 tmp.delete()

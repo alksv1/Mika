@@ -17,7 +17,10 @@
     <string name="chat_example_replace_action">Заменить черновик</string>
     <string name="chat_working_on">Работает в приложении «%1$s»</string>
     <string name="chat_working">Работает</string>
-    <string name="share_draft_failed">Не удалось добавить материал в новый разговор</string>
+    <string name="share_draft_failed">Не удалось добавить материал</string>
+    <string name="share_draft_replace_title">Заменить текущий черновик?</string>
+    <string name="share_draft_replace_body">Содержимое заменит то, что уже введено в этом разговоре.</string>
+    <string name="share_draft_replace_action">Заменить</string>
     <string name="chat_wait_previous_task">Начнётся после завершения предыдущей задачи</string>
     <string name="chat_wait_unlock">Ждёт, пока вы разблокируете телефон</string>
     <string name="chat_waiting_for_you">Ждёт вас</string>

@@ -17,7 +17,10 @@
     <string name="chat_example_replace_action">Reemplazar borrador</string>
     <string name="chat_working_on">Trabajando en %1$s</string>
     <string name="chat_working">Trabajando</string>
-    <string name="share_draft_failed">No se pudo añadir el contenido compartido a una conversación nueva</string>
+    <string name="share_draft_failed">No se pudo añadir el contenido compartido</string>
+    <string name="share_draft_replace_title">¿Reemplazar el borrador actual?</string>
+    <string name="share_draft_replace_body">El contenido compartido reemplazará lo que ya has escrito en esta conversación.</string>
+    <string name="share_draft_replace_action">Reemplazar</string>
     <string name="chat_wait_previous_task">Empieza cuando termine la tarea anterior</string>
     <string name="chat_wait_unlock">Esperando a que desbloquees</string>
     <string name="chat_waiting_for_you">Esperándote</string>

@@ -2,8 +2,13 @@ package com.wangzan101.mika.ui
 
 import com.wangzan101.mika.i18n.AppLanguage
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import com.wangzan101.mika.ui.components.KeyboardDismissArea
+import com.wangzan101.mika.ui.components.MikaDialog
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -95,12 +100,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestedConversation = intent.getStringExtra(EXTRA_OPEN_CONVERSATION)
         takeTeach(intent)
-        val pendingShare = (application as MikaApp).sharedDrafts.read()
-        val restoringAcceptedShare = savedInstanceState != null && intent.action == Intent.ACTION_SEND && pendingShare != null &&
-            (application as MikaApp).conversations.currentChat() == CurrentChat.Open(pendingShare.conversationId)
+        val app = application as MikaApp
+        val currentChat = app.conversations.currentChat()
+        // 当前对话已经收下过一条分享草稿:重建直接恢复,不再把它当成新一次分享。
+        val restoringAcceptedShare = savedInstanceState != null && intent.action == Intent.ACTION_SEND &&
+            currentChat is CurrentChat.Open && app.sharedDrafts.readAll().any { it.conversationId == currentChat.id }
+        // 转屏/重建时用户还没确认的那份分享留着,不要当成新一次分享再收一遍。
+        val pendingConfirm = (application as MikaApp).chat.pendingShare.value
         // 已落盘但还没来得及换掉 intent 时,重建直接恢复;真正的冷启动分享始终作为新一次分享收下。
-        if (!restoringAcceptedShare && (savedInstanceState == null || intent.action == Intent.ACTION_SEND)) {
-            receiveShare(intent)
+        if (!restoringAcceptedShare && pendingConfirm == null && (savedInstanceState == null || intent.action == Intent.ACTION_SEND)) {
+            // 界面是这次分享才创建的:按「不在后台」处理,放进新对话。界面还活着时走 onNewIntent。
+            receiveShare(intent, intoCurrent = false)
         }
         monitor = SystemStatusMonitor(this, PhoneServices.of(this).shellControl)
         val store = ProviderStore.get(this)
@@ -113,14 +123,23 @@ class MainActivity : ComponentActivity() {
                 KeyboardDismissArea(Modifier.fillMaxSize()) {
                     MikaRoot(
                         store, monitor, ::perform, requestedConversation, { requestedConversation = null }, requestedSharedDraft,
-                        onSharedDraftOpened = { accepted, draft ->
+                        onSharedDraftOpened = { outcome, draft ->
                             requestedSharedDraft = null
-                            if (accepted) {
-                                // 接受后重建不再把最初的分享当成一次新分享。
-                                setIntent(Intent(this@MainActivity, MainActivity::class.java))
-                            } else {
-                                (application as MikaApp).sharedDrafts.discard(draft.image)
-                                Toast.makeText(this@MainActivity, R.string.share_draft_failed, Toast.LENGTH_SHORT).show()
+                            when (outcome) {
+                                ShareOutcome.Applied -> {
+                                    // 接受后重建不再把最初的分享当成一次新分享。
+                                    setIntent(Intent(this@MainActivity, MainActivity::class.java))
+                                }
+                                ShareOutcome.Cancelled -> {
+                                    // 取消就是彻底丢弃这次分享:删掉已复制的私有副本,原草稿原样不动。
+                                    (application as MikaApp).sharedDrafts.discard(draft.image)
+                                    setIntent(Intent(this@MainActivity, MainActivity::class.java))
+                                }
+                                ShareOutcome.Failed -> {
+                                    (application as MikaApp).sharedDrafts.discard(draft.image)
+                                    setIntent(Intent(this@MainActivity, MainActivity::class.java))
+                                    Toast.makeText(this@MainActivity, R.string.share_draft_failed, Toast.LENGTH_SHORT).show()
+                                }
                             }
                         },
                         openTeach = openTeach,
@@ -134,14 +153,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        val opensTeach = intent.getBooleanExtra(EXTRA_OPEN_TEACH, false)
         requestedConversation = intent.getStringExtra(EXTRA_OPEN_CONVERSATION)
         takeTeach(intent)
-        requestedSharedDraft?.let { (application as MikaApp).sharedDrafts.discard(it.draft.image) }
-        requestedSharedDraft = null
-        receiveShare(intent)
+        // 只有真正换成另一处(新分享、指定对话、教 Mika)才收掉还没确认的那份;从桌面回到 Mika 不算。
+        if (intent.action == Intent.ACTION_SEND || requestedConversation != null || opensTeach) {
+            requestedSharedDraft?.let { (application as MikaApp).sharedDrafts.discard(it.draft.image) }
+            requestedSharedDraft = null
+            (application as MikaApp).chat.cancelPendingShare()
+        }
+        // 界面实例还活着(应用在后台):放进当前打开的会话。
+        receiveShare(intent, intoCurrent = true)
     }
 
-    private fun receiveShare(intent: Intent) {
+    private fun receiveShare(intent: Intent, intoCurrent: Boolean) {
         if (intent.action != Intent.ACTION_SEND) return
         shareJob?.cancel()
         val type = intent.type.orEmpty()
@@ -156,7 +181,7 @@ class MainActivity : ComponentActivity() {
                     Toast.makeText(this, R.string.share_draft_failed, Toast.LENGTH_SHORT).show()
                     return
                 }
-                requestedSharedDraft = SharedDraftRequest(SharedDraft("", text), ++shareSerial)
+                requestedSharedDraft = SharedDraftRequest(SharedDraft("", text), ++shareSerial, intoCurrent)
             }
             type.startsWith("image/") -> {
                 val uri = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
@@ -174,7 +199,7 @@ class MainActivity : ComponentActivity() {
                         null
                     }
                     if (prepared == null) Toast.makeText(this@MainActivity, R.string.share_draft_failed, Toast.LENGTH_SHORT).show()
-                    else requestedSharedDraft = SharedDraftRequest(prepared, ++shareSerial)
+                    else requestedSharedDraft = SharedDraftRequest(prepared, ++shareSerial, intoCurrent)
                 }
             }
             else -> Toast.makeText(this, R.string.share_draft_failed, Toast.LENGTH_SHORT).show()
@@ -204,8 +229,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         shareJob?.cancel()
-        // 还没绑到对话的私有副本随这次接收结束清掉;已接受的草稿由 CurrentChat 恢复,不在这里删除。
-        requestedSharedDraft?.let { (application as MikaApp).sharedDrafts.discard(it.draft.image) }
+        val app = application as MikaApp
+        // 转屏/重建时等用户确认的分享要留着;真正离开这一屏才清掉还没绑到对话的私有副本。
+        if (!isChangingConfigurations) {
+            requestedSharedDraft?.let { app.sharedDrafts.discard(it.draft.image) }
+            app.chat.cancelPendingShare()
+        }
         requestedSharedDraft = null
         super.onDestroy()
     }
@@ -297,7 +326,11 @@ internal fun openInBrowser(context: Context, url: String) {
 /** 依次试 [candidates],第一个 [start] 成功的就停;都不行返回 false。系统设置页各家不一定都有,靠这个退回通用页。 */
 internal fun <T> firstThatStarts(candidates: List<T>, start: (T) -> Boolean): Boolean = candidates.any(start)
 
-private data class SharedDraftRequest(val draft: SharedDraft, val serial: Long)
+/** 一次系统分享的处理结果:放进去了、用户取消、放不进去。 */
+private enum class ShareOutcome { Applied, Cancelled, Failed }
+
+/** 一次系统分享;[intoCurrent] 表示界面还活着,放进当前会话而不是新建一个。 */
+private data class SharedDraftRequest(val draft: SharedDraft, val serial: Long, val intoCurrent: Boolean)
 
 /**
  * 页面切换:对话页是根,侧栏和设置等入口把页面压进 [NavStack],返回键和页面上的返回按钮都走 [NavStack.back]。
@@ -311,7 +344,7 @@ private fun MikaRoot(
     requestedConversation: String?,
     onConversationOpened: () -> Unit,
     sharedDraft: SharedDraftRequest?,
-    onSharedDraftOpened: (Boolean, SharedDraft) -> Unit,
+    onSharedDraftOpened: (ShareOutcome, SharedDraft) -> Unit,
     openTeach: Boolean,
     onTeachOpened: () -> Unit,
 ) {
@@ -348,13 +381,50 @@ private fun MikaRoot(
             onConversationOpened()
         }
     }
+    // 分享进来时输入框已有草稿:先问「替换 / 取消」。待确认的那份放在 ViewModel 里,转屏重建后弹窗还在。
+    val pendingShareDraft by app.chat.pendingShare.collectAsState()
     LaunchedEffect(sharedDraft) {
-        val draft = sharedDraft?.draft
-        if (draft != null) {
-            val accepted = app.chat.openSharedDraft(draft)
+        val request = sharedDraft ?: return@LaunchedEffect
+        if (request.intoCurrent) {
+            when (app.chat.shareIntoCurrent(request.draft)) {
+                ShareIntoCurrent.Applied -> {
+                    nav.reset()
+                    onSharedDraftOpened(ShareOutcome.Applied, request.draft)
+                }
+                // 等用户选;弹窗由上面的 pendingShareDraft 驱动。
+                ShareIntoCurrent.NeedsReplace -> Unit
+                ShareIntoCurrent.Failed -> onSharedDraftOpened(ShareOutcome.Failed, request.draft)
+            }
+        } else {
+            val accepted = app.chat.openSharedDraft(request.draft)
             if (accepted) nav.reset()
-            onSharedDraftOpened(accepted, draft)
+            onSharedDraftOpened(if (accepted) ShareOutcome.Applied else ShareOutcome.Failed, request.draft)
         }
+    }
+    pendingShareDraft?.let { draft ->
+        MikaDialog(
+            onDismissRequest = {
+                app.chat.cancelPendingShare()
+                onSharedDraftOpened(ShareOutcome.Cancelled, draft)
+            },
+            title = { Text(stringResource(R.string.share_draft_replace_title)) },
+            text = { Text(stringResource(R.string.share_draft_replace_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val replaced = app.chat.replaceCurrentDraftWithShared(draft)
+                        onSharedDraftOpened(if (replaced) ShareOutcome.Applied else ShareOutcome.Failed, draft)
+                    },
+                    Modifier.testTag("confirm-share-replace"),
+                ) { Text(stringResource(R.string.share_draft_replace_action)) }
+            },
+            dismissButton = {
+                TextButton({
+                    app.chat.cancelPendingShare()
+                    onSharedDraftOpened(ShareOutcome.Cancelled, draft)
+                }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
     val release = remember { Build.VERSION.RELEASE }
     // 结果卡片上点了「看看」:打开技能分段

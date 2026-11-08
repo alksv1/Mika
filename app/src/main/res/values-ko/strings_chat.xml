@@ -17,7 +17,10 @@
     <string name="chat_example_replace_action">초안 바꾸기</string>
     <string name="chat_working_on">%1$s에서 작업 중</string>
     <string name="chat_working">작업 중</string>
-    <string name="share_draft_failed">공유한 내용을 새 대화에 추가하지 못했어요</string>
+    <string name="share_draft_failed">공유한 내용을 추가하지 못했어요</string>
+    <string name="share_draft_replace_title">현재 임시 저장 내용을 바꿀까요?</string>
+    <string name="share_draft_replace_body">공유한 내용이 이 대화 입력창에 있던 내용을 대체합니다.</string>
+    <string name="share_draft_replace_action">바꾸기</string>
     <string name="chat_wait_previous_task">이전 작업이 끝나면 시작해요</string>
     <string name="chat_wait_unlock">잠금 해제를 기다리는 중</string>
     <string name="chat_waiting_for_you">내 차례를 기다리는 중</string>

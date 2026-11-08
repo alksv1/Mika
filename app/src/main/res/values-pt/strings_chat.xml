@@ -17,7 +17,10 @@
     <string name="chat_example_replace_action">Substituir rascunho</string>
     <string name="chat_working_on">Trabalhando em %1$s</string>
     <string name="chat_working">Trabalhando</string>
-    <string name="share_draft_failed">Não foi possível adicionar o conteúdo compartilhado a uma nova conversa</string>
+    <string name="share_draft_failed">Não foi possível adicionar o conteúdo compartilhado</string>
+    <string name="share_draft_replace_title">Substituir o rascunho atual?</string>
+    <string name="share_draft_replace_body">O conteúdo compartilhado substituirá o que você já escreveu nesta conversa.</string>
+    <string name="share_draft_replace_action">Substituir</string>
     <string name="chat_wait_previous_task">Começa quando a tarefa anterior terminar</string>
     <string name="chat_wait_unlock">Aguardando você desbloquear</string>
     <string name="chat_waiting_for_you">Aguardando você</string>
