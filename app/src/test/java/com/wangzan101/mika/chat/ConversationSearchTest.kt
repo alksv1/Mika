@@ -35,6 +35,17 @@ class ConversationSearchTest {
         assertEquals(listOf("杭州", "西湖"), ConversationSearch.termsOf("  杭州\t 西湖  "))
         assertEquals(emptyList<String>(), ConversationSearch.termsOf("   "))
         assertEquals(8, ConversationSearch.termsOf((1..12).joinToString(" ")).size)
+        // 全角空格和 NBSP 也算分隔;重复的词只留一个
+        assertEquals(listOf("杭州", "西湖"), ConversationSearch.termsOf("杭州\u3000西湖"))
+        assertEquals(listOf("a", "b"), ConversationSearch.termsOf("a\u00A0b"))
+        assertEquals(listOf("foo", "bar"), ConversationSearch.termsOf("foo foo bar"))
+    }
+
+    @Test fun fullWidthSpaceAndNbspSeparateTerms() {
+        val store = ConversationStore(tmp.newFolder())
+        store.append("a", Turn("杭州 西湖", "很好", "succeeded"))
+        assertEquals(listOf("a"), ids(store, "杭州\u3000西湖"))
+        assertEquals(listOf("a"), ids(store, "杭州\u00A0西湖"))
     }
 
     @Test fun findsChineseBodyTextAcrossTurns() {
@@ -150,6 +161,18 @@ class ConversationSearchTest {
         assertEquals(emptyList<String>(), hits(store, "新内容", listOf(stale)).hits.map { it.id })
         val fresh = summary("a", "旧问题", updatedAt = 2L)
         assertEquals(listOf("a"), hits(store, "新内容", listOf(fresh)).hits.map { it.id })
+    }
+
+    @Test fun clearDropsCachedBodies() {
+        val store = ConversationStore(tmp.newFolder())
+        store.append("a", Turn("旧问题", "旧回答", "succeeded"))
+        val stale = summary("a", "旧问题", updatedAt = 1L)
+        assertEquals(emptyList<String>(), hits(store, "新内容", listOf(stale)).hits.map { it.id })
+
+        store.append("a", Turn("新内容", "新回答", "succeeded"))
+        assertEquals(emptyList<String>(), hits(store, "新内容", listOf(stale)).hits.map { it.id })
+        store.search.clear()
+        assertEquals(listOf("a"), hits(store, "新内容", listOf(stale)).hits.map { it.id })
     }
 
     @Test fun emptyQueryMatchesNothing() {

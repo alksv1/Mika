@@ -48,7 +48,6 @@ import com.wangzan101.mika.ui.theme.MikaType
 
 /** 侧栏搜索结果:标题和命中片段已经换成行要显示的样子;没搜完时 [searching] 为真。 */
 data class DrawerSearch(
-    val query: String,
     val hits: List<DrawerConversation>,
     val searching: Boolean,
     val truncated: Boolean = false,
@@ -64,6 +63,7 @@ internal fun DrawerSearchField(query: String, onQueryChange: (String) -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)
             .height(38.dp)
+            .keepsKeyboard()
             .clip(NavShape)
             .background(c.fill)
             .then(if (focused) Modifier.border(1.dp, c.accent, NavShape) else Modifier)
@@ -78,7 +78,7 @@ internal fun DrawerSearchField(query: String, onQueryChange: (String) -> Unit) {
             }
             BasicTextField(
                 query, onQueryChange,
-                Modifier.fillMaxWidth().keepsKeyboard().testTag("drawer-search")
+                Modifier.fillMaxWidth().testTag("drawer-search")
                     .onFocusChanged { focused = it.isFocused },
                 singleLine = true,
                 textStyle = SearchText.copy(color = c.ink),

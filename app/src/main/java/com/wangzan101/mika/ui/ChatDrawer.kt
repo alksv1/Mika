@@ -310,7 +310,7 @@ fun ChatDrawer(
                         )
                     }
                 }
-                // 还没有结果(标题也没命中)时说明正在扫正文;有标题命中就先列出来，正文命中随后补上
+                // 扫正文期间一直提示;标题命中已经列出来时也提示,表示结果还会补全
                 if (search?.searching != false) item("searching") { SearchHint(stringResource(R.string.drawer_searching)) }
                 items(search?.hits.orEmpty(), key = { "s-${it.id}" }) { ConversationEntry(it, onOpen, onActions, terms) }
                 if (search != null && !search.searching && search.hits.isEmpty()) {
@@ -599,10 +599,12 @@ fun ChatWithDrawer(
     /** 搜索框里的字和已经拿到的结果;侧栏关掉就清空。 */
     var query by remember { mutableStateOf("") }
     var searchOutcome by remember { mutableStateOf<SearchOutcome?>(null) }
-    LaunchedEffect(open) {
+    LaunchedEffect(open, search) {
         if (!open) {
             query = ""
             searchOutcome = null
+            // 正文索引只在侧栏开着时有用,关掉就放掉,长时间使用不会一直占着全部对话的正文
+            search?.clear()
         }
     }
     // 对话页上返回(侧滑)先打开侧栏;侧栏开着时再返回才离开 App(退到后台,和桌面返回一样)。
@@ -705,7 +707,6 @@ fun ChatWithDrawer(
                 }
                 val searchView = searchOutcome?.takeIf { it.query == query.trim() }?.let { outcome ->
                     DrawerSearch(
-                        outcome.query,
                         outcome.hits.mapNotNull { hit ->
                             val s = byId[hit.id] ?: return@mapNotNull null
                             val time = if (s.updatedAt != 0L) conversationTime(s.updatedAt, now) else ""

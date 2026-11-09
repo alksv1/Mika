@@ -76,6 +76,11 @@ class ConversationSearch(
         return SearchResult(sorted.take(MAX_HITS), truncated = sorted.size > MAX_HITS)
     }
 
+    /** 清空正文缓存;侧栏关掉时调用,免得一次搜索过后一直占着所有对话的正文。 */
+    fun clear() {
+        synchronized(lock) { cache.clear() }
+    }
+
     private fun body(c: ConversationSummary): Body {
         val cached = synchronized(lock) { cache[c.id] }
         if (cached != null && cached.updatedAt == c.updatedAt) return cached.body
@@ -184,10 +189,11 @@ class ConversationSearch(
         private const val MAX_TERMS = 8
         private const val SNIPPET_BEFORE = 24
         private const val SNIPPET_AFTER = 48
-        private val SPACE = Regex("\\s+")
+        // Java 的 \s 只认 ASCII 空白,中文输入法的全角空格和粘贴来的 NBSP 也要算分隔
+        private val SPACE = Regex("[\\s\\u3000\\u00A0]+")
 
-        /** 查询切成关键词:空白分隔,空的不算,最多 8 个。 */
+        /** 查询切成关键词:空白分隔,空的和重复的不算,最多 8 个。 */
         fun termsOf(query: String): List<String> =
-            query.trim().split(SPACE).filter(String::isNotEmpty).take(MAX_TERMS)
+            query.trim().split(SPACE).filter(String::isNotEmpty).distinct().take(MAX_TERMS)
     }
 }
