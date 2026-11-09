@@ -79,6 +79,8 @@
 
 本机渠道是 `LocalChannel`(`app/task/LocalChannel.kt`):本机界面加系统通知。`WechatChannel`(`app/wechat/`)是第二渠道:单账号、本人私聊文本,凭证加密保存在本机,独立前台服务长轮询,不建中继服务器,也不另建任务状态机。入站消息先写待处理账本再推进同步游标,`TaskCenter` 按渠道消息编号持久化去重后才确认;进程重启会先补交未登记消息。任务记录保存来源 `ChannelPeer`,提问、结果与 `RunRecovery` 都按来源路由。渠道接口 `Channel`、`ChannelGateway`(主人身份、提问编号对应、付款确认只能在能确认的渠道上做,`Channel.confirms`)在 `core/run/`;微信 `confirms=false`,付款确认与手机接管仍走手机。
 
+微信任务的自动亮屏与解锁另由 `WechatStore.allowUnlock` 授权,默认关闭;授权独立保存在 `unlock.json`,绑定当前 owner 与 bot,缺失、损坏或账号不符都按关闭处理。撤销只删除授权文件,不改消息账本;关闭接收写盘失败时也撤销授权,避免重启恢复可解锁状态。关闭接收时不能解锁,解绑或每次扫码重绑都会撤销授权,同账号重绑仍保留消息账本。`canUnlock` 每次核对当前绑定、微信渠道、主人与线程映射。`taskUnlockAuthorization`(`app/task/TaskUnlockPolicy.kt`)只为定时任务及开跑时已获授权的本人微信任务提供 `TaskGate` 解锁回调;其他来源或未授权任务仍等手动解锁。微信回调在实际解锁时动态复核授权,不会沿用已撤销的权限。此开关不修改 `DeviceAccessSettings.enabled` 或锁屏凭据,仍须满足已有本机设备访问许可,也不改变 `RunOrigin.Channel` 及付款、接管规则。
+
 ### 进程重启后
 
 - `RunRecovery`(`app/task/RunRecovery.kt`)是运行善后的单一入口,对象是「中断了、还没告知过用户」的运行。两个时机:进程重启后,`MikaApp.onCreate` 一起来就调 `recover`(`TaskService.onCreate` 也调,但进程里只有第一次生效,后到的什么都不做);任务服务被销毁而进程还在时,`TaskService.onDestroy` 标中断后当场调 `settleInterrupted`,不等下次启动(善后用 App 级作用域,服务没了也做完;启动时的扫描再接住当场没做完就被杀的)。标记在调用里同步做完(`RunStore.interruptUnfinished()` 把没结束的运行标为 Interrupted,此刻在跑的运行经 `live` 排除),善后在后台做:回复已存但没送达的补送一次(注明是恢复的);送达状态不明的不重发,只提示「上次结果可能已送达」;没有回复的,发「运行中断,可在对话里重新发起」的系统通知,并往对话记一轮失败状态的记录「任务中断了,可以重新发起」(和其他失败结果同一套,界面上显示为未完成的一轮)。**「已告知」不另设字段,看送达账本**:有 `interrupted:<运行>`、`uncertain:<送达>`、`failed:<送达>` 任一条提示记录就不再处理;回复送达了的运行转为 Ended。所以重复调用、两个时机撞上都只告知一次。**从不从中间续跑**:屏幕状态回不去。
@@ -265,7 +267,7 @@
 
 普通 API 仅提供只读设备状态供 CLI doctor 使用;MCP 另提供主屏准备工具 `mika_device_state`、`mika_wake_device`、`mika_unlock_device`。它们属于宿主设备管理(同配对与恢复),不注册为模型的 `AgentTool`,不进入模型上下文、动作历史或凭据日志。MCP 原有认证之后由 `McpDeviceTools` 调 `core/device/DeviceAccess.kt`:主屏状态 → 唤醒 → 请求显示凭据页 → 必要时输入本机凭据 → 核实系统状态。核心只依赖 `DeviceAccessPort`、`DeviceAccessStore`;安卓适配在 `app/device/`,主屏输入的 shell 实现在 `cap/phone/shell/DeviceUnlockInput.kt`,AIDL 有单独方法,普通虚拟屏按键白名单保持不变。
 
-`DeviceAccess` 每进程一份、Mutex 串行化;远程许可默认关,凭据只能手机端设置。`DeviceAccessSettings` 用独立 Keystore 密钥加密原子写整个配置,仅缓存非秘密状态。输入前持久化失败占位,只有系统已解锁才清掉;失败/中断后必须本机重新保存凭据。Android 适配只在主屏 SystemUI 的唯一、类型匹配密码框上输入,不处理 SIM PIN 或无法辨认的厂商页;输入框没声明输入类型时,同一窗口里 0–9 数字键齐全就按 PIN 页认,否则按密码页;输入框拿不到焦点时先请求聚焦、再点一下,都不行但它所在的 SystemUI 窗口是输入焦点窗口也算可以输入;凭据按键经 `ShellService.injectTo` 定向注入,只投给 SystemUI 拥有的焦点窗口(安卓 13 起的 `injectInputEvent(event, mode, targetUid)`),锁屏上方另有窗口或已解锁回到 App 时系统拒绝,按键不会落到别处,修饰键也只在发过按键后向 SystemUI 释放;安卓 13 以前不输入凭据(`unsupported_keyguard`)。`TaskGate` 不变,系统实际亮屏解锁后自动继续。设置 UI 是电脑连接页的分组卡片,使用已有行/输入/按钮组件及中英文资源,凭据不进可恢复 UI 状态、编辑时禁止截图。此功能不改变任务来源和付款策略。
+`DeviceAccess` 每进程一份、Mutex 串行化;远程许可默认关,凭据只能手机端设置。`unlock(authorized)` 在取得锁后及唤醒、显示凭据页、提交凭据前复核来源授权,它只能收窄本机总开关。`DeviceAccessSettings` 用独立 Keystore 密钥加密原子写整个配置,仅缓存非秘密状态。输入前持久化失败占位,只有系统已解锁才清掉;失败/中断后必须本机重新保存凭据。Android 适配只在主屏 SystemUI 的唯一、类型匹配密码框上输入,不处理 SIM PIN 或无法辨认的厂商页;输入框没声明输入类型时,同一窗口里 0–9 数字键齐全就按 PIN 页认,否则按密码页;输入框拿不到焦点时先请求聚焦、再点一下,都不行但它所在的 SystemUI 窗口是输入焦点窗口也算可以输入;凭据按键经 `ShellService.injectTo` 定向注入,只投给 SystemUI 拥有的焦点窗口(安卓 13 起的 `injectInputEvent(event, mode, targetUid)`),锁屏上方另有窗口或已解锁回到 App 时系统拒绝,按键不会落到别处,修饰键也只在发过按键后向 SystemUI 释放;安卓 13 以前不输入凭据(`unsupported_keyguard`)。`TaskGate` 只在系统实际亮屏解锁后继续;自动解锁返回后仍锁屏则用对应来源的文案结束任务。设置 UI 是电脑连接页的分组卡片,使用已有行/输入/按钮组件及中英文资源,凭据不进可恢复 UI 状态、编辑时禁止截图。此功能不改变任务来源和付款策略。
 
 ## 7. 上下文与压缩
 

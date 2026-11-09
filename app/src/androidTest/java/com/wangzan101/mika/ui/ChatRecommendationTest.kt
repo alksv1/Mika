@@ -65,7 +65,7 @@ class ChatRecommendationTest {
 
     @Test fun emptyDraftIsPrefilledDirectly() {
         show()
-        val recommendation = ChatCopy.examples.first()
+        val recommendation = ChatCopy.examples.first().text
         compose.onNodeWithText(recommendation).performClick()
         compose.onNodeWithTag("composer-field").assertTextEquals(recommendation)
         compose.onNodeWithText("替换当前草稿？").assertDoesNotExist()
@@ -74,7 +74,7 @@ class ChatRecommendationTest {
     @Test fun nonemptyDraftIsReplacedOnlyAfterConfirmation() {
         show()
         val original = "已经写好、还没发送的长草稿"
-        val recommendation = ChatCopy.examples.first()
+        val recommendation = ChatCopy.examples.first().text
         compose.onNodeWithTag("composer-field").performTextInput(original)
 
         compose.onNodeWithText(recommendation).performClick()

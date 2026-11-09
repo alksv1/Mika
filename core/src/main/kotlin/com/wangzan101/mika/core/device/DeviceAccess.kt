@@ -74,18 +74,23 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
         result(if (after?.interactive == true) "awake" else "wake_failed", after)
     }
 
-    suspend fun unlock(): DeviceAccessResult = mutex.withLock {
-        prepare()?.let { return@withLock it }
+    /** 来源授权只能进一步收窄本机总开关；等待锁和系统界面后、每次操作前都重新核对。 */
+    suspend fun unlock(authorized: () -> Boolean = { true }): DeviceAccessResult = mutex.withLock {
+        fun allowed() = store.enabled && authorized()
+        prepare(authorized)?.let { return@withLock it }
         var now = read() ?: return@withLock result("device_unavailable")
         if (now.ready) return@withLock result("unlocked", now)
         if (!now.interactive) {
+            if (!allowed()) return@withLock result("disabled", now)
             if (!port.wake()) return@withLock result("wake_failed", read())
-            now = await { it.interactive } ?: return@withLock result("device_unavailable")
+            now = await { !allowed() || it.interactive } ?: return@withLock result("device_unavailable")
+            if (!allowed()) return@withLock result("disabled", now)
             if (!now.interactive) return@withLock result("wake_failed", now)
         }
-        if (!store.enabled) return@withLock result("disabled", now)
+        if (!allowed()) return@withLock result("disabled", now)
         if (!port.dismiss()) return@withLock result("dismiss_failed", read())
-        now = await { it.ready || it.secure && it.keyguardShowing } ?: return@withLock result("device_unavailable")
+        now = await { !allowed() || it.ready || it.secure && it.keyguardShowing } ?: return@withLock result("device_unavailable")
+        if (!allowed()) return@withLock result("disabled", now)
         if (now.ready) return@withLock result("unlocked", now)
         if (!now.secure) return@withLock result("unlock_failed", now)
         if (store.attemptBlocked) return@withLock result("attempt_blocked", now)
@@ -98,11 +103,12 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
             while (!targetReady && waited < waitMs) {
                 val current = read() ?: return@withLock result("device_unavailable")
                 if (current.ready) return@withLock result("unlocked", current)
-                if (!store.enabled) return@withLock result("disabled", current)
+                if (!allowed()) return@withLock result("disabled", current)
                 if (!current.helperAvailable) return@withLock result("helper_unavailable", current)
                 targetReady = port.credentialReady(it.kind)
                 // dismiss 后先给系统凭据页一个轮询周期;仍认不出时才做一次导航,避免在已经可用的 PIN 页上多余滑动。
                 if (!targetReady && !revealed && waited >= pollMs) {
+                    if (!allowed()) return@withLock result("disabled", current)
                     revealed = true
                     port.revealCredential()
                 }
@@ -111,7 +117,7 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
             if (!targetReady) {
                 val current = read() ?: return@withLock result("device_unavailable")
                 if (current.ready) return@withLock result("unlocked", current)
-                if (!store.enabled) return@withLock result("disabled", current)
+                if (!allowed()) return@withLock result("disabled", current)
                 if (!current.helperAvailable) return@withLock result("helper_unavailable", current)
                 val detected = port.detectedCredentialKind()
                 val diagnostics = port.credentialDiagnostics()
@@ -120,10 +126,10 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
                 }
                 return@withLock result("unsupported_keyguard", current, keyguardDiagnostics = diagnostics)
             }
-            if (!store.enabled) return@withLock result("disabled", read())
+            if (!allowed()) return@withLock result("disabled", read())
             if (!store.beginAttempt(it)) return@withLock result("attempt_blocked", read())
             // 从此刻起中断也保留占位,不重复输入。只有系统已解锁才清掉。
-            if (!store.enabled) return@withLock result("disabled", read())
+            if (!allowed()) return@withLock result("disabled", read())
             if (!port.enter(it)) {
                 val after = read()
                 if (after?.ready == true) { store.completeAttempt(it); return@withLock result("unlocked", after) }
@@ -135,8 +141,8 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
         }
     }
 
-    private suspend fun prepare(): DeviceAccessResult? {
-        if (!store.enabled) return result("disabled", read())
+    private suspend fun prepare(authorized: () -> Boolean = { true }): DeviceAccessResult? {
+        if (!store.enabled || !authorized()) return result("disabled", read())
         val s = read() ?: return result("device_unavailable")
         if (!s.userUnlocked) return result("first_unlock_required", s)
         if (!s.helperAvailable) return result("helper_unavailable", s)
