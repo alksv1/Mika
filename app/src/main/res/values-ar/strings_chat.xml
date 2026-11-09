@@ -86,6 +86,13 @@
     <string name="drawer_rename_title">إعادة تسمية المحادثة</string>
     <string name="drawer_pinned">مثبّتة</string>
     <string name="drawer_pinned_mark">مثبّتة</string>
+    <string name="drawer_search_hint">البحث في المحادثات</string>
+    <string name="drawer_search_results">نتائج البحث</string>
+    <string name="drawer_search_empty">لا توجد محادثات تطابق «%1$s»</string>
+    <string name="drawer_search_empty_hint">يبحث في العناوين ونص المحادثة فقط</string>
+    <string name="drawer_searching">جارٍ البحث…</string>
+    <string name="drawer_search_clear">مسح البحث</string>
+    <string name="drawer_search_truncated">يتم عرض أول %1$d نتيجة</string>
     <string name="settings_title">الإعدادات</string>
     <string name="chat_unconfirmed">تعذّر التأكيد: %1$s</string>
     <string name="chat_unverified">اكتمل، لكن تعذّر التحقق</string>

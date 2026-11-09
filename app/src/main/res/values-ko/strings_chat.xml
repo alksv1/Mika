@@ -76,6 +76,13 @@
     <string name="drawer_rename_title">채팅 이름 바꾸기</string>
     <string name="drawer_pinned">고정됨</string>
     <string name="drawer_pinned_mark">고정됨</string>
+    <string name="drawer_search_hint">대화 검색</string>
+    <string name="drawer_search_results">검색 결과</string>
+    <string name="drawer_search_empty">“%1$s”에 해당하는 대화가 없습니다</string>
+    <string name="drawer_search_empty_hint">제목과 대화 내용만 검색합니다</string>
+    <string name="drawer_searching">검색 중…</string>
+    <string name="drawer_search_clear">검색 지우기</string>
+    <string name="drawer_search_truncated">처음 %1$d개 결과만 표시합니다</string>
     <string name="settings_title">설정</string>
     <string name="chat_unconfirmed">확인하지 못했어요: %1$s</string>
     <string name="chat_unverified">완료했지만 확인하지 못했어요</string>

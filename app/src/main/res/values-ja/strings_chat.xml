@@ -76,6 +76,13 @@
     <string name="drawer_rename_title">チャットの名前を変更</string>
     <string name="drawer_pinned">ピン留め</string>
     <string name="drawer_pinned_mark">ピン留め</string>
+    <string name="drawer_search_hint">チャットを検索</string>
+    <string name="drawer_search_results">検索結果</string>
+    <string name="drawer_search_empty">「%1$s」に一致するチャットはありません</string>
+    <string name="drawer_search_empty_hint">タイトルとチャットの内容だけを検索します</string>
+    <string name="drawer_searching">検索中…</string>
+    <string name="drawer_search_clear">検索をクリア</string>
+    <string name="drawer_search_truncated">最初の %1$d 件だけを表示しています</string>
     <string name="settings_title">設定</string>
     <string name="chat_unconfirmed">確認できませんでした: %1$s</string>
     <string name="chat_unverified">完了しましたが、確認できませんでした</string>

@@ -76,6 +76,13 @@
     <string name="drawer_rename_title">改名</string>
     <string name="drawer_pinned">置顶</string>
     <string name="drawer_pinned_mark">已置顶</string>
+    <string name="drawer_search_hint">搜索对话</string>
+    <string name="drawer_search_results">搜索结果</string>
+    <string name="drawer_search_empty">没有找到「%1$s」</string>
+    <string name="drawer_search_empty_hint">只搜索标题和对话内容</string>
+    <string name="drawer_searching">正在搜索…</string>
+    <string name="drawer_search_clear">清空搜索</string>
+    <string name="drawer_search_truncated">只显示前 %1$d 条结果</string>
     <string name="settings_title">设置</string>
     <string name="chat_unconfirmed">这几处没能确认:%1$s</string>
     <string name="chat_unverified">办完了,但没能核实</string>

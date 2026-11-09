@@ -92,6 +92,12 @@ class ConversationStore(
      */
     fun list(): List<ConversationSummary> = listPage(0, Int.MAX_VALUE)
 
+    /**
+     * 侧栏搜索用的正文索引:标题由调用方连同 [ConversationSummary] 一起传进来,正文按对话文件的修改时间缓存。
+     * 读文件不占本类的锁,不挡正在收尾的任务补写。
+     */
+    val search: ConversationSearch = ConversationSearch(::file) { read(it)?.map { record -> record.first } }
+
     /** 尚未保存首轮的活动对话排在前面，与磁盘上的对话共用一套分页。 */
     @Synchronized
     fun listPage(offset: Int, limit: Int, pending: List<ConversationSummary> = emptyList()): List<ConversationSummary> {

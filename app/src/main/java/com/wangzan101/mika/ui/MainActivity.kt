@@ -475,6 +475,7 @@ private fun MikaRoot(
                 conversations = { ConversationStore.shared(context).list() },
                 conversationChanges = ConversationStore.shared(context).changes,
                 conversationTitle = { ConversationStore.shared(context).title(it) },
+                search = ConversationStore.shared(context).search,
                 onPlans = { nav.pushFromDrawer(Route.Plans) },
                 onMemory = { nav.pushFromDrawer(Route.Memory) },
                 onSettings = { nav.pushFromDrawer(Route.Settings) },

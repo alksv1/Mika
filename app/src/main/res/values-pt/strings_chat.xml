@@ -80,6 +80,13 @@
     <string name="drawer_rename_title">Renomear conversa</string>
     <string name="drawer_pinned">Fixadas</string>
     <string name="drawer_pinned_mark">Fixada</string>
+    <string name="drawer_search_hint">Buscar conversas</string>
+    <string name="drawer_search_results">Resultados da busca</string>
+    <string name="drawer_search_empty">Nenhuma conversa corresponde a “%1$s”</string>
+    <string name="drawer_search_empty_hint">Busca apenas títulos e o texto das conversas</string>
+    <string name="drawer_searching">Buscando…</string>
+    <string name="drawer_search_clear">Limpar busca</string>
+    <string name="drawer_search_truncated">Mostrando os primeiros %1$d resultados</string>
     <string name="settings_title">Configurações</string>
     <string name="chat_unconfirmed">Não foi possível confirmar: %1$s</string>
     <string name="chat_unverified">Concluído, mas não foi possível verificar</string>

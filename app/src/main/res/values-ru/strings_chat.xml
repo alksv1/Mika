@@ -82,6 +82,13 @@
     <string name="drawer_rename_title">Переименовать чат</string>
     <string name="drawer_pinned">Закреплённые</string>
     <string name="drawer_pinned_mark">Закреплён</string>
+    <string name="drawer_search_hint">Поиск чатов</string>
+    <string name="drawer_search_results">Результаты поиска</string>
+    <string name="drawer_search_empty">Нет чатов, совпадающих с «%1$s»</string>
+    <string name="drawer_search_empty_hint">Поиск только по названиям и тексту чатов</string>
+    <string name="drawer_searching">Идёт поиск…</string>
+    <string name="drawer_search_clear">Очистить поиск</string>
+    <string name="drawer_search_truncated">Показаны первые %1$d результатов</string>
     <string name="settings_title">Настройки</string>
     <string name="chat_unconfirmed">Не удалось подтвердить: %1$s</string>
     <string name="chat_unverified">Готово, но проверить не удалось</string>
