@@ -411,15 +411,26 @@ class AndroidScreen(
 
     override suspend fun tapRef(ref: String, snapshotId: String): ActionResult = withContext(Dispatchers.IO) {
         if (!hasDisplay) return@withContext NO_APP_OPEN
-        when (val target = resolve(ref, snapshotId)) {
-            null -> ActionResult.Failed("ref_expired")
-            else -> verified(relocatedTo = target.second) { click(target.first) }
+        val (node, relocatedTo) = resolve(ref, snapshotId) ?: return@withContext ActionResult.Failed("ref_expired")
+        val target = ancestorOrSelf(node) { isClickableTarget(it) }
+        val rect = Rect().also(node::getBoundsInScreen)
+        val touchFallback: suspend (EventClock) -> Boolean = { clock ->
+            clock.mark()
+            touch(pacing.within(rect.left, rect.top, rect.right, rect.bottom))
+        }
+        if (target == null) return@withContext verified(relocatedTo = relocatedTo) {
+            touch(pacing.within(rect.left, rect.top, rect.right, rect.bottom))
+        }
+        val outward = ClickFallback.mayBeOutward(ScreenReader.labelOf(node), node.viewIdResourceName) ||
+            ClickFallback.mayBeOutward(ScreenReader.labelOf(target), target.viewIdResourceName)
+        verified(relocatedTo = relocatedTo, fallback = touchFallback, retryWhenUnchanged = !outward) {
+            target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         }
     }
 
     override suspend fun tapXY(x: Int, y: Int): ActionResult = withContext(Dispatchers.IO) {
         if (!hasDisplay) return@withContext NO_APP_OPEN
-        verified { tapAt(x, y) }
+        verified(fallback = { clock -> clickNodeAt(x, y, clock) }) { tapAt(x, y) }
     }
 
     override suspend fun doubleTapRef(ref: String, snapshotId: String): ActionResult = withContext(Dispatchers.IO) {
@@ -1494,14 +1505,36 @@ class AndroidScreen(
      * 执行动作,等界面安静后比对前后指纹;再看前台有没有被切走。动作前后盯着主屏:动作让 App 开到了用户主屏上就挪回来,
      * 结果里报 opened(见 [takeSpill])。上一个动作过了一会儿才开到主屏上的,这一个动作不做,先说屏幕变了。
      */
-    private suspend fun verified(relocatedTo: String? = null, action: suspend () -> Boolean): ActionResult {
+    private suspend fun verified(
+        relocatedTo: String? = null,
+        fallback: (suspend (EventClock) -> Boolean)? = null,
+        retryWhenUnchanged: Boolean = true,
+        action: suspend () -> Boolean,
+    ): ActionResult {
         lateSpill()?.let { return ActionResult.Failed("opened_elsewhere", hintLateSpill(it.opened)) }
         val beforeTree = treeHash()
         val beforeFrame = frameSignature()
+        // 只有可能补点的动作才需要在动作前记住前台包名和输入法边界,其余动作不白读两次窗口
+        val backup = fallback?.takeIf { retryWhenUnchanged }
+        val beforePkg = backup?.let { ScreenReader.topPackage(windows()) }
+        val beforeIme = if (backup != null) imeBounds() else null
         val w = armSpillWatch()
         val changed = withEventClock { clock ->
             clock.mark()
-            if (action()) awaitChange(clock, beforeTree, beforeFrame) else null
+            if (action()) {
+                val retry: (suspend () -> Boolean)? = if (backup != null) {
+                    {
+                        if (!handedOver() && ScreenReader.topPackage(windows()) == beforePkg && imeBounds() == beforeIme) {
+                            backup(clock)
+                        } else false
+                    }
+                } else null
+                awaitChange(clock, beforeTree, beforeFrame, retry)
+            } else if (fallback != null) {
+                if (fallback(clock)) awaitChange(clock, beforeTree, beforeFrame) else null
+            } else {
+                null
+            }
         } ?: return ActionResult.Failed("action_failed")
         // 从挪回来的任务里又打开了一个的,一并算进来
         val profile = adoptFromAdopted(w)
@@ -1872,7 +1905,12 @@ class AndroidScreen(
     }
 
     /** 等界面稳定后比对指纹(规则见 [ChangeWait]);确认变了立即返回 true。 */
-    private suspend fun awaitChange(clock: EventClock, beforeTree: Long, beforeFrame: IntArray?): Boolean =
+    private suspend fun awaitChange(
+        clock: EventClock,
+        beforeTree: Long,
+        beforeFrame: IntArray?,
+        fallback: (suspend () -> Boolean)? = null,
+    ): Boolean =
         ChangeWait.awaitStableChange(
             now = SystemClock::uptimeMillis,
             sleep = { delay(it) },
@@ -1880,6 +1918,7 @@ class AndroidScreen(
             quietForMs = clock::quietForMs,
             treeChanged = { treeHash() != beforeTree },
             beforeFrame = beforeFrame,
+            fallback = fallback,
         )
 
     /** 前台不是目标 App、也不是它调起的系统页面或系统选择器时,返回当前前台包名及是否由目标 App 打开。 */
@@ -2083,9 +2122,47 @@ class AndroidScreen(
 
     // ---------- 底层操作 ----------
 
+    private fun isClickableTarget(node: AccessibilityNodeInfo): Boolean =
+        node.isEnabled && (node.isClickable || node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK })
+
+    /** 坐标点击无反应时,反查该点处最小的可点控件改走无障碍点击;命中对外/不可逆按钮或大容器时不补点。 */
+    private fun clickNodeAt(x: Int, y: Int, clock: EventClock): Boolean {
+        if (!hasDisplay || handedOver() || imeBounds()?.contains(x, y) == true) return false
+        val window = ScreenReader.contentWindows(windows()).firstOrNull {
+            Rect().also(it::getBoundsInScreen).contains(x, y)
+        }?.takeIf { it.type == AccessibilityWindowInfo.TYPE_APPLICATION } ?: return false
+        val entries = ScreenReader.read(listOf(window), screenWidth, screenHeight).entries
+        val rect = Rect()
+        val hitEntries = entries.filter { entry ->
+            entry.node.getBoundsInScreen(rect)
+            rect.intersect(0, 0, screenWidth, screenHeight) && rect.contains(x, y)
+        }
+        if (hitEntries.isEmpty()) return false
+        if (hitEntries.any { ClickFallback.mayBeOutward(it.element.name, it.locator.resourceId) }) return false
+        val seen = HashSet<AccessibilityNodeInfo>()
+        val candidates = mutableListOf<ClickFallback.Candidate<AccessibilityNodeInfo>>()
+        for (entry in hitEntries) {
+            val target = ancestorOrSelf(entry.node) { isClickableTarget(it) } ?: continue
+            if (!seen.add(target) || !target.isVisibleToUser) continue
+            target.getBoundsInScreen(rect)
+            if (!rect.intersect(0, 0, screenWidth, screenHeight) || rect.isEmpty) continue
+            candidates += ClickFallback.Candidate(
+                item = target,
+                left = rect.left, top = rect.top, right = rect.right, bottom = rect.bottom,
+                label = ScreenReader.labelOf(target).ifBlank { entry.element.name.ifBlank { null } },
+                resourceId = target.viewIdResourceName ?: entry.locator.resourceId,
+                scrollable = target.isScrollable,
+                webView = target.className == WEB_VIEW,
+            )
+        }
+        val picked = ClickFallback.pickTarget(x, y, screenWidth, screenHeight, candidates) ?: return false
+        clock.mark()
+        return picked.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    }
+
     /** 优先对节点(或最近的可点祖先)发点击;不行再在其中心做手势,最后注入触摸。 */
     private suspend fun click(node: AccessibilityNodeInfo): Boolean {
-        val target = ancestorOrSelf(node) { it.isClickable && it.isEnabled }
+        val target = ancestorOrSelf(node) { isClickableTarget(it) }
         if (target != null && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
         val rect = android.graphics.Rect().also { node.getBoundsInScreen(it) }
         return touch(pacing.within(rect.left, rect.top, rect.right, rect.bottom))
