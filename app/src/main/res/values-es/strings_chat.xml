@@ -158,6 +158,10 @@
     <string name="chat_branch_attachments_skipped">No se copiaron todos los adjuntos</string>
     <string name="chat_branch_retry">Volver a preguntar desde aquí</string>
     <string name="chat_branch_attachments_readd">Vuelve a adjuntar los archivos que quieras incluir</string>
+    <string name="chat_attach_unavailable">No se pudo añadir: %1$s. Comprueba que los archivos estén disponibles y no superen el límite de tamaño.</string>
+    <string name="chat_retry_missing">%1$s: el archivo no existe</string>
+    <string name="chat_retry_limit">%1$s: se alcanzó el límite de copia</string>
+    <string name="chat_retry_failed">%1$s: no se pudo copiar</string>
     <string name="chat_select_hint">Mantén pulsado el texto para seleccionarlo</string>
     <string name="chat_quote_remove">Quitar cita</string>
     <string name="chat_quoting_mika">Citando a Mika: %1$s</string>

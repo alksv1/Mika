@@ -148,6 +148,10 @@
     <string name="chat_branch_attachments_skipped">Tidak semua lampiran tersalin</string>
     <string name="chat_branch_retry">Tanya ulang dari sini</string>
     <string name="chat_branch_attachments_readd">Tambahkan ulang lampiran yang ingin disertakan</string>
+    <string name="chat_attach_unavailable">Tidak dapat menambahkan: %1$s. Pastikan berkas tersedia dan tidak melebihi batas ukuran.</string>
+    <string name="chat_retry_missing">%1$s: berkas tidak ditemukan</string>
+    <string name="chat_retry_limit">%1$s: batas penyalinan terlampaui</string>
+    <string name="chat_retry_failed">%1$s: tidak dapat disalin</string>
     <string name="chat_select_hint">Tekan lama teks untuk memilihnya</string>
     <string name="chat_quote_remove">Hapus kutipan</string>
     <string name="chat_quoting_mika">Mengutip Mika: %1$s</string>

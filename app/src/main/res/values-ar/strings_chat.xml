@@ -173,6 +173,10 @@
     <string name="chat_branch_attachments_skipped">لم تُنسخ كل المرفقات</string>
     <string name="chat_branch_retry">اسأل مجددًا من هنا</string>
     <string name="chat_branch_attachments_readd">أعد إضافة المرفقات التي تريد تضمينها</string>
+    <string name="chat_attach_unavailable">تعذّرت إضافة: %1$s. تأكد من توفر الملفات وأن حجمها ضمن الحد المسموح.</string>
+    <string name="chat_retry_missing">%1$s: الملف غير موجود</string>
+    <string name="chat_retry_limit">%1$s: تم بلوغ حد النسخ</string>
+    <string name="chat_retry_failed">%1$s: تعذّر النسخ</string>
     <string name="chat_conversation_tokens">هذه المحادثة: %1$s</string>
     <string name="chat_conversation_tokens_partial">هذه المحادثة: %1$s على الأقل</string>
     <string name="chat_select_hint">اضغط مطولًا على النص لتحديده</string>

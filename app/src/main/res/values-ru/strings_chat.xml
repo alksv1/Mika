@@ -163,6 +163,10 @@
     <string name="chat_branch_attachments_skipped">Не все вложения скопированы</string>
     <string name="chat_branch_retry">Спросить заново отсюда</string>
     <string name="chat_branch_attachments_readd">Добавьте нужные вложения заново</string>
+    <string name="chat_attach_unavailable">Не удалось добавить: %1$s. Убедитесь, что файлы доступны и не превышают ограничение размера.</string>
+    <string name="chat_retry_missing">%1$s: файл не найден</string>
+    <string name="chat_retry_limit">%1$s: превышен лимит копирования</string>
+    <string name="chat_retry_failed">%1$s: не удалось скопировать</string>
     <string name="chat_select_hint">Нажмите на текст и удерживайте, чтобы выделить его</string>
     <string name="chat_quote_remove">Убрать цитату</string>
     <string name="chat_quoting_mika">Цитата Mika: %1$s</string>

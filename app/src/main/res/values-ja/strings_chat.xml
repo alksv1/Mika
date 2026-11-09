@@ -148,6 +148,10 @@
     <string name="chat_branch_attachments_skipped">添付ファイルをすべてコピーできませんでした</string>
     <string name="chat_branch_retry">ここから聞き直す</string>
     <string name="chat_branch_attachments_readd">添付ファイルは追加し直してください</string>
+    <string name="chat_attach_unavailable">追加できませんでした: %1$s。ファイルが存在し、サイズ制限内であることを確認してください。</string>
+    <string name="chat_retry_missing">%1$s: ファイルが見つかりません</string>
+    <string name="chat_retry_limit">%1$s: コピーの上限を超えました</string>
+    <string name="chat_retry_failed">%1$s: コピーできませんでした</string>
     <string name="chat_select_hint">テキストを長押しして選択します</string>
     <string name="chat_quote_remove">引用を削除</string>
     <string name="chat_quoting_mika">Mika を引用: %1$s</string>
