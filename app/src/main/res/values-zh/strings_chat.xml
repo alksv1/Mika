@@ -148,6 +148,10 @@
     <string name="chat_branch_attachments_skipped">附件没有全部复制</string>
     <string name="chat_branch_retry">从这里重新问</string>
     <string name="chat_branch_attachments_readd">附件需要重新添加</string>
+    <string name="chat_attach_unavailable">没能添加：%1$s。请检查文件是否存在且未超过大小限制。</string>
+    <string name="chat_retry_missing">%1$s：文件不存在</string>
+    <string name="chat_retry_limit">%1$s：超过复制上限</string>
+    <string name="chat_retry_failed">%1$s：复制失败</string>
     <string name="chat_select_hint">长按文字就能选择</string>
     <string name="chat_quote_remove">去掉引用</string>
     <string name="chat_quoting_mika">引用 Mika:%1$s</string>
