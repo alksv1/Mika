@@ -209,6 +209,7 @@ fun ChatDrawer(
     onPlans: () -> Unit,
     onMemory: () -> Unit,
     onBrowser: () -> Unit,
+    onFiles: () -> Unit = {},
     onScreens: () -> Unit = {},
     onSettings: () -> Unit,
     onOpen: (DrawerConversation) -> Unit,
@@ -247,6 +248,7 @@ fun ChatDrawer(
             NavEntry(MikaIcons.Clock, stringResource(R.string.drawer_plans), onClick = onPlans)
             NavEntry(MikaIcons.Heart, stringResource(R.string.memory_and_skills), onClick = onMemory)
             NavEntry(MikaIcons.Globe, stringResource(R.string.drawer_browser), onClick = onBrowser)
+            NavEntry(MikaIcons.Paperclip, stringResource(R.string.file_library_title), onClick = onFiles)
             // 和上面几项隔开一点:这是把 Mika 整个停下来,不是换一页
             Box(Modifier.padding(top = 4.dp)) {
                 NavEntry(MikaIcons.Power, stringResource(R.string.quit_title), onClick = onQuit)
@@ -493,6 +495,7 @@ fun ChatWithDrawer(
     onPlans: () -> Unit,
     onMemory: () -> Unit,
     onBrowser: () -> Unit,
+    onFiles: () -> Unit = {},
     onScreens: () -> Unit = {},
     onSettings: () -> Unit,
     onAbout: () -> Unit = {},
@@ -609,6 +612,7 @@ fun ChatWithDrawer(
                     onMemory = { leave(onMemory) },
                     onSettings = { leave(onSettings) },
                     onBrowser = { leave(onBrowser) },
+                    onFiles = { leave(onFiles) },
                     onScreens = { leave(onScreens) },
                     onAbout = { leave(onAbout) },
                     onQuit = { leave { confirmingQuit = true } },

@@ -269,6 +269,114 @@ class ChatViewModelTest {
         assertTrue(vm.ui.value.attachments.isEmpty())
     }
 
+    @Test fun libraryAttachmentMergesIntoTargetDraftWithoutSwitchingOrOverwriting() = runTest {
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true))
+        runCurrent()
+        vm.openConversation("a")
+        vm.input("draft A")
+        vm.openConversation("b")
+        vm.input("draft B")
+        val attachment = PendingAttachment("content://library/a", "a.pdf", 1)
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", attachment))
+        assertEquals("draft B", vm.ui.value.input)
+        assertTrue(vm.ui.value.attachments.isEmpty())
+        vm.openConversation("a")
+        assertEquals("draft A", vm.ui.value.input)
+        assertEquals(listOf(attachment), vm.ui.value.attachments)
+        repeat(8) { assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", PendingAttachment("content://library/$it", "$it.pdf", 1))) }
+        assertEquals(LibraryAttachmentResult.Full, vm.addLibraryAttachment("a", PendingAttachment("content://library/overflow", "overflow.pdf", 1)))
+        assertEquals(9, vm.ui.value.attachments.size)
+        vm.deleteConversation("a")
+        assertEquals(LibraryAttachmentResult.Unavailable, vm.addLibraryAttachment("a", attachment))
+    }
+
+    @Test fun librarySourceIsAddedOncePerDraftAndDuplicateCopyIsReleased() = runTest {
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true))
+        runCurrent()
+        vm.openConversation("a")
+        vm.input("existing draft")
+        val source = LibraryFileHandle.Workspace("origin", "/workspace/inbox/a.pdf")
+        val first = PendingAttachment("content://library/first", "a.pdf", 1)
+        val duplicate = PendingAttachment("content://library/second", "a.pdf", 1)
+        var firstReleased = 0
+        var duplicateReleased = 0
+        val existing = PendingAttachment("content://other/file", "other.txt", 1)
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", existing))
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", first, source) { firstReleased++ })
+        vm.openConversation("b")
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", duplicate, source) { duplicateReleased++ })
+        assertEquals(1, duplicateReleased)
+        assertEquals(0, firstReleased)
+        vm.openConversation("a")
+        assertEquals("existing draft", vm.ui.value.input)
+        assertEquals(listOf(existing, first), vm.ui.value.attachments)
+        vm.removeAttachment(first.uri)
+        assertEquals(1, firstReleased)
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", duplicate, source))
+        assertEquals(listOf(existing, duplicate), vm.ui.value.attachments)
+    }
+
+    @Test fun libraryCopiesRemainWhileReferencedOrImportingAndReleaseAfterward() = runTest {
+        val imported = CompletableDeferred<ImportResult>()
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true), importAttachments = { _, _ -> imported.await() })
+        runCurrent()
+        vm.openConversation("a")
+        var released = 0
+        val item = PendingAttachment("content://library/copy", "copy.pdf", 1)
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("a", item) { released++ })
+        assertEquals(LibraryAttachmentResult.Added, vm.addLibraryAttachment("b", item))
+        vm.removeAttachment(item.uri)
+        assertEquals(0, released)
+        vm.openConversation("b")
+        assertTrue(vm.send("send", ok))
+        runCurrent()
+        vm.deleteConversation("b")
+        assertEquals(0, released)
+        imported.complete(ImportResult(listOf("/workspace/inbox/copy.pdf" to 1L), emptyList()))
+        runCurrent()
+        assertEquals(1, released)
+    }
+
+    @Test fun replacingSharedDraftAndChangingFollowUpModeReleaseLibraryCopies() = runTest {
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true), sharedDrafts = SharedDraftStore(tmp.newFolder()))
+        runCurrent()
+        vm.openConversation("a")
+        var replacedReleased = 0
+        val first = PendingAttachment("content://library/first", "first.pdf", 1)
+        vm.addLibraryAttachment("a", first) { replacedReleased++ }
+        assertTrue(vm.openSharedDraft(SharedDraft("", "replacement"), inCurrentConversation = true))
+        assertEquals(0, replacedReleased)
+        assertTrue(vm.confirmPendingSharedDraft())
+        assertEquals(1, replacedReleased)
+        assertEquals("replacement", vm.ui.value.input)
+
+        vm.setFollowUpMode(FollowUpMode.Queue)
+        var modeReleased = 0
+        val second = PendingAttachment("content://library/second", "second.pdf", 1)
+        vm.addLibraryAttachment("a", second) { modeReleased++ }
+        vm.setFollowUpMode(FollowUpMode.Steer)
+        assertEquals(1, modeReleased)
+        assertTrue(vm.ui.value.attachments.isEmpty())
+        assertEquals("replacement", vm.ui.value.input)
+    }
+
+    @Test fun libraryCopyIsReleasedAfterSuccessfulSend() = runTest {
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true),
+            importAttachments = { _, _ -> ImportResult(listOf("/workspace/inbox/a.pdf" to 1L), emptyList()) })
+        runCurrent()
+        vm.openConversation("a")
+        var released = 0
+        vm.addLibraryAttachment("a", PendingAttachment("content://library/a", "a.pdf", 1)) { released++ }
+        assertTrue(vm.send("send", ok))
+        runCurrent()
+        assertEquals(1, released)
+    }
+
     @Test fun failedAttachmentImportAndQueueWriteKeepTheComposerDraft() = runTest {
         var result = ImportResult(emptyList(), listOf("a.pdf"))
         val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
