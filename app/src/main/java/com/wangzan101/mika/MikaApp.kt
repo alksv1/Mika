@@ -251,6 +251,11 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         com.wangzan101.mika.settings.AppAccessStore(java.io.File(filesDir, "app-access.json"))
     }
 
+    /** 用户自己标为敏感的 App;名单为空时任务行为不变。 */
+    val sensitiveApps: com.wangzan101.mika.settings.SensitiveAppsStore by lazy {
+        com.wangzan101.mika.settings.SensitiveAppsStore(java.io.File(filesDir, "sensitive-apps.json"))
+    }
+
     /** 全局的询问 / 自主和各任务自己的那一份;开发者选项里的「自主模式」经它改。 */
     val approvalControl: ApprovalControl by lazy { ApprovalControl(approvals) }
 
