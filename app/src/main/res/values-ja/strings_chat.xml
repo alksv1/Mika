@@ -35,9 +35,10 @@
     <string name="recommendations_reset">消去して最初から始める</string>
     <string name="recommendations_reset_body">読み取れないファイルは空のリストに置き換えられます。</string>
     <string name="recommendations_footer">新しいチャットのホームでタスクをタップすると、プロンプトが入力欄に入ります。自動では送信されません。</string>
+    <string name="share_draft_replace_body">共有された内容で現在の下書きが置き換えられます。</string>
     <string name="chat_working_on">%1$s で作業中</string>
     <string name="chat_working">作業中</string>
-    <string name="share_draft_failed">共有された内容を新しい会話に追加できませんでした</string>
+    <string name="share_draft_failed">共有された内容を会話に追加できませんでした</string>
     <string name="chat_wait_previous_task">前のタスクが終わってから始まります</string>
     <string name="chat_wait_unlock">ロック解除を待っています</string>
     <string name="chat_waiting_for_you">あなたの対応を待っています</string>

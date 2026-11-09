@@ -35,9 +35,10 @@
     <string name="recommendations_reset">清空并重新开始</string>
     <string name="recommendations_reset_body">读不出来的文件会被一份空列表替换。</string>
     <string name="recommendations_footer">在新对话首页点一条任务，会把提示词填进输入框，不会自动发送。</string>
+    <string name="share_draft_replace_body">分享的内容会替换当前草稿。</string>
     <string name="chat_working_on">正在操作%1$s</string>
     <string name="chat_working">正在处理</string>
-    <string name="share_draft_failed">没能把分享内容放进新对话</string>
+    <string name="share_draft_failed">没能把分享内容放进对话</string>
     <string name="chat_wait_previous_task">等前一个任务做完再开始</string>
     <string name="chat_wait_unlock">等你解锁手机</string>
     <string name="chat_waiting_for_you">等你处理</string>

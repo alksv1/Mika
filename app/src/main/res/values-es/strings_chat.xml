@@ -35,9 +35,10 @@
     <string name="recommendations_reset">Borrar y empezar de nuevo</string>
     <string name="recommendations_reset_body">El archivo ilegible se reemplazará por una lista vacía.</string>
     <string name="recommendations_footer">En un chat nuevo, toca una tarea para poner su prompt en el campo de texto. No se envía automáticamente.</string>
+    <string name="share_draft_replace_body">El contenido compartido reemplazará el borrador actual.</string>
     <string name="chat_working_on">Trabajando en %1$s</string>
     <string name="chat_working">Trabajando</string>
-    <string name="share_draft_failed">No se pudo añadir el contenido compartido a una conversación nueva</string>
+    <string name="share_draft_failed">No se pudo añadir el contenido compartido a la conversación</string>
     <string name="chat_wait_previous_task">Empieza cuando termine la tarea anterior</string>
     <string name="chat_wait_unlock">Esperando a que desbloquees</string>
     <string name="chat_waiting_for_you">Esperándote</string>

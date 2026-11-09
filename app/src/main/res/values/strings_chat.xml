@@ -35,9 +35,10 @@
     <string name="recommendations_reset">Clear and start over</string>
     <string name="recommendations_reset_body">The unreadable file will be replaced with an empty list.</string>
     <string name="recommendations_footer">On a new chat, tap a task to put its prompt in the input. It is not sent automatically.</string>
+    <string name="share_draft_replace_body">This shared content will replace your current draft.</string>
     <string name="chat_working_on">Working in %1$s</string>
     <string name="chat_working">Working</string>
-    <string name="share_draft_failed">Couldn’t add this share to a new conversation</string>
+    <string name="share_draft_failed">Couldn’t add this share to the conversation</string>
     <string name="chat_wait_previous_task">Starts after the previous task finishes</string>
     <string name="chat_wait_unlock">Waiting for you to unlock</string>
     <string name="chat_waiting_for_you">Waiting for you</string>

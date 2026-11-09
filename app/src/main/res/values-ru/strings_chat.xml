@@ -35,9 +35,10 @@
     <string name="recommendations_reset">Очистить и начать заново</string>
     <string name="recommendations_reset_body">Нечитаемый файл будет заменён пустым списком.</string>
     <string name="recommendations_footer">В новом чате нажмите задачу, чтобы вставить подсказку в поле ввода. Она не отправится сама.</string>
+    <string name="share_draft_replace_body">Поделённый материал заменит текущий черновик.</string>
     <string name="chat_working_on">Работает в приложении «%1$s»</string>
     <string name="chat_working">Работает</string>
-    <string name="share_draft_failed">Не удалось добавить материал в новый разговор</string>
+    <string name="share_draft_failed">Не удалось добавить материал в разговор</string>
     <string name="chat_wait_previous_task">Начнётся после завершения предыдущей задачи</string>
     <string name="chat_wait_unlock">Ждёт, пока вы разблокируете телефон</string>
     <string name="chat_waiting_for_you">Ждёт вас</string>

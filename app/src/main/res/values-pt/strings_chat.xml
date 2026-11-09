@@ -35,9 +35,10 @@
     <string name="recommendations_reset">Limpar e começar de novo</string>
     <string name="recommendations_reset_body">O arquivo ilegível será substituído por uma lista vazia.</string>
     <string name="recommendations_footer">Em um chat novo, toque em uma tarefa para colocar o prompt no campo de texto. Ela não é enviada automaticamente.</string>
+    <string name="share_draft_replace_body">O conteúdo compartilhado substituirá o rascunho atual.</string>
     <string name="chat_working_on">Trabalhando em %1$s</string>
     <string name="chat_working">Trabalhando</string>
-    <string name="share_draft_failed">Não foi possível adicionar o conteúdo compartilhado a uma nova conversa</string>
+    <string name="share_draft_failed">Não foi possível adicionar o conteúdo compartilhado à conversa</string>
     <string name="chat_wait_previous_task">Começa quando a tarefa anterior terminar</string>
     <string name="chat_wait_unlock">Aguardando você desbloquear</string>
     <string name="chat_waiting_for_you">Aguardando você</string>
