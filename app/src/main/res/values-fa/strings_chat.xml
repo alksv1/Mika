@@ -202,6 +202,10 @@
     <string name="recommendations_save_failed">ذخیره ممکن نشد. دوباره تلاش کنید.</string>
     <string name="recommendations_sub">مدیریت کارها و متن‌های صفحهٔ اصلی</string>
     <string name="recommendations_title">کارهای پیشنهادی</string>
+    <string name="recommendations_drag">برای تغییر ترتیب بکشید</string>
+    <string name="recommendations_drag_hint">دستگیره را بکشید تا ترتیب نمایش تغییر کند.</string>
+    <string name="recommendations_move_up">انتقال به بالا</string>
+    <string name="recommendations_move_down">انتقال به پایین</string>
     <string name="recommendations_title_label">عنوان</string>
     <string name="recommendations_title_required">عنوانی وارد کنید</string>
     <string name="recommendations_too_long">عنوان یا متن بیش از حد طولانی است</string>

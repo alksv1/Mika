@@ -14,6 +14,10 @@
     <string name="chat_example_replace_body">La tarea recomendada reemplazará lo que ya escribiste.</string>
     <string name="chat_example_replace_action">Reemplazar borrador</string>
     <string name="recommendations_title">Tareas recomendadas</string>
+    <string name="recommendations_drag">Arrastra para cambiar el orden</string>
+    <string name="recommendations_drag_hint">Arrastra el control para cambiar el orden.</string>
+    <string name="recommendations_move_up">Subir</string>
+    <string name="recommendations_move_down">Bajar</string>
     <string name="recommendations_sub">Administra las tareas y los prompts de la pantalla de inicio</string>
     <string name="recommendations_add">Añadir tarea recomendada</string>
     <string name="recommendations_edit">Editar tarea recomendada</string>

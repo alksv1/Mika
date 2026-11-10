@@ -14,6 +14,10 @@
     <string name="chat_example_replace_body">ستستبدل المهمة المقترحة ما كتبته بالفعل.</string>
     <string name="chat_example_replace_action">استبدال المسودة</string>
     <string name="recommendations_title">المهام المقترحة</string>
+    <string name="recommendations_drag">اسحب لتغيير الترتيب</string>
+    <string name="recommendations_drag_hint">اسحب المقبض لتغيير ترتيب العرض.</string>
+    <string name="recommendations_move_up">نقل لأعلى</string>
+    <string name="recommendations_move_down">نقل لأسفل</string>
     <string name="recommendations_sub">إدارة المهام والنصوص المعروضة في الشاشة الرئيسية</string>
     <string name="recommendations_add">إضافة مهمة مقترحة</string>
     <string name="recommendations_edit">تعديل مهمة مقترحة</string>

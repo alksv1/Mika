@@ -14,6 +14,10 @@
     <string name="chat_example_replace_body">おすすめのタスクで、入力済みの内容が置き換えられます。</string>
     <string name="chat_example_replace_action">下書きを置き換える</string>
     <string name="recommendations_title">おすすめタスク</string>
+    <string name="recommendations_drag">ドラッグして順序を変更</string>
+    <string name="recommendations_drag_hint">ハンドルをドラッグして表示順を変更できます。</string>
+    <string name="recommendations_move_up">上に移動</string>
+    <string name="recommendations_move_down">下に移動</string>
     <string name="recommendations_sub">ホームに表示するタスクとプロンプトを管理</string>
     <string name="recommendations_add">おすすめタスクを追加</string>
     <string name="recommendations_edit">おすすめタスクを編集</string>

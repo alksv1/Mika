@@ -14,6 +14,10 @@
     <string name="chat_example_replace_body">推薦任務會取代你已輸入的內容。</string>
     <string name="chat_example_replace_action">取代草稿</string>
     <string name="recommendations_title">推薦任務</string>
+    <string name="recommendations_drag">拖曳調整順序</string>
+    <string name="recommendations_drag_hint">拖曳右側把手調整顯示順序。</string>
+    <string name="recommendations_move_up">上移</string>
+    <string name="recommendations_move_down">下移</string>
     <string name="recommendations_sub">管理首頁顯示的任務和提示詞</string>
     <string name="recommendations_add">新增推薦任務</string>
     <string name="recommendations_edit">編輯推薦任務</string>
