@@ -24,6 +24,39 @@ sealed interface LibraryFileHandle {
 
 enum class LibraryAttachmentResult { Added, Full, Unavailable, Failed }
 
+/** 批量加入前的规划；[accepted] 已去掉重复来源并截到目标草稿的剩余槽位。 */
+data class LibraryAddPlan(
+    val accepted: List<LibraryFileHandle>,
+    val duplicates: Int,
+    val overLimit: Int,
+)
+
+/** 已经复制好、等着合并的一项；[release] 在没被收下时释放副本。 */
+data class LibraryStaged(
+    val attachment: PendingAttachment,
+    val source: LibraryFileHandle,
+    val release: () -> Unit,
+)
+
+/** 一批文件合并进草稿的结果；[unavailable] 表示目标草稿整批收不下。 */
+data class LibraryMergeResult(
+    val added: Int,
+    val duplicates: Int,
+    val full: Int,
+    val unavailable: Boolean = false,
+)
+
+/** 文件库批量加入的最终结果，供界面汇总提示。 */
+data class LibraryBatchOutcome(
+    val added: Int,
+    val duplicates: Int,
+    val overLimit: Int,
+    val failed: List<String>,
+    val unavailable: Boolean = false,
+) {
+    val accepted: Int get() = added + duplicates
+}
+
 /** 文件库操作。工作区文件经闸门复制；导出文件预览和分享使用原 MediaStore URI。 */
 object LibraryFileActions {
     private val startupLock = Any()
@@ -83,6 +116,62 @@ object LibraryFileActions {
                 if (!accepted) copy.file.parentFile?.deleteRecursively()
             }
         }
+    }
+
+    /**
+     * 批量加入:先按目标草稿规划,再逐个复制,最后一次合并。
+     * 复制期间取消时,当前文件复制完就停,没合并的副本全部释放。
+     */
+    suspend fun addAllToDraft(
+        context: Context,
+        viewModel: ChatViewModel,
+        targetConversationId: String,
+        sources: List<LibraryFileHandle>,
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): LibraryBatchOutcome {
+        val caller = currentCoroutineContext()
+        return withContext(NonCancellable) {
+            val plan = withContext(Dispatchers.Main.immediate) {
+                caller.ensureActive()
+                viewModel.planLibraryAttachments(targetConversationId, sources)
+            } ?: return@withContext LibraryBatchOutcome(0, 0, 0, emptyList(), unavailable = true)
+            val staged = mutableListOf<LibraryStaged>()
+            val failed = mutableListOf<String>()
+            // 合并调用一旦返回,副本就归 ChatViewModel 管;取消或异常时只释放还没合并的。
+            var committed = false
+            try {
+                withContext(Dispatchers.Main.immediate) { onProgress(0, plan.accepted.size) }
+                plan.accepted.forEachIndexed { index, source ->
+                    caller.ensureActive()
+                    val copy = stage(context, source, forDraft = true)
+                    if (copy == null) failed += nameOf(source)
+                    else staged += LibraryStaged(copy.attachment, source) { copy.file.parentFile?.deleteRecursively() }
+                    withContext(Dispatchers.Main.immediate) { onProgress(index + 1, plan.accepted.size) }
+                }
+                val merged = withContext(Dispatchers.Main.immediate) {
+                    caller.ensureActive()
+                    viewModel.addLibraryAttachments(targetConversationId, staged, plan.overLimit).also { committed = true }
+                }
+                LibraryBatchOutcome(
+                    added = merged.added,
+                    duplicates = plan.duplicates + merged.duplicates,
+                    overLimit = plan.overLimit + merged.full,
+                    failed = failed,
+                    unavailable = merged.unavailable,
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                if (!committed) staged.forEach { runCatching { it.release() } }
+                throw e
+            } catch (_: Exception) {
+                if (!committed) staged.forEach { runCatching { it.release() } }
+                LibraryBatchOutcome(0, plan.duplicates, plan.overLimit, failed, unavailable = false)
+            }
+        }
+    }
+
+    private fun nameOf(source: LibraryFileHandle): String = when (source) {
+        is LibraryFileHandle.Workspace -> source.path.substringAfterLast('/')
+        is LibraryFileHandle.Exported -> source.file.name
     }
 
     private suspend fun show(context: Context, source: LibraryFileHandle, open: (Uri, String) -> Unit): Boolean {

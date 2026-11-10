@@ -844,15 +844,90 @@ class ChatViewModel(
     /** 为当前新会话分配草稿编号；调用方在主线程调用。 */
     fun libraryTargetConversation(): String = draftConversation()
 
+    /** 目标草稿此刻能不能收文件库的文件；不能时返回 null。调用方在主线程调用。 */
+    private fun libraryDraft(conversationId: String): ComposerDraft? {
+        if (conversationId.isBlank() || conversationId in _deleted.value || conversationId in deleting || !sandboxReady.value)
+            return null
+        val current = _ui.value.takeIf { it.conversationId == conversationId }
+        if (current != null && !canAttach(current)) return null
+        val draft = current?.draft() ?: drafts.value[conversationId] ?: ComposerDraft()
+        if (draft.importing || (current == null && conversationId in activeConversations.value)) return null
+        return draft
+    }
+
+    /**
+     * 批量加入前的规划:按传入顺序去掉目标草稿里已有的来源,再截到剩余槽位。
+     * 不复制文件；合并时会按当时的目标状态再校验一次。调用方在主线程调用。
+     */
+    fun planLibraryAttachments(conversationId: String, sources: List<LibraryFileHandle>): LibraryAddPlan? {
+        val draft = libraryDraft(conversationId) ?: return null
+        var slots = (AttachTray.LIMIT - draft.attachments.size).coerceAtLeast(0)
+        var duplicates = 0
+        var overLimit = 0
+        val accepted = mutableListOf<LibraryFileHandle>()
+        val seen = mutableSetOf<LibraryFileHandle>()
+        for (source in sources) {
+            val duplicate = !seen.add(source) || draft.attachments.any { librarySources[it.uri] == source }
+            when {
+                duplicate -> duplicates++
+                slots <= 0 -> overLimit++
+                else -> {
+                    accepted += source
+                    slots--
+                }
+            }
+        }
+        return LibraryAddPlan(accepted, duplicates, overLimit)
+    }
+
+    /**
+     * 把已经复制好的一批文件合并到目标草稿；只更新一次草稿。
+     * 收下的副本登记在 [libraryCopies] 里，没收下的当场释放。调用方在主线程调用。
+     */
+    fun addLibraryAttachments(conversationId: String, items: List<LibraryStaged>, overLimit: Int = 0): LibraryMergeResult {
+        val draft = libraryDraft(conversationId)
+        if (draft == null) {
+            items.forEach { runCatching { it.release() } }
+            return LibraryMergeResult(0, 0, 0, unavailable = true)
+        }
+        var attachments = draft.attachments
+        var added = 0
+        var duplicates = 0
+        var full = 0
+        val accepted = mutableListOf<LibraryStaged>()
+        for (item in items) {
+            if (attachments.any { librarySources[it.uri] == item.source }) {
+                duplicates++
+                runCatching { item.release() }
+                continue
+            }
+            val (merged, dropped) = AttachTray.add(attachments, listOf(item.attachment))
+            if (dropped != 0) {
+                full++
+                runCatching { item.release() }
+                continue
+            }
+            attachments = merged
+            added++
+            accepted += item
+        }
+        if (added > 0) {
+            draftStateChanged = true
+            accepted.forEach { item ->
+                libraryCopies.putIfAbsent(item.attachment.uri, item.release)
+                librarySources.putIfAbsent(item.attachment.uri, item.source)
+            }
+            updateDraft(conversationId) {
+                it.copy(attachments = attachments, rejected = emptyList(), overLimit = overLimit + full)
+            }
+        }
+        return LibraryMergeResult(added, duplicates, full, unavailable = false)
+    }
+
     /** 合并文件库副本到指定会话的草稿，不切换会话或覆盖已有内容。调用方在主线程调用。 */
     fun addLibraryAttachment(conversationId: String, item: PendingAttachment, source: LibraryFileHandle? = null,
                              release: () -> Unit = {}): LibraryAttachmentResult {
-        if (conversationId.isBlank() || conversationId in _deleted.value || conversationId in deleting || !sandboxReady.value)
-            return LibraryAttachmentResult.Unavailable
-        val current = _ui.value.takeIf { it.conversationId == conversationId }
-        val draft = current?.draft() ?: drafts.value[conversationId] ?: ComposerDraft()
-        if ((current != null && !canAttach(current)) || draft.importing ||
-            (current == null && conversationId in activeConversations.value)) return LibraryAttachmentResult.Unavailable
+        val draft = libraryDraft(conversationId) ?: return LibraryAttachmentResult.Unavailable
         val duplicate = source != null && draft.attachments.any { librarySources[it.uri] == source }
         if (duplicate) {
             val referenced = item.uri in libraryImports || item.uri in libraryCopies ||
