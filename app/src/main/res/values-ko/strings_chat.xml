@@ -89,6 +89,29 @@
     <plurals name="drawer_delete_schedules">
         <item quantity="other">이 채팅의 예약 작업 %1$d개는 유지돼요.</item>
     </plurals>
+    <string name="drawer_select">선택</string>
+    <string name="drawer_selected_count">%1$d개 선택됨</string>
+    <string name="drawer_select_all">전체 선택</string>
+    <string name="drawer_select_none">선택 해제</string>
+    <string name="drawer_delete_many_title">선택한 채팅을 삭제할까요?</string>
+    <plurals name="drawer_delete_many_body">
+        <item quantity="other">선택한 채팅 %1$d개와 그 안의 파일이 삭제돼요.</item>
+    </plurals>
+    <plurals name="drawer_delete_many_running">
+        <item quantity="other">실행 중인 작업 %1$d개가 중지돼요.</item>
+    </plurals>
+    <plurals name="drawer_delete_many_schedules">
+        <item quantity="other">그 안의 예약 작업 %1$d개는 유지돼요.</item>
+    </plurals>
+    <plurals name="drawer_delete_progress">
+        <item quantity="other">채팅 %1$d개를 삭제하는 중…</item>
+    </plurals>
+    <plurals name="drawer_delete_done">
+        <item quantity="other">채팅 %1$d개를 삭제했어요.</item>
+    </plurals>
+    <plurals name="drawer_delete_partial">
+        <item quantity="other">채팅 %1$d개를 삭제했고 %2$d개는 실패했어요.</item>
+    </plurals>
     <string name="drawer_actions">채팅 옵션</string>
     <string name="drawer_rename">이름 바꾸기</string>
     <string name="drawer_rename_title">채팅 이름 바꾸기</string>

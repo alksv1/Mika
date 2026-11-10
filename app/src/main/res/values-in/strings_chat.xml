@@ -89,6 +89,29 @@
     <plurals name="drawer_delete_schedules">
         <item quantity="other">%1$d tugas terjadwal di obrolan ini akan dipertahankan.</item>
     </plurals>
+    <string name="drawer_select">Pilih</string>
+    <string name="drawer_selected_count">%1$d dipilih</string>
+    <string name="drawer_select_all">Pilih semua</string>
+    <string name="drawer_select_none">Hapus pilihan</string>
+    <string name="drawer_delete_many_title">Hapus obrolan yang dipilih?</string>
+    <plurals name="drawer_delete_many_body">
+        <item quantity="other">%1$d obrolan yang dipilih dan berkas di dalamnya akan dihapus.</item>
+    </plurals>
+    <plurals name="drawer_delete_many_running">
+        <item quantity="other">%1$d tugas yang sedang berjalan akan dihentikan.</item>
+    </plurals>
+    <plurals name="drawer_delete_many_schedules">
+        <item quantity="other">%1$d tugas terjadwal di dalamnya akan dipertahankan.</item>
+    </plurals>
+    <plurals name="drawer_delete_progress">
+        <item quantity="other">Menghapus %1$d obrolan…</item>
+    </plurals>
+    <plurals name="drawer_delete_done">
+        <item quantity="other">%1$d obrolan dihapus.</item>
+    </plurals>
+    <plurals name="drawer_delete_partial">
+        <item quantity="other">%1$d obrolan dihapus, %2$d gagal.</item>
+    </plurals>
     <string name="drawer_actions">Opsi obrolan</string>
     <string name="drawer_rename">Ganti nama</string>
     <string name="drawer_rename_title">Ganti nama obrolan</string>
