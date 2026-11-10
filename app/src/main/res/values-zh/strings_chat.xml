@@ -89,6 +89,29 @@
     <plurals name="drawer_delete_schedules">
         <item quantity="other">这个对话里的 %1$d 条定时任务会保留。</item>
     </plurals>
+    <string name="drawer_select">多选</string>
+    <string name="drawer_selected_count">已选 %1$d 条</string>
+    <string name="drawer_select_all">全选</string>
+    <string name="drawer_select_none">取消全选</string>
+    <string name="drawer_delete_many_title">删除选中的对话？</string>
+    <plurals name="drawer_delete_many_body">
+        <item quantity="other">将删除 %1$d 个对话，里面的文件都会删掉。</item>
+    </plurals>
+    <plurals name="drawer_delete_many_running">
+        <item quantity="other">其中 %1$d 个正在进行的任务会被停止。</item>
+    </plurals>
+    <plurals name="drawer_delete_many_schedules">
+        <item quantity="other">里面的 %1$d 条定时任务会保留。</item>
+    </plurals>
+    <plurals name="drawer_delete_progress">
+        <item quantity="other">正在删除 %1$d 个对话…</item>
+    </plurals>
+    <plurals name="drawer_delete_done">
+        <item quantity="other">已删除 %1$d 个对话。</item>
+    </plurals>
+    <plurals name="drawer_delete_partial">
+        <item quantity="other">已删除 %1$d 个对话，%2$d 个失败。</item>
+    </plurals>
     <string name="drawer_actions">对话操作</string>
     <string name="drawer_rename">改名</string>
     <string name="drawer_rename_title">改名</string>
