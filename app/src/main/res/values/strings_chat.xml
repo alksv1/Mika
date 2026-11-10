@@ -14,6 +14,10 @@
     <string name="chat_example_replace_body">This recommendation will replace what you’ve already typed.</string>
     <string name="chat_example_replace_action">Replace draft</string>
     <string name="recommendations_title">Recommended tasks</string>
+    <string name="recommendations_drag">Drag to reorder</string>
+    <string name="recommendations_drag_hint">Drag the handle to change the order.</string>
+    <string name="recommendations_move_up">Move up</string>
+    <string name="recommendations_move_down">Move down</string>
     <string name="recommendations_sub">Manage the tasks and prompts on the home screen</string>
     <string name="recommendations_add">Add recommended task</string>
     <string name="recommendations_edit">Edit recommended task</string>

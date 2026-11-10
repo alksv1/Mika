@@ -14,6 +14,10 @@
     <string name="chat_example_replace_body">推荐任务会替换你已经输入的内容。</string>
     <string name="chat_example_replace_action">替换草稿</string>
     <string name="recommendations_title">推荐任务</string>
+    <string name="recommendations_drag">拖动调整顺序</string>
+    <string name="recommendations_drag_hint">拖动右侧把手调整展示顺序。</string>
+    <string name="recommendations_move_up">上移</string>
+    <string name="recommendations_move_down">下移</string>
     <string name="recommendations_sub">管理首页显示的任务和提示词</string>
     <string name="recommendations_add">添加推荐任务</string>
     <string name="recommendations_edit">编辑推荐任务</string>
