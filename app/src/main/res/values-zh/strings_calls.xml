@@ -108,6 +108,10 @@
     <string name="calls_bypass_note">这些号码仍会正常响铃，由您本人接听。即使启用「接听所有来电」，AI 也不会自动接听这些号码。</string>
     <string name="calls_bypass_title">始终由本人接听</string>
     <string name="calls_history_all">全部</string>
+    <string name="calls_history_clear">清空全部</string>
+    <string name="calls_history_clear_confirm">删除本机保存的全部通话记录及其文字原文？删除后无法恢复。</string>
+    <string name="calls_history_cleared">通话记录已清空</string>
+    <string name="calls_history_clear_failed">无法清空通话记录，请重试。</string>
     <string name="calls_history_delete">删除记录</string>
     <string name="calls_history_delete_confirm">要从本机删除这条通话记录及其文字原文吗？删除后无法恢复。</string>
     <string name="calls_history_deleted">记录已删除</string>

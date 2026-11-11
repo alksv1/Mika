@@ -108,6 +108,10 @@
     <string name="calls_bypass_note">Вызовы с этих номеров звонят как обычно, чтобы вы ответили лично, даже если автоответ включён для всех.</string>
     <string name="calls_bypass_title">Всегда отвечать лично</string>
     <string name="calls_history_all">Все</string>
+    <string name="calls_history_clear">Очистить всё</string>
+    <string name="calls_history_clear_confirm">Удалить все сохранённые на этом телефоне записи вызовов и их расшифровки? Отменить это нельзя.</string>
+    <string name="calls_history_cleared">История вызовов очищена</string>
+    <string name="calls_history_clear_failed">Не удалось очистить историю вызовов. Попробуйте ещё раз.</string>
     <string name="calls_history_delete">Удалить запись</string>
     <string name="calls_history_delete_confirm">Удалить с телефона запись вызова и расшифровку? Отменить это нельзя.</string>
     <string name="calls_history_deleted">Запись удалена</string>

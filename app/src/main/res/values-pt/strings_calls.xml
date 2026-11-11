@@ -108,6 +108,10 @@
     <string name="calls_bypass_note">Chamadas desses números tocam normalmente para você atender, mesmo com atendimento automático para todos.</string>
     <string name="calls_bypass_title">Atender sempre pessoalmente</string>
     <string name="calls_history_all">Todas</string>
+    <string name="calls_history_clear">Limpar tudo</string>
+    <string name="calls_history_clear_confirm">Excluir todos os registros de chamadas e suas transcrições salvos neste telefone? Não é possível desfazer.</string>
+    <string name="calls_history_cleared">Histórico de chamadas limpo</string>
+    <string name="calls_history_clear_failed">Não foi possível limpar o histórico de chamadas. Tente novamente.</string>
     <string name="calls_history_delete">Excluir registro</string>
     <string name="calls_history_delete_confirm">Excluir deste telefone o registro e a transcrição salva? Não é possível desfazer.</string>
     <string name="calls_history_deleted">Registro excluído</string>

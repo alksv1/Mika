@@ -108,6 +108,10 @@
     <string name="calls_bypass_note">ترن المكالمات من هذه الأرقام كالمعتاد لترد بنفسك، حتى إذا شمل الرد التلقائي جميع المتصلين.</string>
     <string name="calls_bypass_title">الرد شخصيًا دائمًا</string>
     <string name="calls_history_all">الكل</string>
+    <string name="calls_history_clear">مسح الكل</string>
+    <string name="calls_history_clear_confirm">هل تريد حذف جميع سجلات المكالمات ونصوصها المحفوظة على هذا الهاتف؟ لا يمكن التراجع عن الحذف.</string>
+    <string name="calls_history_cleared">تم مسح سجل المكالمات</string>
+    <string name="calls_history_clear_failed">تعذر مسح سجل المكالمات. يرجى المحاولة مجددًا.</string>
     <string name="calls_history_delete">حذف السجل</string>
     <string name="calls_history_delete_confirm">هل تريد حذف هذا السجل والنص المحفوظ من هذا الهاتف؟ لا يمكن التراجع.</string>
     <string name="calls_history_deleted">تم حذف السجل</string>

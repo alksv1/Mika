@@ -108,6 +108,10 @@
     <string name="calls_bypass_note">すべての着信が自動応答の対象でも、これらの番号は通常どおり鳴り、ご自身で応答できます。</string>
     <string name="calls_bypass_title">常に自分で応答</string>
     <string name="calls_history_all">すべて</string>
+    <string name="calls_history_clear">すべて消去</string>
+    <string name="calls_history_clear_confirm">この端末に保存されたすべての通話履歴と文字起こしを削除しますか？元には戻せません。</string>
+    <string name="calls_history_cleared">通話履歴を消去しました</string>
+    <string name="calls_history_clear_failed">通話履歴を消去できませんでした。もう一度お試しください。</string>
     <string name="calls_history_delete">履歴を削除</string>
     <string name="calls_history_delete_confirm">この端末から履歴と文字起こしを削除しますか？元には戻せません。</string>
     <string name="calls_history_deleted">履歴を削除しました</string>

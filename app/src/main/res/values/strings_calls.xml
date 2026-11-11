@@ -108,6 +108,10 @@
     <string name="calls_bypass_note">Calls from these numbers ring normally for you to answer, even when all callers are eligible for auto-answer.</string>
     <string name="calls_bypass_title">Always answer personally</string>
     <string name="calls_history_all">All</string>
+    <string name="calls_history_clear">Clear all</string>
+    <string name="calls_history_clear_confirm">Delete all call records and their transcripts saved on this phone? This cannot be undone.</string>
+    <string name="calls_history_cleared">Call history cleared</string>
+    <string name="calls_history_clear_failed">Could not clear call history. Please try again.</string>
     <string name="calls_history_delete">Delete record</string>
     <string name="calls_history_delete_confirm">Delete this record and its saved transcript from this phone? This cannot be undone.</string>
     <string name="calls_history_deleted">Record deleted</string>
