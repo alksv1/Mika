@@ -125,4 +125,18 @@
     <string name="calls_notification_settings">باز کردن تنظیمات اعلان</string>
     <string name="calls_speaker_edit_note">صداهای شبیه‌سازی‌شده را در بخش شبیه‌سازی صدا انتخاب کنید. برای بازگرداندن صدای پیش‌فرض، خالی بگذارید.</string>
     <string name="calls_greeting_hint">همان‌طور که نوشته شده خوانده می‌شود. برای اینکه طرف مقابل ابتدا صحبت کند، خالی بگذارید.</string>
+    <string name="calls_notification_handoff">هوش مصنوعی از تماس خارج شد. در برنامه تلفن سیستم تماس را ادامه دهید.</string>
+    <string name="calls_standby_checking">در حال بررسی شرایط آماده‌به‌کار تلفن در پس‌زمینه</string>
+    <string name="calls_standby_locked_dial_preparing">در حال آماده‌سازی شماره‌گیری از صفحه قفل · %1$d ثانیه باقی‌مانده</string>
+    <string name="calls_standby_unavailable">آماده‌به‌کار پس‌زمینه در دسترس نیست. برای بررسی باز کنید.</string>
+    <string name="calls_standby_ai_active">آماده‌به‌کار پس‌زمینه فعال است. هوش مصنوعی در حال مدیریت تماس است.</string>
+    <string name="calls_standby_running">آماده‌به‌کار پس‌زمینه فعال است. می‌توانید آن را در تنظیمات تماس خاموش کنید.</string>
+    <string name="calls_standby_start_blocked">Android اجازه شروع آماده‌به‌کار پس‌زمینه را نداد. در برنامه دوباره تلاش کنید.</string>
+    <string name="calls_standby_not_ready">آماده‌به‌کار پس‌زمینه فعال نیست، یا گوشی پس از راه‌اندازی مجدد قفل‌گشایی نشده است.</string>
+    <string name="calls_standby_notifications_required">به اعلان‌های آماده‌به‌کار پس‌زمینه اجازه دهید.</string>
+    <string name="calls_notification_preparing">در حال آماده‌سازی تماس هوش مصنوعی</string>
+    <string name="calls_notification_answer_preparing">در حال آماده‌سازی پاسخ هوش مصنوعی</string>
+    <string name="calls_notification_connecting_audio">در حال اتصال صدای تماس</string>
+    <string name="calls_notification_connected_waiting">هوش مصنوعی متصل شد. در انتظار صحبت طرف مقابل است؛ هر زمان می‌توانید تماس را بر عهده بگیرید.</string>
+    <string name="calls_notification_connected">هوش مصنوعی متصل شد. هر زمان می‌توانید خودتان تماس را بر عهده بگیرید.</string>
 </resources>
