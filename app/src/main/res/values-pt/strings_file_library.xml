@@ -33,4 +33,7 @@
     <string name="file_library_view_draft">Ver rascunho</string>
     <string name="file_library_keep_selecting">Continuar selecionando</string>
     <string name="file_library_target_unavailable">Esta conversa não pode receber arquivos agora.</string>
+    <string name="file_library_sharing">Preparando para compartilhar %1$d de %2$d…</string>
+    <string name="file_library_share_summary">Compartilhados %1$d · Não foi possível compartilhar %2$d</string>
+    <string name="file_library_share_failed_names">Não foi possível compartilhar: %1$s</string>
 </resources>

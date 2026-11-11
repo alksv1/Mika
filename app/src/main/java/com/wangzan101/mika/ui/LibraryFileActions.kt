@@ -1,8 +1,11 @@
 package com.wangzan101.mika.ui
 
+import android.content.ClipData
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.wangzan101.mika.R
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.chat.AttachFilesProvider
 import com.wangzan101.mika.chat.SharedFile
@@ -57,6 +60,9 @@ data class LibraryBatchOutcome(
     val accepted: Int get() = added + duplicates
 }
 
+/** 文件库多选分享的结果；[shared] 是交给系统分享面板的文件数。 */
+data class LibraryShareOutcome(val shared: Int, val failed: List<String>)
+
 /** 文件库操作。工作区文件经闸门复制；导出文件预览和分享使用原 MediaStore URI。 */
 object LibraryFileActions {
     private val startupLock = Any()
@@ -97,6 +103,86 @@ object LibraryFileActions {
 
     suspend fun share(context: Context, source: LibraryFileHandle): Boolean =
         show(context, source) { uri, name -> FileViewer.share(context, uri, name) }
+
+    /**
+     * 多选分享：工作区文件先复制到缓存并换成 FileProvider URI，导出文件直接用原 URI。
+     * 部分文件准备失败时仍然分享其余文件，失败项交给界面汇总。
+     */
+    suspend fun shareAll(
+        context: Context,
+        sources: List<LibraryFileHandle>,
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): LibraryShareOutcome {
+        val caller = currentCoroutineContext()
+        val staged = mutableListOf<File>()
+        var opened = false
+        return withContext(NonCancellable) {
+            try {
+                val uris = ArrayList<Uri>(sources.size)
+                val failed = mutableListOf<String>()
+                withContext(Dispatchers.Main.immediate) { onProgress(0, sources.size) }
+                sources.forEachIndexed { index, source ->
+                    caller.ensureActive()
+                    val uri = prepareShare(context, source, staged)
+                    if (uri == null) failed += nameOf(source) else uris += uri
+                    withContext(Dispatchers.Main.immediate) { onProgress(index + 1, sources.size) }
+                }
+                if (uris.isEmpty()) return@withContext LibraryShareOutcome(0, failed)
+                val started = withContext(Dispatchers.Main.immediate) {
+                    caller.ensureActive()
+                    startShare(context, uris)
+                }
+                if (!started) {
+                    staged.forEach { runCatching { it.parentFile?.deleteRecursively() } }
+                    return@withContext LibraryShareOutcome(0, sources.map(::nameOf))
+                }
+                opened = true
+                LibraryShareOutcome(uris.size, failed)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                if (!opened) staged.forEach { runCatching { it.parentFile?.deleteRecursively() } }
+                throw e
+            } catch (_: Exception) {
+                if (!opened) staged.forEach { runCatching { it.parentFile?.deleteRecursively() } }
+                LibraryShareOutcome(0, sources.map(::nameOf))
+            }
+        }
+    }
+
+    private suspend fun prepareShare(
+        context: Context,
+        source: LibraryFileHandle,
+        staged: MutableList<File>,
+    ): Uri? = when (source) {
+        is LibraryFileHandle.Exported ->
+            if (isAvailable(context, source)) Uri.parse(source.file.uri) else null
+        is LibraryFileHandle.Workspace -> {
+            val copy = stage(context, source, forDraft = false) ?: return null
+            staged += copy.file
+            Uri.parse(copy.attachment.uri)
+        }
+    }
+
+    private fun startShare(context: Context, uris: List<Uri>): Boolean = try {
+        val send = if (uris.size == 1) {
+            Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uris.first())
+        } else {
+            Intent(Intent.ACTION_SEND_MULTIPLE)
+                .putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+        }.setType(shareMime(uris.map { runCatching { context.contentResolver.getType(it) }.getOrNull() }))
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        // ClipData 让授权覆盖所有 URI；部分接收方也靠它拿文件名和类型。
+        val clip = runCatching { ClipData.newUri(context.contentResolver, "", uris.first()) }
+            .getOrElse { ClipData.newRawUri("", uris.first()) }
+        uris.drop(1).forEach { clip.addItem(ClipData.Item(it)) }
+        send.clipData = clip
+        context.startActivity(
+            Intent.createChooser(send, context.getString(R.string.file_library_share))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        true
+    } catch (_: Exception) {
+        false
+    }
 
     /** 先复制来源，再在主线程合并目标草稿；复制期间切换会话不会改变目标。 */
     suspend fun addToDraft(context: Context, viewModel: ChatViewModel, targetConversationId: String,
@@ -254,4 +340,16 @@ object LibraryFileActions {
                 null
             }
         }
+}
+
+/** 分享时用的 MIME：全是图片用 image/*，同一类型用具体类型，混合或未知用 */*。 */
+internal fun shareMime(types: List<String?>): String {
+    if (types.isEmpty() || types.any { it.isNullOrBlank() }) return "*/*"
+    val known = types.filterNotNull()
+    return when {
+        known.size == 1 -> known.first()
+        known.all { it.startsWith("image/") } -> "image/*"
+        known.distinct().size == 1 -> known.first()
+        else -> "*/*"
+    }
 }

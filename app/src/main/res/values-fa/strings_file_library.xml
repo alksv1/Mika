@@ -34,4 +34,7 @@
     <string name="file_library_view_draft">مشاهده پیش‌نویس</string>
     <string name="file_library_keep_selecting">ادامه انتخاب</string>
     <string name="file_library_target_unavailable">این گفتگو اکنون نمی‌تواند فایل دریافت کند.</string>
+    <string name="file_library_sharing">در حال آماده‌سازی برای اشتراک‌گذاری %1$d از %2$d…</string>
+    <string name="file_library_share_summary">اشتراک‌گذاری شد %1$d · اشتراک‌گذاری نشد %2$d</string>
+    <string name="file_library_share_failed_names">اشتراک‌گذاری نشد: %1$s</string>
 </resources>

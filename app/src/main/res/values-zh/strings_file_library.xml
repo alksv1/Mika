@@ -33,4 +33,7 @@
     <string name="file_library_view_draft">去待发栏</string>
     <string name="file_library_keep_selecting">继续选择</string>
     <string name="file_library_target_unavailable">这个会话现在无法接收文件。</string>
+    <string name="file_library_sharing">正在准备分享 %1$d/%2$d…</string>
+    <string name="file_library_share_summary">已分享 %1$d 个 · 未能分享 %2$d 个</string>
+    <string name="file_library_share_failed_names">未能分享：%1$s</string>
 </resources>

@@ -33,4 +33,7 @@
     <string name="file_library_view_draft">임시 저장 보기</string>
     <string name="file_library_keep_selecting">계속 선택</string>
     <string name="file_library_target_unavailable">이 대화는 지금 파일을 받을 수 없습니다.</string>
+    <string name="file_library_sharing">공유 준비 중 %1$d/%2$d…</string>
+    <string name="file_library_share_summary">%1$d개 공유됨 · %2$d개 공유하지 못함</string>
+    <string name="file_library_share_failed_names">공유하지 못함: %1$s</string>
 </resources>

@@ -102,6 +102,8 @@ internal fun FileLibraryScreen(
     conversationStore: ConversationStore? = null,
     addBatch: suspend (Context, ChatViewModel, String, List<LibraryFileHandle>, (Int, Int) -> Unit) -> LibraryBatchOutcome =
         { context, viewModel, target, sources, progress -> LibraryFileActions.addAllToDraft(context, viewModel, target, sources, progress) },
+    shareBatch: suspend (Context, List<LibraryFileHandle>, (Int, Int) -> Unit) -> LibraryShareOutcome =
+        { context, sources, progress -> LibraryFileActions.shareAll(context, sources, progress) },
 ) {
     val context = LocalContext.current
     val store = remember(conversationStore) { conversationStore ?: ConversationStore.shared(context) }
@@ -151,12 +153,14 @@ internal fun FileLibraryScreen(
     var choosing by remember { mutableStateOf<LibraryRow?>(null) }
     var choosingBatch by remember { mutableStateOf(false) }
     var working by remember { mutableStateOf(false) }
+    var shareWorking by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0 to 0) }
     var error by remember { mutableStateOf<Int?>(null) }
     var savedElsewhere by remember { mutableStateOf(false) }
     var selecting by rememberSaveable { mutableStateOf(false) }
     var selectedList by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var batchResult by remember { mutableStateOf<LibraryBatchResult?>(null) }
+    var shareResult by remember { mutableStateOf<LibraryShareOutcome?>(null) }
     val selected = selectedList.toSet()
     val allRows = loaded?.rows.orEmpty()
     val rows = allRows.filter {
@@ -192,6 +196,7 @@ internal fun FileLibraryScreen(
         if (items.isEmpty()) return
         scope.launch {
             working = true
+            shareWorking = false
             progress = 0 to items.size
             val outcome = addBatch(context, vm, targetId, items.map { it.handle }) { done, total -> progress = done to total }
             working = false
@@ -205,6 +210,20 @@ internal fun FileLibraryScreen(
             } else {
                 batchResult = LibraryBatchResult(outcome, targetId)
             }
+        }
+    }
+    fun shareSelected() {
+        if (working) return
+        val items = allRows.filter { it.key in selected }
+        if (items.isEmpty()) return
+        scope.launch {
+            working = true
+            shareWorking = true
+            progress = 0 to items.size
+            val outcome = shareBatch(context, items.map { it.handle }) { done, total -> progress = done to total }
+            working = false
+            shareWorking = false
+            if (outcome.failed.isNotEmpty()) shareResult = outcome
         }
     }
     fun chooseTarget() {
@@ -336,9 +355,11 @@ internal fun FileLibraryScreen(
                     count = selectedList.size,
                     allSelected = rows.isNotEmpty() && rows.all { it.key in selected },
                     working = working,
+                    sharing = shareWorking,
                     done = progress.first,
                     total = progress.second,
                     onSelectAll = { selectedList = LibrarySelection.toggleAll(selectedList.toSet(), rows.map { it.key }).toList() },
+                    onShare = { shareSelected() },
                     onAdd = { chooseTarget() },
                 )
             }
@@ -421,6 +442,27 @@ internal fun FileLibraryScreen(
             },
         )
     }
+    shareResult?.let { outcome ->
+        AlertDialog(
+            onDismissRequest = { shareResult = null },
+            title = { Text(stringResource(R.string.file_library_share)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.file_library_share_summary, outcome.shared, outcome.failed.size))
+                    val shown = outcome.failed.take(5).joinToString(stringResource(R.string.list_sep))
+                    Text(
+                        stringResource(R.string.file_library_share_failed_names, if (outcome.failed.size > 5) "$shown…" else shown),
+                        Modifier.padding(top = 8.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { shareResult = null }, modifier = Modifier.testTag("file-library-share-done")) {
+                    Text(stringResource(R.string.done))
+                }
+            },
+        )
+    }
     error?.let { message ->
         AlertDialog(onDismissRequest = { error = null }, text = { Text(stringResource(message)) }, confirmButton = { TextButton(onClick = { error = null }) { Text(stringResource(R.string.done)) } })
     }
@@ -448,9 +490,11 @@ private fun SelectBar(
     count: Int,
     allSelected: Boolean,
     working: Boolean,
+    sharing: Boolean,
     done: Int,
     total: Int,
     onSelectAll: () -> Unit,
+    onShare: () -> Unit,
     onAdd: () -> Unit,
 ) {
     val c = MikaTheme.colors
@@ -464,7 +508,8 @@ private fun SelectBar(
     ) {
         if (working) {
             Text(
-                stringResource(R.string.file_library_adding, done, total), Modifier.weight(1f),
+                stringResource(if (sharing) R.string.file_library_sharing else R.string.file_library_adding, done, total),
+                Modifier.weight(1f),
                 style = MikaType.Label, color = c.ink2, maxLines = 1, softWrap = false,
             )
             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = c.accent)
@@ -475,6 +520,12 @@ private fun SelectBar(
             )
             TextButton(onClick = onSelectAll, modifier = Modifier.testTag("file-library-select-all")) {
                 Text(stringResource(if (allSelected) R.string.file_library_select_none else R.string.file_library_select_all), style = MikaType.Label, color = c.accent)
+            }
+            TextButton(onClick = onShare, enabled = count > 0, modifier = Modifier.testTag("file-library-share-selected")) {
+                Text(
+                    stringResource(R.string.file_library_share), style = MikaType.Label,
+                    color = if (count > 0) c.accent else c.ink3,
+                )
             }
             TextButton(onClick = onAdd, enabled = count > 0, modifier = Modifier.testTag("file-library-add-selected")) {
                 Text(

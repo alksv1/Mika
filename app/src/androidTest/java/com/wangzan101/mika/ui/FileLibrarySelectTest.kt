@@ -37,6 +37,8 @@ class FileLibrarySelectTest {
     private val store = ConversationStore(File(context.cacheDir, "file-library-select-" + UUID.randomUUID()))
     private val added = mutableListOf<String>()
     private val batches = mutableListOf<Pair<String, List<LibraryFileHandle>>>()
+    private val shares = mutableListOf<List<LibraryFileHandle>>()
+    private var shareOutcome: LibraryShareOutcome? = null
 
     private val actions = object : TaskActions {
         override fun start(goal: String, conversationId: String) {}
@@ -79,6 +81,11 @@ class FileLibrarySelectTest {
                     progress(sources.size, sources.size)
                     batches += target to sources
                     LibraryBatchOutcome(sources.size, 0, 0, emptyList())
+                },
+                shareBatch = { _, sources, progress ->
+                    progress(sources.size, sources.size)
+                    shares += sources
+                    shareOutcome ?: LibraryShareOutcome(sources.size, emptyList())
                 },
             )
         }
@@ -128,5 +135,32 @@ class FileLibrarySelectTest {
         assertEquals(listOf("a"), added)
         assertEquals(1, batches.size)
         assertEquals("a", batches.single().first)
+    }
+
+    @Test fun sharingSelectedFilesSendsOneBatchAndKeepsSelection() {
+        seed()
+        show(fromDrawer = true)
+        compose.onNodeWithTag("file-library-select").performClick()
+        compose.onAllNodesWithTag("file-library-row")[0].performClick()
+        compose.onAllNodesWithTag("file-library-row")[1].performClick()
+        compose.onNodeWithTag("file-library-share-selected").assertIsEnabled().performClick()
+        compose.waitForIdle()
+        assertEquals(1, shares.size)
+        assertEquals(2, shares.single().size)
+        assertEquals(0, added.size)
+        compose.onNodeWithTag("file-library-selected-count").assertTextEquals("已选 2 个")
+    }
+
+    @Test fun sharePartialFailureShowsSummaryAndSkippedNames() {
+        seed()
+        shareOutcome = LibraryShareOutcome(1, listOf("b.txt"))
+        show(fromDrawer = true)
+        compose.onNodeWithTag("file-library-select").performClick()
+        compose.onAllNodesWithTag("file-library-row")[0].performClick()
+        compose.onAllNodesWithTag("file-library-row")[1].performClick()
+        compose.onNodeWithTag("file-library-share-selected").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("已分享 1 个 · 未能分享 1 个").assertExists()
+        compose.onNodeWithText("未能分享：b.txt").assertExists()
     }
 }

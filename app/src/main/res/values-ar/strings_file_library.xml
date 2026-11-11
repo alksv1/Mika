@@ -33,4 +33,7 @@
     <string name="file_library_view_draft">عرض المسودة</string>
     <string name="file_library_keep_selecting">متابعة التحديد</string>
     <string name="file_library_target_unavailable">لا يمكن لهذه المحادثة استلام الملفات الآن.</string>
+    <string name="file_library_sharing">جارٍ التحضير للمشاركة %1$d من %2$d…</string>
+    <string name="file_library_share_summary">تمت مشاركة %1$d · تعذّرت مشاركة %2$d</string>
+    <string name="file_library_share_failed_names">تعذّرت مشاركة: %1$s</string>
 </resources>
