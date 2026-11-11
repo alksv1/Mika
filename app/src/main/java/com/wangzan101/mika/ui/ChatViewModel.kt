@@ -469,6 +469,11 @@ class ChatViewModel(
     private val _ui = MutableStateFlow(ChatUi())
     val ui: StateFlow<ChatUi> = _ui.asStateFlow()
 
+    /** 从搜索或文件库过来的一次性跳转;聊天页滚到目标后清掉。 */
+    private val _jump = MutableStateFlow<ChatJump?>(null)
+    val jump: StateFlow<ChatJump?> = _jump.asStateFlow()
+    private var jumpSerial = 0L
+
     private val drafts = MutableStateFlow<Map<String, ComposerDraft>>(emptyMap())
     private var draftStateChanged = false
     private val libraryCopies = mutableMapOf<String, () -> Unit>()
@@ -1655,6 +1660,20 @@ class ChatViewModel(
                 if (next.hasContent) saved + (draft.conversationId to next) else saved - draft.conversationId
             }
         }
+    }
+
+    /**
+     * 打开某个对话并跳到指定消息。已经在这个对话里时只设跳转,不重新载入;
+     * 任务进行中且没开并行时打不开,跳转也不会留下,调用方可以用 [ChatUi.conversationId] 判断是否成功。
+     */
+    fun openConversationAt(id: String, target: ChatTarget) {
+        if (_ui.value.conversationId != id) openConversation(id)
+        if (_ui.value.conversationId == id) _jump.value = ChatJump(id, target, ++jumpSerial)
+    }
+
+    /** 聊天页滚到目标后清掉请求;期间又来了新请求时不要误清。 */
+    fun consumeJump(jump: ChatJump) {
+        _jump.update { if (it == jump) null else it }
     }
 
     /** 切到某个对话;任务在跑时不切。 */

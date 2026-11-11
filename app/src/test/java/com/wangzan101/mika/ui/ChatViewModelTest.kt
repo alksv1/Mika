@@ -176,6 +176,24 @@ class ChatViewModelTest {
         assertEquals("another draft", vm.ui.value.input)
     }
 
+    @Test fun openingAtAMessageKeepsTheTargetForTheChatPage() = runTest {
+        val vm = vm()
+        vm.openConversation("a")
+        vm.openConversationAt("b", ChatTarget.Message(1, null))
+        assertEquals("b", vm.ui.value.conversationId)
+        assertEquals(ChatTarget.Message(1, null), vm.jump.value?.target)
+
+        val first = vm.jump.value!!
+        vm.consumeJump(first)
+        assertNull(vm.jump.value)
+
+        // 已经在这个对话里也要能重新跳;serial 让聊天页把同一处当成新请求
+        vm.openConversationAt("b", ChatTarget.Status(2))
+        assertEquals("b", vm.ui.value.conversationId)
+        assertEquals(ChatTarget.Status(2), vm.jump.value?.target)
+        assertTrue(vm.jump.value!!.serial > first.serial)
+    }
+
     @Test fun parallelRunningTasksKeepTheirDraftsAndFollowUpModes() = runTest {
         val running = MutableStateFlow<TaskState>(TaskState.Running(1, "working"))
         val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),

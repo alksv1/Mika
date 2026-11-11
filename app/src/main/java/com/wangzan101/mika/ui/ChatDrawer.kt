@@ -134,6 +134,8 @@ data class DrawerConversation(
     val site: String? = null,
     /** 从另一个对话分支出来的:标题前一个小分支图标。 */
     val branch: Boolean = false,
+    /** 搜索结果命中了正文:打开对话后跳到这条消息;只有标题命中时为 null。 */
+    val target: ChatTarget? = null,
 )
 
 /** 侧栏里的对话分段:进行中、置顶、最近。 */
@@ -195,11 +197,12 @@ internal fun drawerEntry(
     running: Boolean,
     time: String,
     subtitle: String = "",
+    target: ChatTarget? = null,
 ): DrawerConversation {
     val isCurrent = s.id == currentId
     return DrawerConversation(
         s.id, ChatCopy.plainTitle(s.title), subtitle, running, isCurrent, canSwitch || isCurrent, time,
-        pinned = s.pinnedAt != null, site = s.page?.host, branch = s.branchOf != null,
+        pinned = s.pinnedAt != null, site = s.page?.host, branch = s.branchOf != null, target = target,
     )
 }
 
@@ -899,7 +902,7 @@ fun ChatWithDrawer(
                             val time = if (s.updatedAt != 0L) conversationTime(s.updatedAt, now) else ""
                             drawerEntry(
                                 s, ui.conversationId, canSwitch, running = hit.id in runningIds,
-                                time = time, subtitle = hit.snippet.orEmpty(),
+                                time = time, subtitle = hit.snippet.orEmpty(), target = hit.target,
                             )
                         },
                         outcome.searching,
@@ -938,7 +941,9 @@ fun ChatWithDrawer(
                             onRegularChat()
                             val id = item.id
                             when {
-                                id == null || id == ui.conversationId -> Unit
+                                id == null -> Unit
+                                item.target != null -> vm.openConversationAt(id, item.target)
+                                id == ui.conversationId -> Unit
                                 item.running -> vm.switchTo(id)
                                 else -> vm.openConversation(id)
                             }

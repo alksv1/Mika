@@ -208,6 +208,7 @@ fun ChatScreen(
     }
     val recommendedTasks by recommendedTasksFlow.collectAsState()
     val ui by vm.ui.collectAsState()
+    val pendingJump by vm.jump.collectAsState()
     val others by vm.otherRunning.collectAsState()
     val keptAny by vm.keptPage.collectAsState()
     // 只管这个对话留下的那一页
@@ -244,6 +245,14 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    // 从搜索或文件库跳过来时,短暂高亮目标行;新跳转带新 serial,会重新计时。
+    var jumpHighlight by remember { mutableStateOf<ChatJump?>(null) }
+    LaunchedEffect(jumpHighlight) {
+        val active = jumpHighlight ?: return@LaunchedEffect
+        delay(JUMP_HIGHLIGHT_MS)
+        if (jumpHighlight == active) jumpHighlight = null
+    }
+
     // 只有原本跟着最新消息时才继续跟随。这个状态与列表位置一起跨页面保存。
     var followingTail by rememberSaveable { mutableStateOf(true) }
     var previousScrollMarker by rememberSaveable { mutableStateOf<String?>(null) }
@@ -262,7 +271,27 @@ fun ChatScreen(
     val last = ui.exchanges.lastOrNull()
     val rowCount = chatItemCount(ui.exchanges, kept, phoneSetupNeeded, hasBlocked = ui.blocked != null)
     val scrollMarker = "${ui.conversationId}:${ui.exchanges.size}:${last?.steps?.size}:${last?.steers?.size}:${last?.status?.hashCode()}:${ui.blocked?.hashCode()}"
-    LaunchedEffect(scrollMarker) {
+    val jump = pendingJump?.takeIf { it.conversationId == ui.conversationId }
+    // 目标行的高亮:只在目标还是当前对话时算。
+    val highlightKey = jumpHighlight
+        ?.takeIf { it.conversationId == ui.conversationId }
+        ?.let { chatTargetKey(ui.exchanges, it.target) }
+    LaunchedEffect(scrollMarker, jump) {
+        // 从搜索或文件库过来:先滚到目标消息,期间不要跟末尾;目标不在了就退回原来的逻辑。
+        if (jump != null) {
+            val keys = chatItemKeys(ui.exchanges, kept, phoneSetupNeeded, hasBlocked = ui.blocked != null)
+            val index = chatTargetKey(ui.exchanges, jump.target)?.let(keys::indexOf) ?: -1
+            if (index >= 0) {
+                previousScrollMarker = scrollMarker
+                previousConversation = ui.conversationId
+                followingTail = false
+                listState.scrollToItem(index)
+                jumpHighlight = jump
+                vm.consumeJump(jump)
+                return@LaunchedEffect
+            }
+            vm.consumeJump(jump)
+        }
         if (previousScrollMarker == scrollMarker) return@LaunchedEffect
         val firstEntry = previousScrollMarker == null
         val changedConversation = previousConversation != ui.conversationId
@@ -356,6 +385,7 @@ fun ChatScreen(
                     val backgroundNote = i == ui.exchanges.lastIndex && ui.operatingPhone
                     exchange(
                         i, ex, ui.conversationId, ui.takeoverStage, vm, reduceMotion, backgroundNote, openRun, loadSource, openSource, kept,
+                        highlightKey = highlightKey,
                         tokens = ConversationTokens.turn(ex.runId?.let(runMetrics::get)),
                         recover = { resume ->
                             val label = if (resume) R.string.chat_resume_request else R.string.chat_restart_request
@@ -653,16 +683,31 @@ private fun ExampleRow(icon: ImageVector, text: String, first: Boolean, onClick:
 
 // ---------- 一问一答 ----------
 
+/** 跳转目标行的短暂高亮:一条全宽淡色底,约 1.8 秒后渐隐。 */
+@Composable
+private fun JumpHighlight(active: Boolean, reduceMotion: Boolean, content: @Composable () -> Unit) {
+    val c = MikaTheme.colors
+    val alpha by animateFloatAsState(if (active) 1f else 0f, if (reduceMotion) snap() else tween(260), label = "jump-highlight")
+    Box(
+        Modifier.fillMaxWidth()
+            .background(c.accent.copy(alpha = 0.12f * alpha), RoundedCornerShape(16.dp)),
+    ) { content() }
+}
+
 private fun LazyListScope.exchange(
     index: Int, ex: Exchange, conversationId: String?, stage: Takeover.Stage, vm: ChatViewModel, reduceMotion: Boolean, backgroundNote: Boolean,
     openRun: (String) -> Unit, loadSource: suspend (String) -> EvidenceSource?, openSource: (String?, String?) -> Unit,
     kept: KeptPage? = null,
+    /** 从搜索或文件库跳过来时要高亮的行 key。 */
+    highlightKey: String? = null,
     /** 这一轮用了多少 token(结束后、读到运行小结时才有)。 */
     tokens: Long? = null,
     /** 终态后的两个新运行入口:true 从摘要断点继续,false 按原目标重新开始。 */
     recover: (Boolean) -> Unit = {},
 ) {
-    if (ex.goal.isNotEmpty()) item("u$index") { UserBubble(ex.goal, conversationId, key = "u$index") }
+    if (ex.goal.isNotEmpty()) item("u$index") {
+        JumpHighlight(highlightKey == "u$index", reduceMotion) { UserBubble(ex.goal, conversationId, key = "u$index") }
+    }
     val paused = ex.status is ExchangeStatus.Paused || ex.status is ExchangeStatus.WaitingUnlock ||
         ex.status is ExchangeStatus.NeedsTakeover || ex.status is ExchangeStatus.NeedsConfirmation ||
         ex.status is ExchangeStatus.NeedsInput || ex.status is ExchangeStatus.Queued
@@ -677,18 +722,36 @@ private fun LazyListScope.exchange(
     // 插话之前已经说完的回复照常显示;插话打断的那段留在原处(淡色、标「被你的新消息打断」);接着才是插话。
     // 还没交给模型的插话排在正在长出来的回答后面:那段回答是它到之前就在写的,不是对它的回复。
     fun steer(n: SteerNote) {
-        n.finished?.takeIf(String::isNotBlank)?.let { done -> item("a$index-${n.id}") { FinishedReply(done, "a$index-${n.id}") } }
-        n.interrupted?.takeIf(String::isNotBlank)?.let { cut -> item("i$index-${n.id}") { InterruptedReply(cut) } }
-        item("m$index-${n.id}") { UserBubble(n.text, conversationId, steerLabel(n.state, paused), "m$index-${n.id}") }
+        n.finished?.takeIf(String::isNotBlank)?.let { done ->
+            item("a$index-${n.id}") {
+                JumpHighlight(highlightKey == "a$index-${n.id}", reduceMotion) { FinishedReply(done, "a$index-${n.id}") }
+            }
+        }
+        n.interrupted?.takeIf(String::isNotBlank)?.let { cut ->
+            item("i$index-${n.id}") {
+                JumpHighlight(highlightKey == "i$index-${n.id}", reduceMotion) { InterruptedReply(cut) }
+            }
+        }
+        item("m$index-${n.id}") {
+            JumpHighlight(highlightKey == "m$index-${n.id}", reduceMotion) {
+                UserBubble(n.text, conversationId, steerLabel(n.state, paused), "m$index-${n.id}")
+            }
+        }
     }
     val (joined, waiting) = steersAroundDraft(ex.steers)
     joined.forEach(::steer)
     ex.draft?.takeIf(String::isNotBlank)?.let { draft -> item("d$index") { DraftText(draft, ex.waitingForModel) } }
     waiting.forEach(::steer)
-    item("r$index") { StatusCard(ex.status, stage, vm, ex.runId, loadSource, openSource, "r$index", recover) }
+    item("r$index") {
+        JumpHighlight(highlightKey == "r$index", reduceMotion) {
+            StatusCard(ex.status, stage, vm, ex.runId, loadSource, openSource, "r$index", recover)
+        }
+    }
     // 这一轮结束后留在后台运行的那一页:还开着是绿色一行(能关),关了是一句原因
     keptPageRow(index, ex, kept, vm::closeKeptPage)
-    if (ex.files.isNotEmpty()) item("f$index") { FileCards(ex.files) }
+    if (ex.files.isNotEmpty()) item("f$index") {
+        JumpHighlight(highlightKey == "f$index", reduceMotion) { FileCards(ex.files) }
+    }
     learningNotes(index, ex, vm)
 }
 
@@ -1559,6 +1622,9 @@ private val PanelMin = 280.dp
 private val PanelMax = 420.dp
 /** 让给键盘时最多等这么久(毫秒)。 */
 private const val YIELD_MS = 700L
+
+/** 跳转目标行高亮停留多久(毫秒)。 */
+private const val JUMP_HIGHLIGHT_MS = 1_800L
 
 /** 竖线的位置(从左边算起);步骤点、转圈的中心都在这条线上。 */
 private val StepRail = 8.dp
