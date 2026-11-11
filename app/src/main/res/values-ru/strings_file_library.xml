@@ -36,4 +36,7 @@
     <string name="file_library_sharing">Подготовка к отправке %1$d из %2$d…</string>
     <string name="file_library_share_summary">Отправлено %1$d · Не удалось отправить %2$d</string>
     <string name="file_library_share_failed_names">Не удалось отправить: %1$s</string>
+    <string name="file_library_file_count">Файлов: %1$d</string>
+    <string name="file_library_select_title">Выбрать файлы</string>
+    <string name="file_library_preview">Просмотр</string>
 </resources>

@@ -36,4 +36,7 @@
     <string name="file_library_sharing">공유 준비 중 %1$d/%2$d…</string>
     <string name="file_library_share_summary">%1$d개 공유됨 · %2$d개 공유하지 못함</string>
     <string name="file_library_share_failed_names">공유하지 못함: %1$s</string>
+    <string name="file_library_file_count">파일 %1$d개</string>
+    <string name="file_library_select_title">파일 선택</string>
+    <string name="file_library_preview">미리보기</string>
 </resources>

@@ -3,6 +3,9 @@ package com.wangzan101.mika.ui
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -102,7 +105,7 @@ class FileLibrarySelectTest {
         compose.onAllNodesWithTag("file-library-row")[1].performClick()
         compose.onNodeWithTag("file-library-selected-count").assertTextEquals("已选 2 个")
         compose.onNodeWithTag("file-library-add-selected").assertIsEnabled().performClick()
-        compose.onNodeWithText("A conversation").performClick()
+        compose.onNode(hasText("A conversation") and hasAnyAncestor(isDialog())).performClick()
         compose.waitForIdle()
         assertEquals(listOf("a"), added)
         assertEquals(1, batches.size)
@@ -114,12 +117,12 @@ class FileLibrarySelectTest {
         seed()
         show(fromDrawer = true)
         compose.onNodeWithTag("file-library-select").performClick()
-        compose.onNodeWithTag("file-library-selected-count").assertTextEquals("已选 0 个")
+        compose.onNodeWithTag("file-library-selected-count").assertTextEquals("选择文件")
         compose.onNodeWithTag("file-library-add-selected").assertIsNotEnabled()
         compose.onNodeWithTag("file-library-select-all").performClick()
         compose.onNodeWithTag("file-library-selected-count").assertTextEquals("已选 2 个")
         compose.onNodeWithTag("file-library-select-all").performClick()
-        compose.onNodeWithTag("file-library-selected-count").assertTextEquals("已选 0 个")
+        compose.onNodeWithTag("file-library-selected-count").assertTextEquals("选择文件")
         compose.onNodeWithTag("file-library-select-cancel").performClick()
         compose.onNodeWithTag("file-library-select-bar").assertDoesNotExist()
         compose.onNodeWithTag("file-library-select").assertExists()

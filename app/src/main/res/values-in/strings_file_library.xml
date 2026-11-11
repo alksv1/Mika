@@ -36,4 +36,7 @@
     <string name="file_library_sharing">Menyiapkan untuk dibagikan %1$d dari %2$d…</string>
     <string name="file_library_share_summary">Dibagikan %1$d · Gagal dibagikan %2$d</string>
     <string name="file_library_share_failed_names">Gagal dibagikan: %1$s</string>
+    <string name="file_library_file_count">%1$d file</string>
+    <string name="file_library_select_title">Pilih file</string>
+    <string name="file_library_preview">Pratinjau</string>
 </resources>

@@ -36,4 +36,7 @@
     <string name="file_library_sharing">共有を準備中 %1$d/%2$d…</string>
     <string name="file_library_share_summary">%1$d 件を共有 · %2$d 件を共有できませんでした</string>
     <string name="file_library_share_failed_names">共有できませんでした: %1$s</string>
+    <string name="file_library_file_count">%1$d 個のファイル</string>
+    <string name="file_library_select_title">ファイルを選択</string>
+    <string name="file_library_preview">プレビュー</string>
 </resources>

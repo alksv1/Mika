@@ -36,4 +36,7 @@
     <string name="file_library_sharing">Preparando para compartilhar %1$d de %2$d…</string>
     <string name="file_library_share_summary">Compartilhados %1$d · Não foi possível compartilhar %2$d</string>
     <string name="file_library_share_failed_names">Não foi possível compartilhar: %1$s</string>
+    <string name="file_library_file_count">%1$d arquivos</string>
+    <string name="file_library_select_title">Selecionar arquivos</string>
+    <string name="file_library_preview">Visualizar</string>
 </resources>

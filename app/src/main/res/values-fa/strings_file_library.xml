@@ -37,4 +37,7 @@
     <string name="file_library_sharing">در حال آماده‌سازی برای اشتراک‌گذاری %1$d از %2$d…</string>
     <string name="file_library_share_summary">اشتراک‌گذاری شد %1$d · اشتراک‌گذاری نشد %2$d</string>
     <string name="file_library_share_failed_names">اشتراک‌گذاری نشد: %1$s</string>
+    <string name="file_library_file_count">%1$d فایل</string>
+    <string name="file_library_select_title">انتخاب فایل‌ها</string>
+    <string name="file_library_preview">پیش‌نمایش</string>
 </resources>
