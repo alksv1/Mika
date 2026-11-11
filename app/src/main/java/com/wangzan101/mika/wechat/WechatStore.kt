@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 @Serializable
@@ -18,6 +20,8 @@ data class PendingWechatMessage(
     val peer: ChannelPeer,
     val text: String,
     val replyToAskId: String? = null,
+    /** Rejected media is a durable notice, never a task with silently missing pictures. */
+    val imageFailure: Boolean = false,
 )
 
 @Serializable
@@ -50,6 +54,8 @@ class WechatStore(
     @Volatile private var account: WechatAccount? = readAccount()
     private var state = readState()
     private val _allowUnlock = MutableStateFlow(readUnlockAllowed())
+    // The switch reports the durable grant. Block local use immediately while a failed revocation can be retried.
+    private var revocationPending = false
     val allowUnlock: StateFlow<Boolean> = _allowUnlock.asStateFlow()
 
     @Synchronized fun account(): WechatAccount? = account
@@ -91,65 +97,109 @@ class WechatStore(
         state = next
     }
 
-    @Synchronized fun unlockAllowed() = _allowUnlock.value
+    @Synchronized fun unlockAllowed() = _allowUnlock.value && !revocationPending
 
-    /** 授权和撤权都原子替换同一条记录；删除失败不能让旧授权在重启后重新生效。 */
+    /** 优先原子替换授权记录；无法写入时撤权可通过移除原记录完成。 */
     @Synchronized fun setUnlockAllowed(value: Boolean) {
         if (!value) {
+            revocationPending = true
+            try {
+                writeAtomic(unlockFile, json.encodeToString(WechatUnlockGrant.serializer(), WechatUnlockGrant()).toByteArray())
+            } catch (failure: Exception) {
+                if (!unlockFile.delete() && unlockFile.exists()) throw failure
+            }
             _allowUnlock.value = false
-            writeAtomic(unlockFile, json.encodeToString(WechatUnlockGrant.serializer(), WechatUnlockGrant()).toByteArray())
+            revocationPending = false
             return
         }
         val current = checkNotNull(account) { "Bind WeChat before allowing unlock" }
         val grant = WechatUnlockGrant(current.ownerId, current.botId, allowed = true)
         writeAtomic(unlockFile, json.encodeToString(WechatUnlockGrant.serializer(), grant).toByteArray())
+        revocationPending = false
         _allowUnlock.value = true
     }
 
     /** 每次实际解锁前重验来源，旧账号、旧线程或其他渠道不能沿用授权。 */
     @Synchronized fun canUnlock(peer: ChannelPeer?): Boolean {
         val current = account ?: return false
-        return state.enabled && _allowUnlock.value && peer != null &&
+        return state.enabled && unlockAllowed() && peer != null &&
             peer.channelId == WechatChannel.ID && peer.peerId == current.ownerId &&
             state.threads[current.ownerId] == peer.threadId
     }
 
     @Synchronized fun cursor() = state.cursor
-    @Synchronized fun saveCursor(value: String) { state = state.copy(cursor = value); saveState() }
+    @Synchronized fun saveCursor(value: String, expectedAccount: WechatAccount? = null) {
+        if (expectedAccount != null && (account != expectedAccount || !state.enabled)) return
+        val next = state.copy(cursor = value)
+        saveState(next)
+        state = next
+    }
     @Synchronized fun contextToken(peerId: String) = state.contextTokens[peerId]
 
-    @Synchronized fun rememberContext(peerId: String, token: String?) {
+    @Synchronized fun accepts(peer: ChannelPeer, expectedAccount: WechatAccount? = null): Boolean {
+        val current = account ?: return false
+        return (expectedAccount == null || expectedAccount == current) && state.enabled &&
+            peer.channelId == WechatChannel.ID && peer.peerId == current.ownerId &&
+            state.threads[peer.peerId] == peer.threadId
+    }
+
+    @Synchronized fun hasMessage(messageId: String) =
+        messageId in state.acknowledgedMessages || state.pending.any { it.messageId == messageId }
+
+    @Synchronized fun rememberContext(peerId: String, token: String?, expectedAccount: WechatAccount? = null) {
+        if (expectedAccount != null && (account != expectedAccount || !state.enabled || expectedAccount.ownerId != peerId)) return
         if (token.isNullOrBlank() || state.contextTokens[peerId] == token) return
-        state = state.copy(contextTokens = state.contextTokens + (peerId to token))
-        saveState()
+        val next = state.copy(contextTokens = state.contextTokens + (peerId to token))
+        saveState(next)
+        state = next
     }
 
     @Synchronized fun peer(peerId: String): ChannelPeer {
         val thread = state.threads[peerId] ?: "wechat-${UUID.randomUUID()}".also {
-            state = state.copy(threads = state.threads + (peerId to it))
-            saveState()
+            val next = state.copy(threads = state.threads + (peerId to it))
+            saveState(next)
+            state = next
         }
         return ChannelPeer(WechatChannel.ID, peerId, thread)
     }
 
+    /** Resolve the private conversation and refresh its reply token under the same binding check. */
+    @Synchronized fun messagePeer(expectedAccount: WechatAccount, token: String?): ChannelPeer? {
+        if (account != expectedAccount || !state.enabled) return null
+        val owner = expectedAccount.ownerId
+        val thread = state.threads[owner] ?: "wechat-${UUID.randomUUID()}"
+        val next = state.copy(threads = state.threads + (owner to thread),
+            contextTokens = if (token.isNullOrBlank()) state.contextTokens else state.contextTokens + (owner to token))
+        if (next != state) {
+            saveState(next)
+            state = next
+        }
+        return ChannelPeer(WechatChannel.ID, owner, thread)
+    }
+
     /** 同一消息只入站一次；未确认的会在下次启动由 [pending] 补交。 */
-    @Synchronized fun journal(messageId: String, peer: ChannelPeer, text: String, replyToAskId: String? = null): Boolean {
-        if (messageId in state.acknowledgedMessages || state.pending.any { it.messageId == messageId }) return false
-        state = state.copy(pending = state.pending + PendingWechatMessage(messageId, peer, text, replyToAskId))
-        saveState()
+    @Synchronized fun journal(messageId: String, peer: ChannelPeer, text: String, replyToAskId: String? = null,
+        imageFailure: Boolean = false, expectedAccount: WechatAccount? = null): Boolean {
+        if (expectedAccount != null && !accepts(peer, expectedAccount)) return false
+        if (hasMessage(messageId)) return false
+        val next = state.copy(pending = state.pending + PendingWechatMessage(messageId, peer, text, replyToAskId, imageFailure))
+        saveState(next)
+        state = next
         return true
     }
 
     @Synchronized fun pending(): List<PendingWechatMessage> = state.pending
 
-    @Synchronized fun acknowledge(messageId: String) {
+    @Synchronized fun acknowledge(messageId: String, expectedAccount: WechatAccount? = null) {
+        if (expectedAccount != null && account != expectedAccount) return
         if (messageId in state.acknowledgedMessages && state.pending.none { it.messageId == messageId }) return
-        state = state.copy(
+        val next = state.copy(
             pending = state.pending.filterNot { it.messageId == messageId },
             acknowledgedMessages = (state.acknowledgedMessages.filterNot { it == messageId } + messageId)
                 .takeLast(MAX_ACKNOWLEDGED_MESSAGES),
         )
-        saveState()
+        saveState(next)
+        state = next
     }
 
     private fun readState(): WechatState = if (stateFile.isFile) runCatching {
@@ -176,10 +226,7 @@ class WechatStore(
         file.parentFile?.mkdirs()
         val temp = File(file.parentFile, file.name + ".tmp")
         FileOutputStream(temp).use { it.write(bytes); it.fd.sync() }
-        if (!temp.renameTo(file)) {
-            file.delete()
-            check(temp.renameTo(file)) { "WeChat state rename failed" }
-        }
+        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
     }
 
     companion object {
