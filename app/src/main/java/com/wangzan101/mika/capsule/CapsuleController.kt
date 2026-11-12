@@ -258,8 +258,8 @@ class CapsuleController(
                 keeper.page,
             ) { s, _, kept -> s.copy(kept = kept) }.collect(::render)
         }
-        // 说话面板出来时铺满整屏(压暗背后),收起时回到没有大小
-        scope.launch { snapshotFlow { talk.active }.collect { panelWindow?.setFullScreen(it) } }
+        // 说话面板出来时铺满整屏(压暗背后),收起时显式收掉(见 [syncPanelWindow])
+        scope.launch { snapshotFlow { talk.active }.collect { syncPanelWindow() } }
         // 排队条:卡片按自己的对话显示还有几件
         scope.launch { (context.applicationContext as MikaApp).followUpQueue.changes.collect { followUps = it } }
         // 停止后的交代写好(或写不成)时那一轮已改进对话:重读记下的轮次
@@ -424,6 +424,8 @@ class CapsuleController(
         panelWindow = panel
         windowOn = service
         syncWindowVisibility()
+        // 新加的面板窗口先藏起来:没在说话时它不该在屏幕上留任何东西
+        syncPanelWindow()
         for (it in listOf(ball, cardW)) it.onResize(::place)
         ball.onTouch { e ->
             wake()
@@ -499,6 +501,22 @@ class CapsuleController(
         val visible = capsuleWindowVisibility(expanded, cardOut, closing)
         window?.setVisible(visible.capsule)
         cardWindow?.setVisible(visible.card)
+    }
+
+    /**
+     * 说话面板窗口:在说时铺满整屏(压暗背后)、才显出来;收起时先显式设为不可见再缩回没有大小。
+     * 和一颗、卡片一样,不能拿空内容和零尺寸当作已经不可见:Compose 内容清空后可能不再出新帧,
+     * 系统画布上会留着最后一帧「转文字…」,面板看上去就卡在屏幕上了。
+     */
+    private fun syncPanelWindow() {
+        val w = panelWindow ?: return
+        if (talk.active) {
+            w.setFullScreen(true)
+            w.setVisible(true)
+        } else {
+            w.setVisible(false)
+            w.setFullScreen(false)
+        }
     }
 
     // ---------- 输入 ----------
