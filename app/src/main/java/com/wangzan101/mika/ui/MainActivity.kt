@@ -703,6 +703,11 @@ private fun MikaRoot(
             val opened = app.chat.ui.value.conversationId == id
             if (opened) nav.reset()
             opened
+        }, onOpenSource = { id, target ->
+            app.chat.openConversationAt(id, target)
+            val opened = app.chat.ui.value.conversationId == id
+            if (opened) nav.reset()
+            opened
         })
         Route.Memory -> {
             val registry = remember { WebSites.registry(context) }

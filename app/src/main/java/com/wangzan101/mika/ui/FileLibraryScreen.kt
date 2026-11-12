@@ -43,6 +43,7 @@ import com.wangzan101.mika.R
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.FileLibrary
 import com.wangzan101.mika.chat.FileLibrarySnapshot
+import com.wangzan101.mika.chat.FileSource
 import com.wangzan101.mika.chat.LibraryFile
 import com.wangzan101.mika.ui.components.*
 import com.wangzan101.mika.ui.theme.MikaIcons
@@ -65,9 +66,15 @@ private data class LibraryRow(
     val conversations: List<String>,
     val input: Boolean,
     val handle: LibraryFileHandle,
+    /** 最近一次出现的位置,「在对话中查看」跳到这里。 */
+    val source: FileSource,
 )
 
 private data class LibraryLoaded(val rows: List<LibraryRow>, val titles: Map<String, String>, val partial: Boolean, val failed: Boolean = false)
+
+/** 「在对话中查看」跳到哪一行:输入文件回到附上它的那条用户消息,产物回到这一轮的文件卡片。 */
+internal fun fileLibraryTarget(source: FileSource, input: Boolean): ChatTarget =
+    if (input) ChatTarget.Message(source.turnIndex, source.steerIndex) else ChatTarget.Files(source.turnIndex)
 
 private data class LibraryBatchResult(val outcome: LibraryBatchOutcome, val targetId: String)
 
@@ -112,6 +119,8 @@ internal fun FileLibraryScreen(
     fromDrawer: Boolean,
     onBack: () -> Unit,
     onAdded: (String) -> Boolean,
+    /** 跳到文件的来源消息;返回会话是否已打开。 */
+    onOpenSource: (String, ChatTarget) -> Boolean = { _, _ -> false },
     conversationStore: ConversationStore? = null,
     addBatch: suspend (Context, ChatViewModel, String, List<LibraryFileHandle>, (Int, Int) -> Unit) -> LibraryBatchOutcome =
         { context, viewModel, target, sources, progress -> LibraryFileActions.addAllToDraft(context, viewModel, target, sources, progress) },
@@ -140,6 +149,7 @@ internal fun FileLibraryScreen(
                             file.name, latest.sizeLabel, file.latestAtMs,
                             file.sources.map { it.source.conversationId }.distinct(), true,
                             LibraryFileHandle.Workspace(latest.source.conversationId, file.path),
+                            latest.source,
                         )
                     }
                     is LibraryFile.Output -> file.sources.maxByOrNull { it.source.atMs ?: Long.MIN_VALUE }?.let { latest ->
@@ -147,6 +157,7 @@ internal fun FileLibraryScreen(
                             LibrarySelection.outputKey(latest.file, latest.source),
                             latest.file.name, ChatViewModel.sizeLabel(latest.file.size), file.latestAtMs,
                             file.sources.map { it.source.conversationId }.distinct(), false, LibraryFileHandle.Exported(latest.file),
+                            latest.source,
                         )
                     }
                 }
@@ -221,6 +232,13 @@ internal fun FileLibraryScreen(
             working = true
             error = if (!LibraryFileActions.preview(context, item.handle)) R.string.file_library_error else null
             working = false
+        }
+    }
+    /** 跳到文件最近一次出现的消息:输入文件回到那条用户消息,产物回到这一轮的文件卡片。 */
+    fun openInChat(item: LibraryRow) {
+        if (working) return
+        if (!onOpenSource(item.source.conversationId, fileLibraryTarget(item.source, item.input))) {
+            error = R.string.file_library_open_failed
         }
     }
     fun shareOne(item: LibraryRow) {
@@ -446,17 +464,21 @@ internal fun FileLibraryScreen(
         }
     }
     actionsFor?.let { item ->
-        ActionSheet(
-            title = item.name,
-            actions = if (actionsAvailable == false) listOf(
-                SheetAction(stringResource(R.string.file_library_retry), icon = MikaIcons.Refresh) { revision++ },
-            ) else listOf(
-                SheetAction(stringResource(R.string.file_library_preview), icon = MikaIcons.Eye) { preview(item) },
-                SheetAction(stringResource(R.string.file_library_add), icon = MikaIcons.ListPlus) { addOne(item) },
-                SheetAction(stringResource(R.string.file_library_share), icon = MikaIcons.Share) { shareOne(item) },
-            ),
-            onDismiss = { actionsFor = null },
-        )
+        // 来源会话打不开(任务进行中且没开并行、又不是当前会话)时不给这一项
+        val canOpenInChat = item.source.conversationId == vm.ui.value.conversationId || vm.canSwitch()
+        val openInChatAction = SheetAction(
+            stringResource(R.string.file_library_open_in_chat), icon = MikaIcons.Message,
+        ) { openInChat(item) }
+        val actions = if (actionsAvailable == false) buildList {
+            add(SheetAction(stringResource(R.string.file_library_retry), icon = MikaIcons.Refresh) { revision++ })
+            if (canOpenInChat) add(openInChatAction)
+        } else buildList {
+            add(SheetAction(stringResource(R.string.file_library_preview), icon = MikaIcons.Eye) { preview(item) })
+            add(SheetAction(stringResource(R.string.file_library_add), icon = MikaIcons.ListPlus) { addOne(item) })
+            add(SheetAction(stringResource(R.string.file_library_share), icon = MikaIcons.Share) { shareOne(item) })
+            if (canOpenInChat) add(openInChatAction)
+        }
+        ActionSheet(title = item.name, actions = actions, onDismiss = { actionsFor = null })
     }
     choosing?.let { item ->
         AlertDialog(onDismissRequest = { choosing = null }, title = { Text(stringResource(R.string.file_library_choose)) }, text = {
