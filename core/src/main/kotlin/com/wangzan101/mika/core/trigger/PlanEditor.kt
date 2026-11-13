@@ -86,11 +86,22 @@ fun TriggerDefinition.toCopyPlanDraft(nowMs: Long): PlanDraft {
     val draft = toPlanDraft()
     val firstAt = when {
         draft.repeat == PlanRepeat.Daily || draft.repeat == PlanRepeat.Weekly -> draft.firstAt
-        nextAtMs > nowMs -> Instant.ofEpochMilli(nextAtMs).toString()
-        intervalMs != null -> Instant.ofEpochMilli(upcoming(this, nowMs + 1, 1).single()).toString()
+        nextAtMs > nowMs -> copyFirstAt(nextAtMs, draft.zone)
+        intervalMs != null -> copyFirstAt(upcoming(this, nowMs + 1, 1).single(), draft.zone)
         else -> newPlanDraft(nowMs, ZoneId.of(draft.zone)).firstAt
     }
     return draft.copy(firstAt = firstAt, enabled = false)
+}
+
+/**
+ * 复制时「首次执行」用页面上的当地时间格式;带秒的计划向上取整到下一分钟,
+ * 免得截掉秒后落到当前时刻之前,保存时被判成「时间不在将来」。
+ */
+private fun copyFirstAt(atMs: Long, zone: String): String {
+    val time = Instant.ofEpochMilli(atMs).atZone(ZoneId.of(zone))
+    val shown = if (time.second == 0 && time.nano == 0) time
+        else time.withSecond(0).withNano(0).plusMinutes(1)
+    return EDIT_TIME.format(shown)
 }
 
 /**
