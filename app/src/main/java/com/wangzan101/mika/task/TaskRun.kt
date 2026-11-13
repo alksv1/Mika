@@ -909,7 +909,7 @@ class TaskRun(
                 workspacePath = web?.let { { p: String -> sandbox.uploadCheck(conversationId, p) } },
                 // 工作区 = 对话:同一对话的追问接着用上一轮的文件,不同对话互不可见
                 sandbox = sandbox, workspace = { conversationId },
-                deviceFiles = if (provenance.origin == RunOrigin.Ui && !conditionCheck) {
+                deviceFiles = if (provenance.origin == RunOrigin.Ui && !conditionCheck && FeatureFlags.get(service).deviceFiles()) {
                     AndroidDeviceFiles(phoneServices.hub, com.wangzan101.mika.cap.sandbox.SandboxDirs(service), sandbox)
                 } else null,
                 onSandboxCommand = { sandboxNote(StatusCopy.sandboxCommand(it, sandboxOnline())) },

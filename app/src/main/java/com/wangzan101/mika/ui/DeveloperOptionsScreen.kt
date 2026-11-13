@@ -68,12 +68,18 @@ fun DeveloperOptionsScreen(
     grounding: GroundingSetting? = null,
     onGrounding: (Boolean) -> Unit = {},
     onOpenRunStats: (() -> Unit)? = null,
+    deviceFiles: Boolean = false,
+    onDeviceFiles: (Boolean) -> Unit = {},
 ) {
     PageScaffold(tr(R.string.settings_developer), onBack) {
         GroupLabel(tr(R.string.dev_speed))
         SwitchGroup(DeveloperSwitches.speed(speed), onSpeed)
         GroupLabel(tr(R.string.dev_experiments))
-        SwitchGroup(DeveloperSwitches.experimental(speed), onSpeed)
+        SwitchGroup(DeveloperSwitches.experimental(speed), onSpeed) {
+            ListRow(null, tr(R.string.dev_device_files), tr(R.string.dev_device_files_sub), onClick = { onDeviceFiles(!deviceFiles) }) {
+                MikaSwitch(deviceFiles, onDeviceFiles, Modifier.testTag("dev-device-files"))
+            }
+        }
         if (grounding != null) {
             GroupLabel(GroundingCopy.GROUP)
             GroupCard {
@@ -94,7 +100,7 @@ fun DeveloperOptionsScreen(
 }
 
 @Composable
-private fun SwitchGroup(switches: List<DevSwitch>, onSpeed: (SpeedFlags) -> Unit) {
+private fun SwitchGroup(switches: List<DevSwitch>, onSpeed: (SpeedFlags) -> Unit, extra: @Composable () -> Unit = {}) {
     GroupCard {
         switches.forEachIndexed { i, s ->
             // 整行都能点:开关小,行大
@@ -102,5 +108,6 @@ private fun SwitchGroup(switches: List<DevSwitch>, onSpeed: (SpeedFlags) -> Unit
                 MikaSwitch(s.checked, { onSpeed(s.change(it)) }, Modifier.testTag("dev-${s.id}"))
             }
         }
+        extra()
     }
 }

@@ -211,6 +211,13 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         prefs.edit().putBoolean(EXTERNAL_SCHEDULE, on).commit()
     }
 
+    /** 设备文件导入是实验功能,默认关闭,下次任务生效。 */
+    fun deviceFiles(): Boolean = prefs.getBoolean(DEVICE_FILES, false)
+
+    fun setDeviceFiles(on: Boolean) {
+        prefs.edit().putBoolean(DEVICE_FILES, on).commit()
+    }
+
     /** 自动归档:多久没有新消息的对话自动归档;0 表示关闭(默认)。 */
     fun autoArchiveDays(): Int = prefs.getInt(AUTO_ARCHIVE_DAYS, 0).takeIf { it in AutoArchive.DAYS } ?: 0
 
@@ -376,6 +383,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         private const val AUTO_ARCHIVE_DAYS = "auto_archive_days"
         private const val SELF_CONFIG = "self_config"
         private const val SELF_OPERATE = "self_operate"
+        private const val DEVICE_FILES = "device_files"
         private const val PIP_OPERATE = "pip_operate"
         private const val EXTERNAL_SCHEDULE = "external_schedule"
         private const val PROACTIVE = "proactive"

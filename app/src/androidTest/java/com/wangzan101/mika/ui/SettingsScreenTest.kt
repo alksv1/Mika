@@ -352,6 +352,22 @@ class SettingsScreenTest {
         compose.onNodeWithText("长任务的摘要分条写").assertIsDisplayed()
     }
 
+    @Test
+    fun deviceFilesExperimentalSwitchToggles() {
+        val toggled = mutableListOf<Boolean>()
+        var enabled by mutableStateOf(false)
+        compose.setContent {
+            DeveloperOptionsScreen(SpeedFlags.OFF, onSpeed = {}, onBack = {}, deviceFiles = enabled,
+                onDeviceFiles = { enabled = it; toggled += it })
+        }
+        scrollTo("导入手机文件")
+        compose.onNodeWithTag("dev-device-files").assertIsOff().performClick()
+        compose.onNodeWithTag("dev-device-files").assertIsOn()
+        compose.onNodeWithText("导入手机文件").performClick()
+        compose.onNodeWithTag("dev-device-files").assertIsOff()
+        assertEquals(listOf(true, false), toggled)
+    }
+
     /** 「自主模式」在任务运行最前面,默认关;点开关或整行都切换。 */
     @Test
     fun autonomousSwitchComesFirstAndToggles() {

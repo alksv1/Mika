@@ -127,6 +127,7 @@ fun SettingsScreen(
     var tokenBudget by remember { mutableStateOf(flags.taskTokenBudget()) }
     var selfConfig by remember { mutableStateOf(flags.selfConfig()) }
     var selfOperate by remember { mutableStateOf(flags.selfOperate()) }
+    var deviceFiles by remember { mutableStateOf(flags.deviceFiles()) }
     var pipOperate by remember { mutableStateOf(flags.pipOperate()) }
     var externalSchedule by remember { mutableStateOf(flags.externalSchedule()) }
     var autoArchiveDays by remember { mutableStateOf(flags.autoArchiveDays()) }
@@ -263,6 +264,7 @@ fun SettingsScreen(
         SettingsPage.Root -> RootScreen(helperRow = status.sdkInt >= Prerequisites.MIN_SDK, onBack = toAdvanced)
         SettingsPage.Developer -> DeveloperOptionsScreen(
             speed, onSpeed = { flags.setSpeed(it); speed = it }, onBack = toAdvanced,
+            deviceFiles = deviceFiles, onDeviceFiles = { flags.setDeviceFiles(it); deviceFiles = it },
             grounding = visionConfig?.let { GroundingSetting(it.model, it.capabilities.groundingVerified) },
             onGrounding = { verified -> scope.launch { withContext(Dispatchers.IO) { store.setVisionGroundingVerified(verified) } } },
             onOpenRunStats = { page = SettingsPage.RunStats },
