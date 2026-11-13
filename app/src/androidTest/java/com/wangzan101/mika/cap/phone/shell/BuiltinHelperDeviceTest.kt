@@ -88,7 +88,7 @@ class BuiltinHelperDeviceTest {
             val dirs = com.wangzan101.mika.cap.sandbox.SandboxDirs(context)
             val sandbox = com.wangzan101.mika.cap.sandbox.AndroidSandbox(context, com.wangzan101.mika.cap.sandbox.SandboxState.get(context))
             try {
-                val deviceFiles = com.wangzan101.mika.cap.sandbox.AndroidDeviceFiles(phone.hub, dirs, sandbox)
+                val deviceFiles = com.wangzan101.mika.task.AndroidDeviceFiles(phone.hub, dirs, sandbox)
                 val copied = runBlocking { deviceFiles.importFile("$dir/sample.txt", workspaceId) }
                 assertEquals("/workspace/inbox/sample.txt", copied.path)
                 assertEquals(6L, copied.size)

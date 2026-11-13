@@ -1,8 +1,11 @@
-package com.wangzan101.mika.cap.sandbox
+package com.wangzan101.mika.task
 
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import com.wangzan101.mika.cap.phone.shell.HelperHub
+import com.wangzan101.mika.cap.sandbox.AndroidSandbox
+import com.wangzan101.mika.cap.sandbox.Attachments
+import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFilePage
