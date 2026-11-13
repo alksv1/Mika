@@ -379,7 +379,11 @@ private fun MikaRoot(
 ) {
     val context = LocalContext.current
     var focusedCallHistoryId by remember { mutableStateOf<String?>(null) }
+    // 启动页只看打开 App 那一刻的设置;侧栏入口跟着设置页的开关当场显隐。
     val personalStart = remember { FeatureFlags.get(context).personalStart() }
+    val showPersonal by remember {
+        FeatureFlags.get(context).personalStartChanges()
+    }.collectAsState(initial = personalStart)
     val nav = rememberNavStack(if (personalStart && requestedConversation == null) Route.Personal else Route.Chat)
     var filesFromDrawer by rememberSaveable { mutableStateOf(false) }
     var filesConversation by rememberSaveable { mutableStateOf<String?>(null) }
@@ -547,7 +551,7 @@ private fun MikaRoot(
                 reopen = nav.reopenDrawer,
                 onReopened = nav::drawerReopened,
                 onPersonal = { nav.show(Route.Personal) },
-                showPersonal = personalStart,
+                showPersonal = showPersonal,
                 onRegularChat = nav::reset,
                 resetKey = nav.resetSerial,
             ) { openDrawer ->
