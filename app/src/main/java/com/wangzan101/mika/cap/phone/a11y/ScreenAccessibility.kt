@@ -163,6 +163,11 @@ open class ScreenAccessibility : AccessibilityService() {
             cont.resume(MainShot.Failed(ERROR_TAKE_SCREENSHOT_NO_ACCESSIBILITY_ACCESS))
             return@suspendCancellableCoroutine
         }
+        // takeScreenshot 是安卓 11 起才有的;更早的系统当作截不到,不让胶囊的截屏路径崩掉。
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            cont.resume(MainShot.Failed(ERROR_TAKE_SCREENSHOT_INTERNAL_ERROR))
+            return@suspendCancellableCoroutine
+        }
         service.takeScreenshot(Display.DEFAULT_DISPLAY, service.mainExecutor, object : TakeScreenshotCallback {
             override fun onSuccess(result: ScreenshotResult) {
                 val shot = runCatching {
