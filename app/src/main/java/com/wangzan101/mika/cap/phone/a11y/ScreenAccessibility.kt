@@ -100,8 +100,15 @@ open class ScreenAccessibility : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     /** 指定屏上的窗口;该屏没有窗口(或不存在)时为空列表。 */
-    fun windowsOn(displayId: Int): List<AccessibilityWindowInfo> =
-        instance.value?.windowsOnAllDisplays?.get(displayId).orEmpty()
+    fun windowsOn(displayId: Int): List<AccessibilityWindowInfo> {
+        val service = instance.value ?: return emptyList()
+        // getWindowsOnAllDisplays 是安卓 11 起才有的;更早的系统只有主屏那一份 getWindows。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return service.windowsOnAllDisplays[displayId].orEmpty()
+        if (displayId != Display.DEFAULT_DISPLAY) return emptyList()
+        @Suppress("DEPRECATION")
+        val main = service.windows
+        return main.orEmpty()
+    }
 
     /** 在指定屏上沿 [path] 做一次单指手势;完成返回 true,被取消或无法下发返回 false。 */
     suspend fun gesture(displayId: Int, path: Path, durationMs: Long): Boolean {
@@ -206,6 +213,12 @@ open class ScreenAccessibility : AccessibilityService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return event.displayId
         val windowId = event.windowId
         if (windowId == -1) return Display.INVALID_DISPLAY
+        // 安卓 11 起才有「各屏的窗口」;更早的系统只有主屏一份,只在主屏里找。
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            @Suppress("DEPRECATION")
+            val main = windows
+            return if (main.any { it.id == windowId }) Display.DEFAULT_DISPLAY else Display.INVALID_DISPLAY
+        }
         val all = windowsOnAllDisplays
         for (i in 0 until all.size()) {
             if (all.valueAt(i).any { it.id == windowId }) return all.keyAt(i)
