@@ -99,9 +99,9 @@ fun TriggerDefinition.toCopyPlanDraft(nowMs: Long): PlanDraft {
  */
 private fun copyFirstAt(atMs: Long, zone: String): String {
     val time = Instant.ofEpochMilli(atMs).atZone(ZoneId.of(zone))
-    val shown = if (time.second == 0 && time.nano == 0) time
-        else time.withSecond(0).withNano(0).plusMinutes(1)
-    return EDIT_TIME.format(shown)
+    val rounded = if (time.second == 0 && time.nano == 0) atMs
+        else time.withSecond(0).withNano(0).plusMinutes(1).toInstant().toEpochMilli()
+    return formatPlanEditorTime(rounded, zone)
 }
 
 /**

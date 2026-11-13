@@ -83,6 +83,18 @@ class PlanEditorTest {
         assertFalse(draft.firstAt.contains('T'))
     }
 
+    /** 过期的固定间隔计划从下一次排期开始,同样不能把 ISO 字符串塞进输入框。 */
+    @Test fun copyingAnExpiredIntervalStartsAtItsNextOccurrenceInLocalTime() {
+        val original = TriggerDefinition("plan", "thread", "goal", now - 60_000, intervalMs = 300_000)
+        val draft = original.toCopyPlanDraft(now)
+        val copy = editedTrigger(draft, null, "copy", original.threadId, now)
+
+        assertEquals(now + 240_000, copy.nextAtMs)
+        assertEquals(original.intervalMs, copy.intervalMs)
+        assertEquals(formatPlanEditorTime(copy.nextAtMs, draft.zone), draft.firstAt)
+        assertFalse(draft.firstAt.contains('T'))
+    }
+
     @Test fun createsOneShotWithIndependentIdentityAndMatchingPreview() {
         val input = draft().copy(firstAt = "2026-11-07 08:30")
         val plan = editedTrigger(input, null, "new-plan", "new-thread", now)
