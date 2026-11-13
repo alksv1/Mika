@@ -63,6 +63,58 @@ class BuiltinHelperDeviceTest {
     }
 
     @Test
+    fun fileBridgeReadsSharedStorageAndRejectsInvalidTargets() {
+        val shell = helperUp()
+        val dir = "/sdcard/Download/mika-file-bridge-${android.os.Process.myPid()}"
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        fun command(cmd: String) {
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(cmd)).use { it.readBytes() }
+        }
+        try {
+            command("mkdir -p $dir/subdir; printf bridge > $dir/sample.txt")
+            val listing = shell.listFiles(dir, null, 128)
+            assertEquals("ok", listing.getString("status"))
+            val names = listing.getStringArrayList("names")!!
+            val types = listing.getIntArray("types")!!
+            assertEquals(1, types[names.indexOf("sample.txt")])
+            assertEquals(2, types[names.indexOf("subdir")])
+            val opened = shell.openFile("$dir/sample.txt")
+            assertEquals("ok", opened.getString("status"))
+            val fd = opened.getParcelable<android.os.ParcelFileDescriptor>("fd")!!
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(fd).use {
+                assertEquals("bridge", it.readBytes().toString(Charsets.UTF_8))
+            }
+            val workspaceId = "device-file-test-${android.os.Process.myPid()}"
+            val dirs = com.wangzan101.mika.cap.sandbox.SandboxDirs(context)
+            val sandbox = com.wangzan101.mika.cap.sandbox.AndroidSandbox(context, com.wangzan101.mika.cap.sandbox.SandboxState.get(context))
+            try {
+                val deviceFiles = com.wangzan101.mika.cap.sandbox.AndroidDeviceFiles(phone.hub, dirs, sandbox)
+                val copied = runBlocking { deviceFiles.importFile("$dir/sample.txt", workspaceId) }
+                assertEquals("/workspace/inbox/sample.txt", copied.path)
+                assertEquals(6L, copied.size)
+                dirs.gate.openRead(dirs.workspace(workspaceId), "inbox/sample.txt").use {
+                    assertEquals("bridge", it.input().readBytes().toString(Charsets.UTF_8))
+                }
+            } finally {
+                runBlocking { dirs.deleteWorkspace(workspaceId) }
+            }
+            assertEquals("not_file", shell.openFile(dir).getString("status"))
+            assertEquals("denied", shell.openFile("/dev/null").getString("status"))
+            assertEquals("denied", shell.openFile("/data/data/file").getString("status"))
+            assertEquals("not_found", shell.openFile("$dir/missing").getString("status"))
+            assertEquals("not_directory", shell.listFiles("$dir/sample.txt", null, 128).getString("status"))
+            assertEquals("invalid", shell.listFiles("relative", null, 128).getString("status"))
+            val first = shell.listFiles(dir, null, 1)
+            assertEquals(listOf("sample.txt"), first.getStringArrayList("names"))
+            val second = shell.listFiles(dir, first.getString("next"), 1)
+            assertEquals(listOf("subdir"), second.getStringArrayList("names"))
+            assertNull(second.getString("next"))
+        } finally {
+            command("rm -rf $dir")
+        }
+    }
+
+    @Test
     fun helperRunsAsShellDrivesItsDisplayAndSurvivesUnbind() {
         assumeTrue(Build.VERSION.SDK_INT >= BuiltinShellManager.MIN_SDK)
         val shell = helperUp()

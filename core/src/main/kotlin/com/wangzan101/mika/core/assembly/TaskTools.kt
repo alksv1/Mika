@@ -131,6 +131,8 @@ fun toolDispatcher(
     taskMemory: com.wangzan101.mika.core.memory.TaskMemoryStore? = null,
     /** 这两天的通知原文和存着的各天、各周、各月的归纳(主动能力攒下的、够格带进任务的);给了才提供 notices_read。 */
     notices: com.wangzan101.mika.core.proactive.NoticeSource? = null,
+    /** 用户在 UI 发起任务时可访问的设备文件。 */
+    deviceFiles: com.wangzan101.mika.core.cap.devicefiles.DeviceFilesPort? = null,
 ): ToolDispatcher {
     val screenshotStore = sandbox?.takeIf {
         it.status() !is com.wangzan101.mika.core.cap.sandbox.SandboxStatus.Unsupported &&
@@ -163,6 +165,13 @@ fun toolDispatcher(
         object : CapabilityProvider {
             override val id = "calls"
             override fun open(spec: RunSpec) = com.wangzan101.mika.core.calls.PhoneCallsCapability(port)
+        }
+    }, deviceFiles?.let { port ->
+        object : CapabilityProvider {
+            override val id = com.wangzan101.mika.core.cap.devicefiles.DEVICE_FILES
+            override fun open(spec: RunSpec) = if (spec.provenance.origin == com.wangzan101.mika.core.run.RunOrigin.Ui &&
+                spec.provenance.attendance != com.wangzan101.mika.core.run.Attendance.Unattended)
+                com.wangzan101.mika.core.cap.devicefiles.DeviceFilesCapability(port, workspace) else null
         }
     }) + mcpServers.map(::McpClientProvider)
     return RunAssembler(providers).assemble(runSpec, config, stableRefs, FORMER_PREFIX, RENAMED, RETIRED, MOVED)
@@ -210,7 +219,7 @@ fun recordedTools(): ToolIndex = legacyNames().let { legacy -> ToolIndex(allTool
 
 /** Mika 所有可能提供的工具,按发给模型的顺序。 */
 internal fun allTools(): List<AgentTool> =
-    GeneralGroup.tools + PhoneCapability.tools() + WebGroup.tools + SandboxGroup.tools + RootGroup.tools + com.wangzan101.mika.core.calls.callAgentTools
+    GeneralGroup.tools + PhoneCapability.tools() + WebGroup.tools + SandboxGroup.tools + RootGroup.tools + com.wangzan101.mika.core.calls.callAgentTools + com.wangzan101.mika.core.cap.devicefiles.DeviceFilesGroup.tools
 
 /** Mika 所有可能提供的工具的声明。 */
 fun knownTools(): ToolIndex = ToolIndex(allTools())

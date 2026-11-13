@@ -132,6 +132,14 @@ interface IMikaShell {
     boolean flushCallAudio(IBinder owner) = 55;
     Bundle callAudioStats(IBinder owner) = 56;
 
+    // 当前用户的 /sdcard 或 /storage/emulated/<user> 绝对路径,按名称排序;首次 afterName=null,limit 为 1..128。
+    // status=ok/not_found/denied/not_directory/invalid/io_error;成功时 names、types
+    // (0=其他或链接 1=普通文件 2=目录)等长,next 非空时传给下一页;目录变化时不保证快照。
+    Bundle listFiles(String path, String afterName, int limit) = 57;
+    // 只读打开普通文件;结果 status=ok/not_found/denied/not_file/invalid/io_error,
+    // 成功时 fd 为 ParcelFileDescriptor,调用方负责关闭。路径按 shell 的权限访问。
+    Bundle openFile(String path) = 58;
+
     // 沿用早先定下的销毁事务号;AIDL 要求要么全部方法编号要么都不编号
     void destroy() = 16777114;
 }

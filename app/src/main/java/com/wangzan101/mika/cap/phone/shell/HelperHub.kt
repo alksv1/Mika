@@ -50,6 +50,13 @@ class HelperHub(context: Context) {
         return sh.openDevtoolsSocket(endpoint)
     }
 
+    /** 以助手的 shell 权限列目录;字段及错误见 IMikaShell.listFiles。 */
+    fun listFiles(path: String, afterName: String?, limit: Int): Bundle =
+        (shell.value ?: throw IOException("phone helper is not running")).listFiles(path, afterName, limit)
+
+    /** 以助手的 shell 权限只读打开普通文件;成功时调用方须关闭结果中的 fd。 */
+    fun openFile(path: String): Bundle = (shell.value ?: throw IOException("phone helper is not running")).openFile(path)
+
     /** 交给助手的本进程令牌:Mika 进程一死,助手就从它的死亡通知得知,撤掉 Mika 留下的改动。 */
     private val token = Binder()
     private val nonces: HandoffNonces by lazy { HandoffNonces(PrefsNonceStore(app), SystemClock::elapsedRealtime, System::currentTimeMillis) }

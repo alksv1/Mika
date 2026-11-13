@@ -1452,6 +1452,15 @@ class ShellService(
         }
     }
 
+    override fun listFiles(path: String?, afterName: String?, limit: Int): Bundle =
+        asCallAudioShell { ShellFiles.list(path, afterName, limit, myUser) }
+
+    override fun openFile(path: String?): Bundle = asCallAudioShell {
+        ShellFiles.open(path, myUser).also { result ->
+            result.getParcelable<ParcelFileDescriptor>("fd")?.let { returnedCallPipes.set(listOf(it)) }
+        }
+    }
+
     override fun probeCallAudio(mode: Int): Bundle = asCallAudioShell { callAudio.probe(mode) }
 
     override fun openCallAudio(mode: Int, owner: IBinder): Bundle = asCallAudioShell {
