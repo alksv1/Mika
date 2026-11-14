@@ -1,7 +1,7 @@
 package com.wangzan101.mika.core.cap.devicefiles
 
 /** A device-visible entry. [path] is an opaque identifier understood by this port. */
-data class DeviceFileEntry(val name: String, val path: String, val isDirectory: Boolean, val size: Long? = null)
+data class DeviceFileEntry(val name: String, val path: String, val isDirectory: Boolean, val size: Long? = null, val modifiedAt: Long? = null)
 data class DeviceFilePage(val entries: List<DeviceFileEntry>, val nextCursor: String? = null)
 data class DeviceFileImport(val path: String, val size: Long)
 data class DeviceDirectoryHint(val path: String, val name: String, val description: String, val source: String, val status: String)

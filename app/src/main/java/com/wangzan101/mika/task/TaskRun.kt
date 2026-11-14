@@ -911,7 +911,7 @@ class TaskRun(
                 sandbox = sandbox, workspace = { conversationId },
                 deviceFiles = if (provenance.origin == RunOrigin.Ui && !conditionCheck && FeatureFlags.get(service).deviceFiles()) {
                     AndroidDeviceFiles(phoneServices.hub, com.wangzan101.mika.cap.sandbox.SandboxDirs(service), sandbox,
-                        com.wangzan101.mika.settings.DeviceDirectoryStore.get(service))
+                        com.wangzan101.mika.settings.DeviceDirectoryStore.get(service), DeviceImportStore.get(service))
                 } else null,
                 onSandboxCommand = { sandboxNote(StatusCopy.sandboxCommand(it, sandboxOnline())) },
                 onSandboxProgress = { sandboxNote(StatusCopy.sandboxProgress(it, sandboxOnline())) },

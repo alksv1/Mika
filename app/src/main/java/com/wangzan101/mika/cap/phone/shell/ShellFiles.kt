@@ -65,17 +65,21 @@ internal object ShellFiles {
                     }
                     val ordered = selected.sorted()
                     val names = ArrayList(ordered.take(limit))
-                    val types = names.map { name ->
-                        val mode = try { Os.lstat(Paths.get(directory, name).toString()).st_mode } catch (_: ErrnoException) { 0 }
+                    val stats = names.map { name ->
+                        try { Os.lstat(Paths.get(directory, name).toString()) } catch (_: ErrnoException) { null }
+                    }
+                    val types = stats.map { stat ->
                         when {
-                            OsConstants.S_ISREG(mode) -> 1
-                            OsConstants.S_ISDIR(mode) -> 2
+                            stat != null && OsConstants.S_ISREG(stat.st_mode) -> 1
+                            stat != null && OsConstants.S_ISDIR(stat.st_mode) -> 2
                             else -> 0
                         }
                     }
                     result("ok").apply {
                         putStringArrayList("names", names)
                         putIntArray("types", types.toIntArray())
+                        putLongArray("sizes", stats.map { it?.st_size?.takeIf { size -> size >= 0 } ?: -1L }.toLongArray())
+                        putLongArray("modified", stats.map { it?.st_mtime?.takeIf { time -> time in 0..Long.MAX_VALUE / 1000 }?.times(1000) ?: -1L }.toLongArray())
                         putString("next", if (ordered.size > limit) names.last() else null)
                     }
                 }

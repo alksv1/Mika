@@ -254,7 +254,11 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             schedulesOf = { id -> TriggerRuntime.list(app).filter { it.threadId == id }.map { it.id } },
             deleteWorkspace = { id ->
                 // 工作区里有附件、用户发来的屏幕、任务写的文件;沙箱里的命令碰得到这里,和命令、导入、重置互斥着删
-                SandboxDirs(app).deleteWorkspace(id)
+                try {
+                    SandboxDirs(app).deleteWorkspace(id)
+                } finally {
+                    com.wangzan101.mika.task.DeviceImportStore.get(app).removeConversation(id)
+                }
             },
         )
     }

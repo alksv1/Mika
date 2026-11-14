@@ -489,6 +489,7 @@ class ChatViewModel(
     private val libraryCopies = mutableMapOf<String, () -> Unit>()
     private val librarySources = mutableMapOf<String, LibraryFileHandle>()
     private val libraryImports = mutableMapOf<String, Int>()
+    private val deviceImports = mutableMapOf<String, kotlinx.coroutines.Job>()
 
     /** 只回收本进程登记的副本；导入中或任何草稿引用中的 URI 继续保留。 */
     private fun releaseUnusedLibraryCopies() {
@@ -856,6 +857,49 @@ class ChatViewModel(
                 draft.copy(attachments = all, overLimit = dropped, rejected = emptyList())
             }
         }
+    }
+
+    /** Copy selected device files into the conversation that opened the browser. */
+    internal fun importDeviceAttachments(conversationId: String, paths: List<String>,
+        copy: suspend (String, String) -> com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport) {
+        if (_ui.value.conversationId != conversationId || !canAttach(_ui.value) || paths.isEmpty()) return
+        val slots = (AttachTray.LIMIT - _ui.value.attachments.size).coerceAtLeast(0)
+        val selected = paths.distinct().take(slots)
+        val dropped = (paths.distinct().size - selected.size).coerceAtLeast(0)
+        if (selected.isEmpty()) {
+            updateDraft(conversationId) { it.copy(overLimit = dropped) }
+            return
+        }
+        updateDraft(conversationId) { it.copy(importing = true, rejected = emptyList(), overLimit = dropped) }
+        val job = scope.launch {
+            val added = mutableListOf<PendingAttachment>()
+            val failures = mutableListOf<AttachmentFailure>()
+            try {
+                for (path in selected) {
+                    if (conversationId in _deleted.value || conversationId in deleting) break
+                    try {
+                        val result = copy(path, conversationId)
+                        added += PendingAttachment("workspace:$conversationId:${result.path}", result.path.substringAfterLast('/'), result.size,
+                            workspaceConversationId = conversationId, workspacePath = result.path)
+                    } catch (e: CancellationException) { throw e } catch (e: Exception) {
+                        val reason = when ((e as? com.wangzan101.mika.core.workspace.SandboxError)?.code) {
+                            "too_large" -> AttachmentFailureReason.TOO_LARGE
+                            "low_device_space" -> AttachmentFailureReason.LOW_DEVICE_SPACE
+                            "workspace_limit" -> AttachmentFailureReason.WORKSPACE_LIMIT
+                            else -> AttachmentFailureReason.IO_ERROR
+                        }
+                        failures += AttachmentFailure(path.substringAfterLast('/'), reason)
+                    }
+                }
+            } finally {
+                updateDraft(conversationId) { draft ->
+                    val (merged, overflow) = AttachTray.add(draft.attachments, added)
+                    draft.copy(importing = false, attachments = merged, rejected = failures, overLimit = draft.overLimit + overflow)
+                }
+            }
+        }
+        deviceImports[conversationId] = job
+        job.invokeOnCompletion { deviceImports.remove(conversationId, job) }
     }
 
     /** 为当前新会话分配草稿编号；调用方在主线程调用。 */
@@ -1245,6 +1289,7 @@ class ChatViewModel(
 
     /** 切换任务进行中补充消息的默认去向;只影响下次发送,不改已经发出的消息。 */
     fun setFollowUpMode(mode: FollowUpMode) {
+        if (_ui.value.importing) return
         if (mode == FollowUpMode.Steer) {
             _ui.value.sharedDraft?.takeIf { it.image != null }?.let(::clearSharedImage)
         }
@@ -1880,6 +1925,7 @@ class ChatViewModel(
             // 一条删不掉(存储读写失败等)不挡住后面的;最后照实说几条失败
             targets.forEach { id ->
                 try {
+                    deviceImports[id]?.join()
                     removeConversation(id)
                 } catch (e: CancellationException) {
                     val unfinished = targets.drop(done).toSet()

@@ -2,6 +2,8 @@ package com.wangzan101.mika.task
 
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
+import android.system.Os
+import android.system.OsConstants
 import com.wangzan101.mika.cap.phone.shell.HelperHub
 import com.wangzan101.mika.cap.sandbox.AndroidSandbox
 import com.wangzan101.mika.cap.sandbox.Attachments
@@ -18,7 +20,10 @@ import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchResult
 import com.wangzan101.mika.core.workspace.SandboxError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
+import java.util.UUID
 
 /** Read device files through the shell helper and copy them into the conversation workspace. */
 internal class AndroidDeviceFiles(
@@ -26,6 +31,7 @@ internal class AndroidDeviceFiles(
     private val dirs: SandboxDirs,
     private val sandbox: AndroidSandbox,
     private val directoryStore: DeviceDirectoryStore,
+    private val imports: DeviceImportStore,
 ) : DeviceFilesPort {
     private fun hint(directory: DeviceDirectory): DeviceDirectoryHint {
         val status = try { hub.listFiles(directory.path, null, 1).getString("status") ?: "helper_error" }
@@ -54,10 +60,14 @@ internal class AndroidDeviceFiles(
         requireOk(response)
         val names = response.getStringArrayList("names") ?: arrayListOf()
         val types = response.getIntArray("types") ?: intArrayOf()
+        val sizes = response.getLongArray("sizes")?.takeIf { it.size == names.size }
+        val modified = response.getLongArray("modified")?.takeIf { it.size == names.size }
         if (names.size != types.size) throw failure("helper_error", "Invalid directory response from phone helper.")
         val entries = names.mapIndexedNotNull { index, name ->
             when (types[index]) {
-                1, 2 -> DeviceFileEntry(name, path.trimEnd('/') + "/" + name, types[index] == 2)
+                1, 2 -> DeviceFileEntry(name, path.trimEnd('/') + "/" + name, types[index] == 2,
+                    sizes?.get(index)?.takeIf { it >= 0 && types[index] == 1 },
+                    modified?.get(index)?.takeIf { it >= 0 })
                 else -> null
             }
         }
@@ -72,13 +82,25 @@ internal class AndroidDeviceFiles(
     }
 
     override suspend fun importFile(path: String, workspace: String): DeviceFileImport = dirs.tree.shared {
-        withContext(Dispatchers.IO) {
+        importLock.withLock { withContext(Dispatchers.IO) {
             val response = callHelper { hub.openFile(path) }
             requireOk(response)
             @Suppress("DEPRECATION")
             val descriptor = response.getParcelable<ParcelFileDescriptor>("fd")
                 ?: throw failure("helper_error", "Phone helper did not return a file.")
             descriptor.use { fd ->
+                val metadata = metadata(fd)
+                val records = try { imports.list(workspace) } catch (e: Exception) {
+                    throw failure("record_error", "Could not read device import records.")
+                }
+                if (metadata != null) {
+                    val existing = records.asReversed().firstOrNull { record ->
+                        record.sourcePath == path && record.size == metadata.size &&
+                            record.sourceModifiedSeconds == metadata.seconds && record.sourceModifiedNanos == metadata.nanos &&
+                            readableCopy(workspace, record)
+                    }
+                    if (existing != null) return@withContext DeviceFileImport(existing.workspacePath, existing.size)
+                }
                 val result = Attachments.importOne(
                     dirs.workspace(workspace), dirs.gate, Attachments.safeName(File(path).name),
                     sandbox::freeBytes, { sandbox.workspaceBytes(workspace) },
@@ -89,10 +111,40 @@ internal class AndroidDeviceFiles(
                     val reason = result.failures.firstOrNull()?.reason?.name?.lowercase() ?: "io_error"
                     throw failure(reason, "Could not copy the device file to the workspace ($reason).")
                 }
+                // Only retain metadata when the open source stayed unchanged throughout the copy.
+                val stable = metadata?.takeIf { it == metadata(fd) && it.size == entry.second }
+                try {
+                    imports.add(DeviceImportRecord(UUID.randomUUID().toString(), workspace, path, entry.first, entry.second,
+                        System.currentTimeMillis(), stable?.seconds, stable?.nanos))
+                } catch (e: Exception) {
+                    throw failure("record_error", "The file was copied, but its import record could not be saved.")
+                }
                 DeviceFileImport(entry.first, entry.second)
             }
-        }
+        } }
     }
+
+    private data class SourceMetadata(val size: Long, val seconds: Long, val nanos: Long)
+
+    private fun metadata(fd: ParcelFileDescriptor): SourceMetadata? = try {
+        val stat = Os.fstat(fd.fileDescriptor)
+        if (!OsConstants.S_ISREG(stat.st_mode) || stat.st_size < 0) null
+        else SourceMetadata(stat.st_size, stat.st_mtim.tv_sec, stat.st_mtim.tv_nsec)
+    } catch (_: Exception) { null }
+
+    private fun readableCopy(workspace: String, record: DeviceImportRecord): Boolean {
+        val prefix = "/workspace/inbox/"
+        if (!record.workspacePath.startsWith(prefix)) return false
+        val name = record.workspacePath.removePrefix(prefix)
+        if (name.isEmpty() || '/' in name || name == "." || name == "..") return false
+        return try {
+            dirs.gate.openRead(dirs.workspace(workspace), "inbox/$name").use {
+                it.currentSize() == record.size && (record.size == 0L || it.read(0, 1).size == 1)
+            }
+        } catch (_: Exception) { false }
+    }
+
+    private companion object { val importLock = Mutex() }
 
     private fun requireOk(response: Bundle) {
         val status = response.getString("status") ?: "helper_error"

@@ -86,6 +86,8 @@ class BuiltinHelperDeviceTest {
             val names = listing.getStringArrayList("names")!!
             val types = listing.getIntArray("types")!!
             assertEquals(1, types[names.indexOf("sample.txt")])
+            assertEquals(6L, listing.getLongArray("sizes")!![names.indexOf("sample.txt")])
+            assertTrue(listing.getLongArray("modified")!![names.indexOf("sample.txt")] > 0)
             assertEquals(2, types[names.indexOf("subdir")])
             val opened = shell.openFile("$dir/sample.txt")
             assertEquals("ok", opened.getString("status"))
@@ -97,7 +99,10 @@ class BuiltinHelperDeviceTest {
             val dirs = com.wangzan101.mika.cap.sandbox.SandboxDirs(context)
             val sandbox = com.wangzan101.mika.cap.sandbox.AndroidSandbox(context, com.wangzan101.mika.cap.sandbox.SandboxState.get(context))
             try {
-                val deviceFiles = com.wangzan101.mika.task.AndroidDeviceFiles(testHub, dirs, sandbox, hintStore)
+                val importPrefs = context.getSharedPreferences("device-import-test-${android.os.Process.myPid()}", Context.MODE_PRIVATE)
+                importPrefs.edit().clear().commit()
+                val store = com.wangzan101.mika.task.DeviceImportStore(importPrefs)
+                val deviceFiles = com.wangzan101.mika.task.AndroidDeviceFiles(testHub, dirs, sandbox, hintStore, store)
                 val hint = runBlocking { deviceFiles.listDirectoryHints().single { it.path == dir } }
                 assertEquals("ok", hint.status)
                 val updated = runBlocking { deviceFiles.updateDirectoryDescription(dir, "Reports") }
@@ -109,6 +114,16 @@ class BuiltinHelperDeviceTest {
                 dirs.gate.openRead(dirs.workspace(workspaceId), "inbox/sample.txt").use {
                     assertEquals("bridge", it.input().readBytes().toString(Charsets.UTF_8))
                 }
+                val record = com.wangzan101.mika.task.DeviceImportStore(importPrefs).list(workspaceId).single()
+                assertEquals("$dir/sample.txt", record.sourcePath)
+                assertEquals(copied.path, record.workspacePath)
+                assertEquals(copied, runBlocking { deviceFiles.importFile("$dir/sample.txt", workspaceId) })
+                assertEquals(record.id, store.list(workspaceId).single().id)
+                java.io.File(dirs.workspace(workspaceId), "inbox/sample.txt").delete()
+                val replacement = runBlocking { deviceFiles.importFile("$dir/sample.txt", workspaceId) }
+                assertEquals(copied.path, replacement.path)
+                assertEquals(2, store.list(workspaceId).size)
+                importPrefs.edit().clear().commit()
             } finally {
                 runBlocking { dirs.deleteWorkspace(workspaceId) }
             }

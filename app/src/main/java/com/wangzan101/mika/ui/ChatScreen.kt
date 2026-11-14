@@ -212,6 +212,13 @@ fun ChatScreen(
     }
     val recommendedTasks by recommendedTasksFlow.collectAsState()
     val ui by vm.ui.collectAsState()
+    var deviceBrowserConversation by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(ui.conversationId, deviceBrowserConversation) {
+        if (deviceBrowserConversation != null && deviceBrowserConversation != vm.ui.value.conversationId) deviceBrowserConversation = null
+    }
+    deviceBrowserConversation?.takeIf { it == ui.conversationId }?.let { id ->
+        DeviceFileBrowser(vm, id) { deviceBrowserConversation = null }
+    }
     val pendingJump by vm.jump.collectAsState()
     val others by vm.otherRunning.collectAsState()
     val keptAny by vm.keptPage.collectAsState()
@@ -460,7 +467,10 @@ fun ChatScreen(
             attachPanel = if (ui.attachEnabled && (ui.composer == ComposerMode.Idle ||
                     (ui.composer != ComposerMode.Idle && ui.followUpMode == FollowUpMode.Queue))) ({
                 androidx.compose.runtime.key(ui.conversationId) {
-                    AttachPanelHost(ui.attachments, onPicked = { vm.attach(it, ui.conversationId) }, onToggle = vm::toggleAttachment)
+                    AttachPanelHost(ui.attachments, onPicked = { vm.attach(it, ui.conversationId) }, onToggle = vm::toggleAttachment,
+                        onDeviceFiles = if (com.wangzan101.mika.settings.FeatureFlags.get(context).deviceFiles()) ({
+                            deviceBrowserConversation = vm.libraryTargetConversation()
+                        }) else null)
                 }
             }) else null,
             // 附件功能开着但此刻不能加(任务在跑、插话模式):「＋」保留,点了提示切队列

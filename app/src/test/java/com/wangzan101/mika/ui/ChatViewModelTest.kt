@@ -314,6 +314,69 @@ class ChatViewModelTest {
         assertTrue(vm.ui.value.attachments.isEmpty())
     }
 
+    @Test fun deviceImportKeepsOriginalDraftAndReportsPartialFailure() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true))
+        runCurrent()
+        vm.openConversation("a")
+        vm.importDeviceAttachments("a", listOf("/good.pdf", "/bad.pdf")) { path, id ->
+            assertEquals("a", id)
+            gate.await()
+            if (path.contains("bad")) throw IllegalStateException()
+            com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport("/workspace/inbox/good.pdf", 12)
+        }
+        runCurrent()
+        assertTrue(vm.ui.value.importing)
+        assertFalse(vm.send("hello", ok))
+        vm.openConversation("b")
+        gate.complete(Unit)
+        runCurrent()
+        assertTrue(vm.ui.value.attachments.isEmpty())
+        vm.openConversation("a")
+        assertFalse(vm.ui.value.importing)
+        assertEquals("a", vm.ui.value.attachments.single().workspaceConversationId)
+        assertEquals("bad.pdf", vm.ui.value.rejectedAttachments.single().name)
+    }
+
+    @Test fun deviceImportOnlyCopiesAvailableAttachmentSlots() = runTest {
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true))
+        runCurrent()
+        vm.openConversation("a")
+        repeat(8) { vm.addLibraryAttachment("a", PendingAttachment("content://$it", "$it.pdf", 1)) }
+        val copied = mutableListOf<String>()
+        vm.importDeviceAttachments("a", listOf("/one", "/two")) { path, _ ->
+            copied += path
+            com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport("/workspace/inbox/one", 1)
+        }
+        runCurrent()
+        assertEquals(listOf("/one"), copied)
+        assertEquals(9, vm.ui.value.attachments.size)
+        assertEquals(1, vm.ui.value.overLimit)
+    }
+
+    @Test fun deviceImportFinishesBeforeConversationDeletion() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        var deleted = false
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
+            sandboxReady = MutableStateFlow(true), removeConversation = { deleted = true })
+        runCurrent()
+        vm.openConversation("a")
+        vm.importDeviceAttachments("a", listOf("/file")) { _, _ ->
+            gate.await()
+            com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport("/workspace/inbox/file", 1)
+        }
+        runCurrent()
+        vm.deleteConversation("a")
+        runCurrent()
+        assertFalse(deleted)
+        gate.complete(Unit)
+        runCurrent()
+        assertTrue(deleted)
+        assertTrue(vm.draftConversations.value.none { it.id == "a" })
+    }
+
     @Test fun libraryAttachmentMergesIntoTargetDraftWithoutSwitchingOrOverwriting() = runTest {
         val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()),
             sandboxReady = MutableStateFlow(true))
