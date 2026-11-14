@@ -18,6 +18,11 @@ class DeviceFilesTest {
         var listed: Triple<String?, String?, Int>? = null
         var imported: Pair<String, String>? = null
         var fail = false
+        var query: DeviceFileSearchQuery? = null
+        override suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult {
+            this.query = query
+            return DeviceFileSearchResult(listOf(DeviceFileEntry("a.txt", "/sdcard/a.txt", false)), 12, true, "max_entries")
+        }
         override suspend fun list(path: String?, cursor: String?, limit: Int): DeviceFilePage {
             listed = Triple(path, cursor, limit)
             return DeviceFilePage(listOf(DeviceFileEntry("a.txt", "dir/a.txt", false, 3)), "next")
@@ -43,6 +48,16 @@ class DeviceFilesTest {
         val child = toolDispatcher(FakeScreen(), web = com.wangzan101.mika.core.cap.web.FakeWebPort(), deviceFiles = port, runSpec = spec(RunOrigin.Child))
         assertFalse(child.definitions().any { it.name == "list_device_files" })
         assertFalse("list_device_files" in names(spec(attendance = Attendance.Unattended)))
+    }
+
+    @Test fun searchForwardsFiltersAndReportsTruncation() = runTest {
+        val port = Port()
+        val dispatcher = toolDispatcher(FakeScreen(), deviceFiles = port)
+        val response = dispatcher.execute(call("search_device_files", """{"path":"/sdcard/docs","name":"report","extension":"pdf","modified_after":"1700000000000","max_depth":2,"max_entries":12,"timeout_ms":500}"""), ActionPass()).content
+        assertEquals(DeviceFileSearchQuery("/sdcard/docs", "report", "pdf", 1700000000000, null, 2, 12, 500), port.query)
+        assertEquals("true", response.getValue("truncated").jsonPrimitive.content)
+        assertEquals("max_entries", response.getValue("reason").jsonPrimitive.content)
+        assertEquals("/sdcard/a.txt", response.getValue("entries").jsonArray.single().jsonObject.getValue("path").jsonPrimitive.content)
     }
 
     @Test fun listAndImportForwardArgumentsAndErrors() = runTest {

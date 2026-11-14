@@ -2321,6 +2321,7 @@ class ToolLabels(private val tools: ToolIndex, private val legacy: LegacyNames =
             "采集多屏内容" to R.string.tool_collect,
             "连续操作手机" to R.string.tool_phone_run,
             "查看设备文件" to R.string.tool_list_device_files,
+            "搜索设备文件" to R.string.tool_search_device_files,
             "复制设备文件" to R.string.tool_copy_device_file,
             "处理文件" to R.string.tool_process_files,
             "运行自带脚本" to R.string.tool_run_script,

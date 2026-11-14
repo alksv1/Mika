@@ -139,6 +139,10 @@ interface IMikaShell {
     // 只读打开普通文件;结果 status=ok/not_found/denied/not_file/invalid/io_error,
     // 成功时 fd 为 ParcelFileDescriptor,调用方负责关闭。路径按 shell 的权限访问。
     Bundle openFile(String path) = 58;
+    // 只读、有界搜索；返回 status、paths、visited、truncated 和可选 reason。
+    Bundle searchFiles(String path, String name, String extension, long modifiedAfter, long modifiedBefore, int maxDepth, int maxEntries, int timeoutMs) = 59;
+    // Replace the device-file bridge policy. Empty roots deny all access; protocol and revision are separate.
+    Bundle setDeviceFilePolicy(int protocol, String session, long revision, in String[] roots, in boolean[] recursive) = 60;
 
     // 沿用早先定下的销毁事务号;AIDL 要求要么全部方法编号要么都不编号
     void destroy() = 16777114;

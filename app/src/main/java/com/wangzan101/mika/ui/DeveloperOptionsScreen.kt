@@ -70,6 +70,7 @@ fun DeveloperOptionsScreen(
     onOpenRunStats: (() -> Unit)? = null,
     deviceFiles: Boolean = false,
     onDeviceFiles: (Boolean) -> Unit = {},
+    onDeviceDirectories: (() -> Unit)? = null,
 ) {
     PageScaffold(tr(R.string.settings_developer), onBack) {
         GroupLabel(tr(R.string.dev_speed))
@@ -78,6 +79,9 @@ fun DeveloperOptionsScreen(
         SwitchGroup(DeveloperSwitches.experimental(speed), onSpeed) {
             ListRow(null, tr(R.string.dev_device_files), tr(R.string.dev_device_files_sub), onClick = { onDeviceFiles(!deviceFiles) }) {
                 MikaSwitch(deviceFiles, onDeviceFiles, Modifier.testTag("dev-device-files"))
+            }
+            if (onDeviceDirectories != null) {
+                ListRow(null, tr(R.string.device_dirs_entry), tr(R.string.device_dirs_entry_sub), onClick = onDeviceDirectories) { RowChevron() }
             }
         }
         if (grounding != null) {
