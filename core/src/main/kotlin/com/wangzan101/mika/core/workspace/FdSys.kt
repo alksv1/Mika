@@ -51,6 +51,10 @@ interface FdSys {
     fun remove(dir: OpenFd, name: String)
     /** 同一目录里改名,[to] 已有(文件或链接)时整个换掉。 */
     fun rename(dir: OpenFd, from: String, to: String)
+    /** Create a hard link without replacing an existing destination. */
+    fun link(fromDir: OpenFd, from: String, toDir: OpenFd, to: String) {
+        throw IOException("hard links are unsupported")
+    }
     fun symlink(dir: OpenFd, name: String, target: String)
     fun chmod(fd: OpenFd, mode: Int)
 }

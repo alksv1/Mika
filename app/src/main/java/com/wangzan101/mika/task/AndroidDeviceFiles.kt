@@ -101,15 +101,34 @@ internal class AndroidDeviceFiles(
                     }
                     if (existing != null) return@withContext DeviceFileImport(existing.workspacePath, existing.size)
                 }
-                val result = Attachments.importOne(
-                    dirs.workspace(workspace), dirs.gate, Attachments.safeName(File(path).name),
-                    sandbox::freeBytes, { sandbox.workspaceBytes(workspace) },
-                    { ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(fd.fileDescriptor)) },
-                )
-                val entry = result.added.singleOrNull()
-                if (entry == null) {
-                    val reason = result.failures.firstOrNull()?.reason?.name?.lowercase() ?: "io_error"
-                    throw failure(reason, "Could not copy the device file to the workspace ($reason).")
+                val root = dirs.workspace(workspace)
+                check(root.mkdirs() || root.isDirectory) { "Cannot create workspace" }
+                val staging = stagingDirectory(dirs)
+                check(staging.mkdirs() || staging.isDirectory) { "Cannot create staging directory" }
+                val temp = File.createTempFile("import-", ".part", staging)
+                val entry = try {
+                    val size = ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(fd.fileDescriptor)).use { input ->
+                        temp.outputStream().use { output ->
+                            DeviceStagedCopy.copy(input, output, sandbox::freeBytes) { AndroidSandbox.treeBytes(root.toPath()) }
+                        }
+                    }
+                    dirs.gate.mkdirs(root, "inbox")
+                    val stat = dirs.gate.openRead(staging, temp.name).use { it.stat }
+                    val base = Attachments.safeName(File(path).name)
+                    var result: Pair<String, Long>? = null
+                    for (n in 1..999) {
+                        val name = Attachments.numbered(base, n)
+                        try {
+                            dirs.gate.publishNoReplace(staging, temp.name, stat, root, "inbox/$name")
+                            result = "/workspace/inbox/$name" to size
+                            break
+                        } catch (e: SandboxError) {
+                            if (e.code != com.wangzan101.mika.core.workspace.WorkspaceFileGate.FILE_EXISTS) throw e
+                        }
+                    }
+                    result ?: throw failure("file_exists", "Too many files with this name.")
+                } finally {
+                    temp.delete()
                 }
                 // Only retain metadata when the open source stayed unchanged throughout the copy.
                 val stable = metadata?.takeIf { it == metadata(fd) && it.size == entry.second }
@@ -144,7 +163,19 @@ internal class AndroidDeviceFiles(
         } catch (_: Exception) { false }
     }
 
-    private companion object { val importLock = Mutex() }
+    companion object {
+        private val importLock = Mutex()
+        private fun stagingDirectory(dirs: SandboxDirs) = File(dirs.root.parentFile, "device-import-staging")
+
+        /** Clear copies left by a previous process, without racing an active import. */
+        suspend fun cleanupStaging(dirs: SandboxDirs) = importLock.withLock {
+            withContext(Dispatchers.IO) {
+                stagingDirectory(dirs).listFiles()?.forEach { file ->
+                    if (file.name.startsWith("import-") && file.name.endsWith(".part")) file.delete()
+                }
+            }
+        }
+    }
 
     private fun requireOk(response: Bundle) {
         val status = response.getString("status") ?: "helper_error"
