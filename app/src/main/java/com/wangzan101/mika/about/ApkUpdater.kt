@@ -12,7 +12,6 @@ import androidx.core.content.FileProvider
 import com.wangzan101.mika.core.net.NetProxy
 import okhttp3.OkHttpClient
 import java.io.File
-import java.net.Proxy
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -77,8 +76,6 @@ class ApkUpdater(
         val sources = UpdateMirrors.candidates(official, settings)
         sources.forEach { ApkIntegrity.requireTrustedDownloadUrl(it, official, settings.mirrors) }
         val proxy = net.proxyFor(Uri.parse(official).host.orEmpty())
-        // OkHttp creates SOCKS sockets outside the configured Wi-Fi socket factory.
-        if (wifi != null && proxy?.socks == true) return
         // 下载的「身份」始终是官方地址:镜像开关或顺序变了,已经下好的同一份包不用重下。
         if (prefs.getString("url", null) == official && state(release).phase in
             listOf(DownloadPhase.Downloading, DownloadPhase.Paused, DownloadPhase.Ready)) return
@@ -92,7 +89,7 @@ class ApkUpdater(
         // 镜像可能不止一个,要在一次任务里逐个换;系统下载器做不到,所以开了镜像就由 Mika 自己下。
         if (wifi != null || proxy != null || sources.size > 1) {
             check(prefs.edit().putBoolean("viaApp", true).putString("url", official).putString("file", target.name).commit()) { "could not save download" }
-            proxied.start(sources, target, wifi, proxy?.javaProxy() ?: Proxy.NO_PROXY) {
+            proxied.start(sources, target, wifi) {
                 verifyApk(it, release)
             }
             return

@@ -7,6 +7,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okhttp3.Dns
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -19,6 +20,7 @@ import org.junit.Test
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import javax.net.SocketFactory
 
 /** 设了网络代理时更新包由 Mika 自己经代理下:请求确实发给代理,下完整才留下文件,出错不留半截。 */
 class ProxiedApkDownloadTest {
@@ -51,6 +53,61 @@ class ProxiedApkDownloadTest {
         } catch (e: IOException) {
             assertFalse(target.exists())
             assertFalse(File(dir, "update.apk.part").exists())
+        }
+    }
+
+    @Test fun wifiRoutesRedirectsByEachTargetHost() = runTest {
+        val local = MockWebServer().also { it.start() }
+        try {
+            val http = ProxiedApkDownload.wifiBoundClient(client(), SocketFactory.getDefault(), Dns.SYSTEM)
+            proxy.enqueue(MockResponse().setResponseCode(302).setHeader("Location", local.url("/local")))
+            local.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "http://remote.test/final"))
+            proxy.enqueue(MockResponse().setBody("good"))
+            val target = File(dir, "redirect.apk")
+            ProxiedApkDownload.fetch(http, "http://remote.test/start", target) { _, _ -> }
+            assertEquals("good", target.readText())
+            assertEquals("GET http://remote.test/start HTTP/1.1", proxy.takeRequest().requestLine)
+            assertEquals("/local", local.takeRequest().path)
+            assertEquals("GET http://remote.test/final HTTP/1.1", proxy.takeRequest().requestLine)
+        } finally {
+            local.shutdown()
+        }
+    }
+
+    @Test fun wifiSocksFailureFallsBackToLocalSource() = runTest {
+        val local = MockWebServer().also { it.start() }
+        try {
+            val socks = NetProxy { "socks5://127.0.0.1:1080" }.client()
+            val http = ProxiedApkDownload.wifiBoundClient(socks, SocketFactory.getDefault(), Dns.SYSTEM)
+            local.enqueue(MockResponse().setBody("good"))
+            val target = File(dir, "socks-fallback.apk")
+            val download = ProxiedApkDownload(http, this)
+            download.start(listOf("http://remote.test/apk", local.url("/apk").toString()), target)
+            advanceUntilIdle()
+            assertEquals(DownloadPhase.Ready, download.state(target).phase)
+            assertEquals("good", target.readText())
+            assertEquals("/apk", local.takeRequest().path)
+        } finally {
+            local.shutdown()
+        }
+    }
+
+    @Test fun wifiRejectsSocksOnRedirect() = runTest {
+        val local = MockWebServer().also { it.start() }
+        try {
+            val socks = NetProxy { "socks5://127.0.0.1:1080" }.client()
+            val http = ProxiedApkDownload.wifiBoundClient(socks, SocketFactory.getDefault(), Dns.SYSTEM)
+            local.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "http://remote.test/apk"))
+            val target = File(dir, "socks-redirect.apk")
+            try {
+                ProxiedApkDownload.fetch(http, local.url("/start").toString(), target) { _, _ -> }
+                fail("expected SOCKS to be rejected")
+            } catch (e: IllegalStateException) {
+                assertTrue(e.message.orEmpty().contains("SOCKS"))
+                assertFalse(target.exists())
+            }
+        } finally {
+            local.shutdown()
         }
     }
 

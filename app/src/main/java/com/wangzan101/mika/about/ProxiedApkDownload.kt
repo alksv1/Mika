@@ -18,6 +18,10 @@ import java.io.File
 import java.io.IOException
 import java.net.InetAddress
 import java.net.Proxy
+import java.net.ProxySelector
+import java.net.SocketAddress
+import java.net.URI
+import javax.net.SocketFactory
 import kotlin.coroutines.coroutineContext
 
 /**
@@ -44,7 +48,6 @@ class ProxiedApkDownload(
         sources: List<String>,
         file: File,
         wifi: Network? = null,
-        wifiProxy: Proxy = Proxy.NO_PROXY,
         verify: (File) -> Unit = {},
     ) {
         require(sources.isNotEmpty()) { "no download source" }
@@ -54,14 +57,9 @@ class ProxiedApkDownload(
         total = -1
         // 使用 Wi-Fi 自己的 DNS 和 socket，断开后连接失败，不会切到移动数据继续下载。
         val client = wifi?.let { network ->
-            require(wifiProxy.type() != Proxy.Type.SOCKS)
-            // Keep the selected route for the transfer, including redirects and retries.
-            http.newBuilder().proxy(wifiProxy).socketFactory(network.socketFactory)
-                .dns(object : Dns {
-                    override fun lookup(hostname: String): List<InetAddress> = network.getAllByName(hostname).toList()
-                })
-                .connectionPool(ConnectionPool())
-                .build()
+            wifiBoundClient(http, network.socketFactory, object : Dns {
+                override fun lookup(hostname: String): List<InetAddress> = network.getAllByName(hostname).toList()
+            })
         } ?: http
         val download = scope.launch(start = CoroutineStart.LAZY) {
             val current = coroutineContext[Job]!!
@@ -118,6 +116,27 @@ class ProxiedApkDownload(
 
     companion object {
         private const val PART = ".part"
+
+        /** 每次路由（包括重定向）都按目标选代理，禁止绕过 Wi-Fi socket factory 的 SOCKS。 */
+        internal fun wifiBoundClient(http: OkHttpClient, sockets: SocketFactory, dns: Dns): OkHttpClient {
+            val delegate = http.proxySelector
+            val selector = object : ProxySelector() {
+                override fun select(uri: URI): List<Proxy> {
+                    val proxies = http.proxy?.let { listOf(it) } ?: delegate.select(uri)
+                    if (proxies.any { it.type() == Proxy.Type.SOCKS }) {
+                        // IOException is retried by OkHttp during route selection, so fail without retrying.
+                        throw IllegalStateException("SOCKS proxy cannot be bound to Wi-Fi")
+                    }
+                    return proxies
+                }
+
+                override fun connectFailed(uri: URI, address: SocketAddress, error: IOException) {
+                    delegate.connectFailed(uri, address, error)
+                }
+            }
+            return http.newBuilder().proxy(null).proxySelector(selector).socketFactory(sockets).dns(dns)
+                .connectionPool(ConnectionPool()).build()
+        }
 
         /** 把 [url] 下到 [file]:边下边报进度(已下、总共,不知道总共为 -1);不是 2xx、或没下完整就抛错,不留目标文件。 */
         suspend fun fetch(http: OkHttpClient, url: String, file: File, onCall: (Call) -> Unit = {}, progress: (Long, Long) -> Unit) {

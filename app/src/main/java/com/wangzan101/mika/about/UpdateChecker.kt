@@ -4,8 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,30 +106,48 @@ class UpdateChecker(
         mutex.withLock {
             loadLocked()
             if (manual) _state.update { it.copy(status = CheckStatus.Checking) }
-            val found = fetchLatest(mirrorSettings())
-            if (found != null) {
-                _state.update { state ->
-                    if (state.latest == null || AppVersion.compare(found.version, state.latest.version) >= 0) {
-                        state.withLatest(found)
-                    } else {
-                        state
-                    }
+            var foundAny = false
+            var manualCompleted = false
+            fun completeManual(status: CheckStatus) {
+                if (manual && !manualCompleted) {
+                    manualCompleted = true
+                    _state.update { it.copy(status = status, manualRounds = it.manualRounds + 1) }
                 }
             }
-            if (manual) _state.update { it.copy(status = if (found != null) CheckStatus.Done else CheckStatus.Failed, manualRounds = it.manualRounds + 1) }
-            save()
+            try {
+                fetchLatest(mirrorSettings()) { found ->
+                    foundAny = true
+                    _state.update { state ->
+                        val previous = state.latest
+                        when {
+                            previous == null -> state.withLatest(found)
+                            AppVersion.compare(found.version, previous.version) > 0 -> state.withLatest(found)
+                            AppVersion.compare(found.version, previous.version) == 0 -> state.withLatest(mergeRelease(previous, found))
+                            else -> state
+                        }
+                    }
+                    if (_state.value.hasUpdate) completeManual(CheckStatus.Done)
+                    save()
+                }
+                completeManual(if (foundAny) CheckStatus.Done else CheckStatus.Failed)
+            } finally {
+                // 取消检查也要清除手动等待状态，避免界面一直转圈。
+                completeManual(if (foundAny) CheckStatus.Done else CheckStatus.Failed)
+                save()
+            }
         }
     }
 
-    /** 各来源并行查询;官方成功时优先采用,失败时在限时内选择最新镜像。 */
-    internal suspend fun fetchLatest(settings: MirrorSettings = mirrorSettings()): ReleaseInfo? = coroutineScope {
+    /** 各来源并行查询，结果按到达顺序交给同一个协程处理。 */
+    private suspend fun fetchLatest(settings: MirrorSettings, onResult: (ReleaseInfo) -> Unit) = coroutineScope {
         val sources = buildList {
             add("")
             if (settings.enabled) settings.mirrors.forEach { add(it.prefix) }
         }
-        val jobs = sources.map { source ->
-            async(Dispatchers.IO) {
-                withTimeoutOrNull(PROBE_TIMEOUT_MS) {
+        val results = Channel<ReleaseInfo?>(sources.size)
+        sources.forEach { source ->
+            launch(Dispatchers.IO) {
+                val found = withTimeoutOrNull(PROBE_TIMEOUT_MS) {
                     try {
                         UpdateProbe.fetch(client, source, releaseApi, releasesUrl, deviceAbis, "Mika/$currentVersion")
                     } catch (e: CancellationException) {
@@ -139,17 +156,24 @@ class UpdateChecker(
                         null
                     }
                 }
+                results.send(found)
             }
         }
-        val official = jobs.first().await()
-        if (official != null) {
-            jobs.drop(1).forEach { it.cancel() }
-            official
-        } else {
-            jobs.drop(1).awaitAll().filterNotNull().reduceOrNull { best, candidate ->
-                if (AppVersion.isNewer(candidate.version, best.version)) candidate else best
-            }
-        }
+        repeat(sources.size) { results.receive()?.let(onResult) }
+    }
+
+    /** 同版本补全缺失信息；校验数据只属于其对应的 APK 地址。 */
+    private fun mergeRelease(previous: ReleaseInfo, candidate: ReleaseInfo): ReleaseInfo {
+        val apkUrl = candidate.apkUrl ?: previous.apkUrl
+        val sameApk = apkUrl != null && apkUrl == previous.apkUrl
+        return candidate.copy(
+            name = candidate.name.takeUnless { it.isBlank() || it == candidate.version } ?: previous.name,
+            notes = previous.notes.ifBlank { candidate.notes },
+            date = candidate.date ?: previous.date,
+            apkUrl = apkUrl,
+            apkSize = previous.apkSize.takeIf { sameApk } ?: candidate.apkSize,
+            apkDigest = previous.apkDigest.takeIf { sameApk } ?: candidate.apkDigest,
+        )
     }
 
     private fun UpdateState.withLatest(r: ReleaseInfo?): UpdateState =

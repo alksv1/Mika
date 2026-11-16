@@ -1,6 +1,10 @@
 package com.wangzan101.mika.about
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.Dispatcher
@@ -120,25 +124,112 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun githubSuccessDoesNotWaitForStalledMirrorBody() = runTest {
-        val mirrorStarted = java.util.concurrent.CountDownLatch(1)
+    fun fastResultIsShownAndPersistedBeforeSlowerNewerResult() = runTest {
         val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        val releaseSlow = java.util.concurrent.CountDownLatch(1)
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse =
-                if (request.path.orEmpty().contains("/mirror/")) {
-                    mirrorStarted.countDown()
-                    release("v0.2.0").setBodyDelay(4, java.util.concurrent.TimeUnit.SECONDS)
-                } else {
-                    check(mirrorStarted.await(2, java.util.concurrent.TimeUnit.SECONDS))
+                if (request.path.orEmpty().contains("/mirror/")) release("v0.2.0")
+                else {
+                    check(releaseSlow.await(5, java.util.concurrent.TimeUnit.SECONDS))
                     release("v0.3.0")
                 }
         }
         val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
-        val start = System.nanoTime()
-        c.check(manual = true)
-        val elapsed = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+        val checking = async(Dispatchers.Default) { c.check(manual = true) }
+        try {
+            withContext(Dispatchers.Default) { withTimeout(3_000) { while (c.state.value.manualRounds == 0) delay(10) } }
+            assertEquals(CheckStatus.Done, c.state.value.status)
+            assertEquals("0.2.0", c.state.value.update?.version)
+            // 等待首次写盘完成，再用另一个实例验证检查仍在进行时可恢复。
+            withContext(Dispatchers.Default) {
+                withTimeout(3_000) { while (!tmp.root.resolve("update.json").exists()) delay(10) }
+            }
+            val reopened = checker()
+            reopened.load()
+            assertEquals("0.2.0", reopened.state.value.update?.version)
+        } finally {
+            releaseSlow.countDown()
+        }
+        checking.await()
         assertEquals("0.3.0", c.state.value.update?.version)
-        assertTrue("stalled mirror delayed check: ${elapsed}ms", elapsed < 3000)
+        assertEquals(1, c.state.value.manualRounds)
+        val reopened = checker()
+        reopened.load()
+        assertEquals("0.3.0", reopened.state.value.update?.version)
+    }
+
+    @Test
+    fun slowerOlderSourceCannotReplaceFastNewerRelease() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/"))
+                    release("v0.2.0").setBodyDelay(300, java.util.concurrent.TimeUnit.MILLISECONDS)
+                else release("v0.3.0")
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertEquals("0.3.0", c.state.value.latest?.version)
+        assertEquals(1, c.state.value.manualRounds)
+        val reopened = checker()
+        reopened.load()
+        assertEquals("0.3.0", reopened.state.value.latest?.version)
+    }
+
+    @Test
+    fun upToDateFastResultWaitsForOtherSources() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        val slowStarted = java.util.concurrent.CountDownLatch(1)
+        val releaseSlow = java.util.concurrent.CountDownLatch(1)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/")) release("v0.1.0")
+                else {
+                    slowStarted.countDown()
+                    check(releaseSlow.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    release("v0.2.0")
+                }
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        val checking = async(Dispatchers.Default) { c.check(manual = true) }
+        try {
+            withContext(Dispatchers.Default) {
+                check(slowStarted.await(3, java.util.concurrent.TimeUnit.SECONDS))
+                withTimeout(3_000) { while (c.state.value.latest == null) delay(10) }
+            }
+            assertEquals(CheckStatus.Checking, c.state.value.status)
+            assertEquals(0, c.state.value.manualRounds)
+        } finally {
+            releaseSlow.countDown()
+        }
+        checking.await()
+        assertEquals("0.2.0", c.state.value.update?.version)
+        assertEquals(1, c.state.value.manualRounds)
+    }
+
+    @Test
+    fun sameVersionPreservesNotesAndOnlyReusesIntegrityForSameApk() = runTest {
+        fun metadata(url: String, notes: String, integrity: String) = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","body":"$notes","assets":[{"name":"Mika.apk","browser_download_url":"$url"$integrity}]}"""
+        )
+        val c = checker()
+        github = metadata("https://example.com/a.apk", "release notes", ",\"size\":123,\"digest\":\"sha256:abc\"")
+        c.check(manual = true)
+        github = metadata("https://example.com/a.apk", "", "")
+        c.check(manual = true)
+        assertEquals("release notes", c.state.value.latest?.notes)
+        assertEquals(123L, c.state.value.latest?.apkSize)
+        assertEquals("sha256:abc", c.state.value.latest?.apkDigest)
+        github = metadata("https://example.com/b.apk", "", "")
+        c.check(manual = true)
+        assertEquals("release notes", c.state.value.latest?.notes)
+        assertEquals("https://example.com/b.apk", c.state.value.latest?.apkUrl)
+        assertNull(c.state.value.latest?.apkSize)
+        assertNull(c.state.value.latest?.apkDigest)
+        val reopened = checker()
+        reopened.load()
+        assertEquals(c.state.value.latest, reopened.state.value.latest)
     }
 
     @Test
