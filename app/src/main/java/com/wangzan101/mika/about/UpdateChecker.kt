@@ -77,6 +77,8 @@ class UpdateChecker(
     private val mutex = Mutex()
     private var lastAttempt: Long? = null
     private var loaded = false
+    // 记录当前结果的来源，跨重启也不能把镜像摘要当作官方摘要。
+    private var latestOfficial = false
 
     /** 每次打开 App 时调:到期就在后台查一次,失败不吭声。 */
     fun autoCheckInBackground() = scope.launch { autoCheck() }
@@ -107,6 +109,7 @@ class UpdateChecker(
             loadLocked()
             if (manual) _state.update { it.copy(status = CheckStatus.Checking) }
             var foundAny = false
+            var officialFound = false
             var manualCompleted = false
             fun completeManual(status: CheckStatus) {
                 if (manual && !manualCompleted) {
@@ -115,15 +118,25 @@ class UpdateChecker(
                 }
             }
             try {
-                fetchLatest(mirrorSettings()) { found ->
+                fetchLatest(mirrorSettings()) { found, official ->
                     foundAny = true
-                    _state.update { state ->
-                        val previous = state.latest
-                        when {
-                            previous == null -> state.withLatest(found)
-                            AppVersion.compare(found.version, previous.version) > 0 -> state.withLatest(found)
-                            AppVersion.compare(found.version, previous.version) == 0 -> state.withLatest(mergeRelease(previous, found))
-                            else -> state
+                    if (official) {
+                        officialFound = true
+                        val previous = _state.value.latest
+                        val result = if (previous != null && AppVersion.compare(found.version, previous.version) == 0) {
+                            mergeRelease(previous, found, previousOfficial = latestOfficial, candidateOfficial = true)
+                        } else found
+                        latestOfficial = true
+                        _state.update { it.withLatest(result) }
+                    } else if (!officialFound) {
+                        val previous = _state.value.latest
+                        val comparison = previous?.let { AppVersion.compare(found.version, it.version) } ?: 1
+                        if (comparison > 0) {
+                            latestOfficial = false
+                            _state.update { it.withLatest(found) }
+                        } else if (comparison == 0 && previous != null) {
+                            val result = mergeRelease(previous, found, previousOfficial = latestOfficial, candidateOfficial = false)
+                            _state.update { it.withLatest(result) }
                         }
                     }
                     if (_state.value.hasUpdate) completeManual(CheckStatus.Done)
@@ -139,12 +152,12 @@ class UpdateChecker(
     }
 
     /** 各来源并行查询，结果按到达顺序交给同一个协程处理。 */
-    private suspend fun fetchLatest(settings: MirrorSettings, onResult: (ReleaseInfo) -> Unit) = coroutineScope {
+    private suspend fun fetchLatest(settings: MirrorSettings, onResult: (ReleaseInfo, Boolean) -> Unit) = coroutineScope {
         val sources = buildList {
             add("")
             if (settings.enabled) settings.mirrors.forEach { add(it.prefix) }
         }
-        val results = Channel<ReleaseInfo?>(sources.size)
+        val results = Channel<Pair<ReleaseInfo?, Boolean>>(sources.size)
         sources.forEach { source ->
             launch(Dispatchers.IO) {
                 val found = withTimeoutOrNull(PROBE_TIMEOUT_MS) {
@@ -156,18 +169,23 @@ class UpdateChecker(
                         null
                     }
                 }
-                results.send(found)
+                results.send(found to source.isEmpty())
             }
         }
-        repeat(sources.size) { results.receive()?.let(onResult) }
+        repeat(sources.size) {
+            val (found, official) = results.receive()
+            if (found != null) onResult(found, official)
+        }
     }
 
     /** 同版本补全缺失信息；校验数据只属于其对应的 APK 地址。 */
-    private fun mergeRelease(previous: ReleaseInfo, candidate: ReleaseInfo): ReleaseInfo {
+    private fun mergeRelease(previous: ReleaseInfo, candidate: ReleaseInfo, previousOfficial: Boolean, candidateOfficial: Boolean): ReleaseInfo {
+        if (previousOfficial && !candidateOfficial) return previous
         val previousPreference = Releases.apkPreference(previous.apkUrl, deviceAbis)
         val candidatePreference = Releases.apkPreference(candidate.apkUrl, deviceAbis)
         fun completeness(release: ReleaseInfo) = (if (release.apkDigest != null) 2 else 0) + (if (release.apkSize != null) 1 else 0)
         val selected = when {
+            candidateOfficial && !previousOfficial && candidate.apkUrl != null -> candidate
             candidate.apkUrl == null -> previous
             previous.apkUrl == null -> candidate
             candidatePreference == 0 && previousPreference > 0 -> previous
@@ -178,13 +196,15 @@ class UpdateChecker(
         }
         val other = if (selected === previous) candidate else previous
         val sameApk = selected.apkUrl != null && selected.apkUrl == other.apkUrl
+        val trustedSelected = !candidateOfficial || previousOfficial || selected === candidate
+        val trustedOther = !candidateOfficial || previousOfficial || other === candidate
         return candidate.copy(
             name = candidate.name.takeUnless { it.isBlank() || it == candidate.version } ?: previous.name,
             notes = previous.notes.ifBlank { candidate.notes },
             date = candidate.date ?: previous.date,
             apkUrl = selected.apkUrl,
-            apkSize = selected.apkUrl?.let { selected.apkSize ?: other.apkSize.takeIf { sameApk } },
-            apkDigest = selected.apkUrl?.let { selected.apkDigest ?: other.apkDigest.takeIf { sameApk } },
+            apkSize = selected.apkUrl?.let { candidate.apkSize.takeIf { candidateOfficial && candidate.apkUrl == selected.apkUrl } ?: selected.apkSize.takeIf { trustedSelected } ?: other.apkSize.takeIf { sameApk && trustedOther } },
+            apkDigest = selected.apkUrl?.let { candidate.apkDigest.takeIf { candidateOfficial && candidate.apkUrl == selected.apkUrl } ?: selected.apkDigest.takeIf { trustedSelected } ?: other.apkDigest.takeIf { sameApk && trustedOther } },
         )
     }
 
@@ -196,14 +216,21 @@ class UpdateChecker(
         loaded = true
         val o = runCatching { Json.parseToJsonElement(file.readText()).jsonObject }.getOrNull() ?: return
         lastAttempt = (o["lastAttempt"] as? JsonPrimitive)?.longOrNull
-        val latest = (o["latest"] as? JsonObject)?.let(Releases::fromJson)
+        latestOfficial = (o["latestOfficial"] as? JsonPrimitive)?.content == "true"
+        val latest = (o["latest"] as? JsonObject)?.let(Releases::fromJson)?.let {
+            // 旧记录没有来源，不能将其校验数据视作可信的官方数据。
+            if (o["latestOfficial"] == null) it.copy(apkSize = null, apkDigest = null) else it
+        }
         _state.update { it.withLatest(latest) }
     }
 
     private fun save() {
         val o = buildJsonObject {
             lastAttempt?.let { put("lastAttempt", it) }
-            _state.value.latest?.let { put("latest", Releases.toJson(it)) }
+            _state.value.latest?.let {
+                put("latest", Releases.toJson(it))
+                put("latestOfficial", latestOfficial)
+            }
         }
         runCatching {
             file.parentFile?.mkdirs()

@@ -317,19 +317,171 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun olderSuccessfulResultDoesNotEraseKnownUpdate() = runTest {
+    fun officialRollbackReplacesPersistedUpdate() = runTest {
         val c = checker()
         github = release("v0.3.0")
         c.check(manual = true)
+        val restarted = checker()
+        restarted.load()
         github = release("v0.1.0")
+        restarted.check(manual = true)
+        assertEquals(CheckStatus.Done, restarted.state.value.status)
+        assertEquals("0.1.0", restarted.state.value.latest?.version)
+        assertNull(restarted.state.value.update)
+        val reopened = checker()
+        reopened.load()
+        assertEquals("0.1.0", reopened.state.value.latest?.version)
+        assertNull(reopened.state.value.update)
+    }
+
+    @Test
+    fun officialCorrectsHigherMirrorInEitherArrivalOrder() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        val settings = MirrorSettings(enabled = true, mirrors = listOf(mirror))
+        for (slowOfficial in listOf(true, false)) {
+            server.dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse {
+                    val isMirror = request.path.orEmpty().contains("/mirror/")
+                    val response = release(if (isMirror) "v9.0.0" else "v0.2.0")
+                    return if (isMirror != slowOfficial) response.setBodyDelay(250, java.util.concurrent.TimeUnit.MILLISECONDS) else response
+                }
+            }
+            val c = checker(mirrors = settings)
+            c.check(manual = true)
+            assertEquals("0.2.0", c.state.value.latest?.version)
+            val reopened = checker()
+            reopened.load()
+            assertEquals("0.2.0", reopened.state.value.latest?.version)
+        }
+    }
+
+    @Test
+    fun officialDigestWinsAndSurvivesMirrorAndRestart() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        val settings = MirrorSettings(enabled = true, mirrors = listOf(mirror))
+        fun metadata(digest: String) = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"https://example.com/Mika.apk","size":123,"digest":"sha256:$digest"}]}"""
+        )
+        var officialAvailable = true
+        var slowOfficial = true
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val isMirror = request.path.orEmpty().contains("/mirror/")
+                if (!isMirror && !officialAvailable) return MockResponse().setResponseCode(500)
+                val response = metadata(if (isMirror) "mirror" else "official")
+                return if (isMirror != slowOfficial) response.setBodyDelay(250, java.util.concurrent.TimeUnit.MILLISECONDS) else response
+            }
+        }
+        for (slow in listOf(true, false)) {
+            slowOfficial = slow
+            val c = checker(mirrors = settings)
+            c.check(manual = true)
+            assertEquals("sha256:official", c.state.value.latest?.apkDigest)
+        }
+        officialAvailable = false
+        val restarted = checker(mirrors = settings)
+        restarted.check(manual = true)
+        assertEquals("sha256:official", restarted.state.value.latest?.apkDigest)
+        val reopened = checker()
+        reopened.load()
+        assertEquals("sha256:official", reopened.state.value.latest?.apkDigest)
+    }
+
+    @Test
+    fun officialCorrectsPersistedMirrorAfterRestart() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        var officialAvailable = false
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse = when {
+                request.path.orEmpty().contains("/mirror/") -> release("v9.0.0")
+                officialAvailable -> release("v0.1.0")
+                else -> MockResponse().setResponseCode(500)
+            }
+        }
+        val settings = MirrorSettings(enabled = true, mirrors = listOf(mirror))
+        checker(mirrors = settings).check(manual = true)
+        val restarted = checker(mirrors = settings)
+        restarted.load()
+        assertEquals("9.0.0", restarted.state.value.update?.version)
+        officialAvailable = true
+        restarted.check(manual = true)
+        assertEquals("0.1.0", restarted.state.value.latest?.version)
+        assertNull(restarted.state.value.update)
+        val reopened = checker()
+        reopened.load()
+        assertEquals("0.1.0", reopened.state.value.latest?.version)
+    }
+
+    @Test
+    fun failedOfficialAndOlderMirrorKeepPersistedUpdate() = runTest {
+        github = release("v0.3.0")
+        checker().check(manual = true)
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/")) release("v0.2.0")
+                else MockResponse().setResponseCode(500)
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
         c.check(manual = true)
-        assertEquals(CheckStatus.Done, c.state.value.status)
-        assertEquals(2, c.state.value.manualRounds)
-        assertEquals("0.3.0", c.state.value.latest?.version)
         assertEquals("0.3.0", c.state.value.update?.version)
         val reopened = checker()
         reopened.load()
         assertEquals("0.3.0", reopened.state.value.update?.version)
+    }
+
+    @Test
+    fun officialWithoutDigestDoesNotInheritMirrorDigest() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val isMirror = request.path.orEmpty().contains("/mirror/")
+                val digest = if (isMirror) ",\"digest\":\"sha256:mirror\"" else ""
+                val response = MockResponse().setBody(
+                    """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"https://example.com/Mika.apk"$digest}]}"""
+                )
+                return if (!isMirror) response.setBodyDelay(250, java.util.concurrent.TimeUnit.MILLISECONDS) else response
+            }
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertNull(c.state.value.latest?.apkDigest)
+        val reopened = checker()
+        reopened.load()
+        assertNull(reopened.state.value.latest?.apkDigest)
+    }
+
+    @Test
+    fun legacyRecordHasUnknownAuthorityUntilOfficialRefresh() = runTest {
+        val url = "https://example.com/Mika.apk"
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"$url","digest":"sha256:legacy"}]}"""
+        )
+        checker().check(manual = true)
+        val file = tmp.root.resolve("update.json")
+        val record = kotlinx.serialization.json.Json.parseToJsonElement(file.readText()) as kotlinx.serialization.json.JsonObject
+        file.writeText(kotlinx.serialization.json.JsonObject(record - "latestOfficial").toString())
+
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"$url"}]}"""
+        )
+        val migrated = checker()
+        migrated.load()
+        assertEquals("0.2.0", migrated.state.value.latest?.version)
+        assertNull(migrated.state.value.latest?.apkDigest)
+        migrated.check(manual = true)
+        assertNull(migrated.state.value.latest?.apkDigest)
+
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/")) MockResponse().setBody(
+                    """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"$url","digest":"sha256:mirror"}]}"""
+                ) else MockResponse().setResponseCode(500)
+        }
+        val restarted = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        restarted.check(manual = true)
+        assertNull(restarted.state.value.latest?.apkDigest)
     }
 
     @Test
