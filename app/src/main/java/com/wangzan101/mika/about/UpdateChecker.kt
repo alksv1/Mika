@@ -200,7 +200,12 @@ class UpdateChecker(
         val trustedOther = !candidateOfficial || previousOfficial || other === candidate
         return candidate.copy(
             name = candidate.name.takeUnless { it.isBlank() || it == candidate.version } ?: previous.name,
-            notes = previous.notes.ifBlank { candidate.notes },
+            // 官方结果优先:镜像代理 API 时可能给出缓存或错误的说明,由官方覆盖。
+            notes = if (candidateOfficial && !previousOfficial) {
+                candidate.notes.ifBlank { previous.notes }
+            } else {
+                previous.notes.ifBlank { candidate.notes }
+            },
             date = candidate.date ?: previous.date,
             apkUrl = selected.apkUrl,
             apkSize = selected.apkUrl?.let { candidate.apkSize.takeIf { candidateOfficial && candidate.apkUrl == selected.apkUrl } ?: selected.apkSize.takeIf { trustedSelected } ?: other.apkSize.takeIf { sameApk && trustedOther } },

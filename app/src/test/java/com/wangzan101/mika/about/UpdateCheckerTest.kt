@@ -53,8 +53,8 @@ class UpdateCheckerTest {
         deviceAbis = abis,
     )
 
-    private fun release(tag: String) =
-        MockResponse().setBody("""{"tag_name":"$tag","name":"Mika $tag","body":"- 新东西","html_url":"https://github.com/wangzan101/Mika/releases/tag/$tag","assets":[]}""")
+    private fun release(tag: String, notes: String = "- 新东西") =
+        MockResponse().setBody("""{"tag_name":"$tag","name":"Mika $tag","body":"$notes","html_url":"https://github.com/wangzan101/Mika/releases/tag/$tag","assets":[]}""")
 
     @Test
     fun newerReleaseFromGitHubShowsUpdate() = runTest {
@@ -122,6 +122,21 @@ class UpdateCheckerTest {
         val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
         c.check(manual = true)
         assertEquals("0.3.0", c.state.value.update?.version)
+    }
+
+    /** 同版本先由镜像给出说明、官方后到:以官方的说明为准。 */
+    @Test
+    fun officialNotesReplaceMirrorNotesForSameVersion() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/")) release("v0.2.0", "mirror notes")
+                else release("v0.2.0", "official notes").setBodyDelay(300, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertEquals("0.2.0", c.state.value.latest?.version)
+        assertEquals("official notes", c.state.value.latest?.notes)
     }
 
     @Test

@@ -106,11 +106,14 @@ fun UpdateMirrorsScreen(store: UpdateMirrorStore, onBack: () -> Unit) {
                 stringResource(R.string.about_mirror_download_detail),
                 first = true,
             ) {
-                MikaSwitch(enabled, { on ->
-                    scope.launch {
-                        actionError = withContext(Dispatchers.IO) { store.setEnabled(on) }
-                    }
-                }, Modifier.testTag("mirrors-switch"))
+                // 列表读不出来时不能改开关,不显示一个点了没反应的控件。
+                if (!unreadable) {
+                    MikaSwitch(enabled, { on ->
+                        scope.launch {
+                            actionError = withContext(Dispatchers.IO) { store.setEnabled(on) }
+                        }
+                    }, Modifier.testTag("mirrors-switch"))
+                }
             }
         }
 
