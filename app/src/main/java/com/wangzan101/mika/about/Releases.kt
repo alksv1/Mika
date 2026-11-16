@@ -97,6 +97,16 @@ object Releases {
         return forDevice ?: universal
     }
 
+    /** 比较已选 APK 对本机的适配程度，与附件选择使用相同的 ABI 优先顺序。 */
+    internal fun apkPreference(url: String?, deviceAbis: List<String>): Int {
+        if (url == null) return 0
+        val name = url.substringBefore('?').substringBefore('#').substringAfterLast('/')
+        val suffix = ABI_APK_SUFFIX.values.firstOrNull { name.endsWith("-$it.apk", ignoreCase = true) }
+            ?: return 1
+        val index = deviceAbis.indexOfFirst { ABI_APK_SUFFIX[it] == suffix }
+        return if (index < 0) 0 else deviceAbis.size - index + 1
+    }
+
     private fun JsonObject.toAsset(): ReleaseAsset? {
         val name = str("name") ?: return null
         val url = str("browser_download_url") ?: return null

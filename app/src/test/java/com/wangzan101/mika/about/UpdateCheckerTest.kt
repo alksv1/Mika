@@ -44,12 +44,13 @@ class UpdateCheckerTest {
     @After
     fun stop() = server.shutdown()
 
-    private fun checker(current: String = "0.1.0", mirrors: MirrorSettings = MirrorSettings.OFF) = UpdateChecker(
+    private fun checker(current: String = "0.1.0", mirrors: MirrorSettings = MirrorSettings.OFF, abis: List<String> = emptyList()) = UpdateChecker(
         tmp.root.resolve("update.json"), current,
         releaseApi = server.url("/api").toString(),
         releasesUrl = server.url("/releases").toString(),
         mirrorSettings = { mirrors },
         now = { clock },
+        deviceAbis = abis,
     )
 
     private fun release(tag: String) =
@@ -224,12 +225,95 @@ class UpdateCheckerTest {
         github = metadata("https://example.com/b.apk", "", "")
         c.check(manual = true)
         assertEquals("release notes", c.state.value.latest?.notes)
-        assertEquals("https://example.com/b.apk", c.state.value.latest?.apkUrl)
-        assertNull(c.state.value.latest?.apkSize)
-        assertNull(c.state.value.latest?.apkDigest)
+        assertEquals("https://example.com/a.apk", c.state.value.latest?.apkUrl)
+        assertEquals(123L, c.state.value.latest?.apkSize)
+        assertEquals("sha256:abc", c.state.value.latest?.apkDigest)
         val reopened = checker()
         reopened.load()
         assertEquals(c.state.value.latest, reopened.state.value.latest)
+    }
+
+    @Test
+    fun moreCompleteAttachmentReplacesDifferentUrl() = runTest {
+        val c = checker()
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"https://example.com/a.apk","size":456}]}"""
+        )
+        c.check(manual = true)
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika.apk","browser_download_url":"https://example.com/b.apk","size":123,"digest":"sha256:other"}]}"""
+        )
+        c.check(manual = true)
+        assertEquals("https://example.com/b.apk", c.state.value.latest?.apkUrl)
+        assertEquals(123L, c.state.value.latest?.apkSize)
+        assertEquals("sha256:other", c.state.value.latest?.apkDigest)
+    }
+
+    @Test
+    fun fallbackUniversalAndOfficialArchitectureMergeInBothOrders() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        var officialAvailable = false
+        var fallbackAvailable = true
+        val architectureUrl = "https://example.com/Mika-v0.2.0-arm64.apk"
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path.contains("/mirror/") && path.endsWith("/api") -> MockResponse().setResponseCode(403)
+                    path.contains("/mirror/") && path.endsWith("/releases/latest") && fallbackAvailable ->
+                        MockResponse().setResponseCode(302).setHeader("Location", "/releases/tag/v0.2.0")
+                    path.contains("/mirror/") && path.endsWith("/releases/expanded_assets/v0.2.0") ->
+                        MockResponse().setBody("")
+                    path == "/api" && officialAvailable -> MockResponse().setBody(
+                        """{"tag_name":"v0.2.0","body":"notes","assets":[{"name":"Mika-v0.2.0-arm64.apk","browser_download_url":"$architectureUrl","size":123,"digest":"sha256:abc"}]}"""
+                    )
+                    else -> MockResponse().setResponseCode(500)
+                }
+            }
+        }
+        val settings = MirrorSettings(enabled = true, mirrors = listOf(mirror))
+        val c = checker(mirrors = settings, abis = listOf("arm64-v8a"))
+        c.check(manual = true)
+        assertTrue(c.state.value.latest!!.apkUrl!!.endsWith("/Mika-v0.2.0.apk"))
+
+        officialAvailable = true
+        fallbackAvailable = false
+        c.check(manual = true)
+        assertEquals(architectureUrl, c.state.value.latest?.apkUrl)
+        assertEquals(123L, c.state.value.latest?.apkSize)
+        assertEquals("sha256:abc", c.state.value.latest?.apkDigest)
+
+        officialAvailable = false
+        fallbackAvailable = true
+        c.check(manual = true)
+        assertEquals(architectureUrl, c.state.value.latest?.apkUrl)
+        assertEquals(123L, c.state.value.latest?.apkSize)
+        assertEquals("sha256:abc", c.state.value.latest?.apkDigest)
+        val reopened = checker(abis = listOf("arm64-v8a"))
+        reopened.load()
+        assertEquals(c.state.value.latest, reopened.state.value.latest)
+    }
+
+    @Test
+    fun switchingToArchitectureDoesNotReuseUniversalIntegrity() = runTest {
+        val c = checker(abis = listOf("arm64-v8a"))
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika-v0.2.0.apk","browser_download_url":"https://example.com/Mika-v0.2.0.apk","size":456,"digest":"sha256:universal"}]}"""
+        )
+        c.check(manual = true)
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika-v0.2.0-arm64.apk","browser_download_url":"https://example.com/Mika-v0.2.0-arm64.apk"}]}"""
+        )
+        c.check(manual = true)
+        assertEquals("https://example.com/Mika-v0.2.0.apk", c.state.value.latest?.apkUrl)
+        assertEquals("sha256:universal", c.state.value.latest?.apkDigest)
+        github = MockResponse().setBody(
+            """{"tag_name":"v0.2.0","assets":[{"name":"Mika-v0.2.0-arm64.apk","browser_download_url":"https://example.com/Mika-v0.2.0-arm64.apk","size":123,"digest":"sha256:arm64"}]}"""
+        )
+        c.check(manual = true)
+        assertEquals("https://example.com/Mika-v0.2.0-arm64.apk", c.state.value.latest?.apkUrl)
+        assertEquals(123L, c.state.value.latest?.apkSize)
+        assertEquals("sha256:arm64", c.state.value.latest?.apkDigest)
     }
 
     @Test

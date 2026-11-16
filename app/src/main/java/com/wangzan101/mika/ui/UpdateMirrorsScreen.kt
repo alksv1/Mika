@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -61,7 +63,17 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 fun UpdateMirrorsScreen(store: UpdateMirrorStore, onBack: () -> Unit) {
-    remember(store) { store.ensureLoaded() }
+    var ready by remember(store) { mutableStateOf(false) }
+    LaunchedEffect(store) {
+        withContext(Dispatchers.IO) { store.ensureLoaded() }
+        ready = true
+    }
+    if (!ready) {
+        PageScaffold(stringResource(R.string.about_mirror_sources), onBack) {
+            CircularProgressIndicator(Modifier.padding(16.dp).size(24.dp), color = MikaTheme.colors.accent)
+        }
+        return
+    }
     val mirrors by store.mirrors.collectAsState()
     val enabled by store.enabled.collectAsState()
     val unreadable by store.unreadable.collectAsState()

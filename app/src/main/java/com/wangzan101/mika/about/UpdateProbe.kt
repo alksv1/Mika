@@ -2,6 +2,7 @@ package com.wangzan101.mika.about
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -79,16 +80,23 @@ internal object UpdateProbe {
         return Releases.fromPage(tag, assets, deviceAbis, base)
     }
 
-    /** 给「测试镜像」用:和检查更新走同一条路,但不抛错。 */
-    suspend fun test(prefix: String): ReleaseInfo? = try {
-        fetch(
-            UpdateChecker.defaultClient(), prefix, MikaLinks.LATEST_RELEASE_API, MikaLinks.RELEASES,
-            emptyList(), "Mika",
-        )
-    } catch (e: CancellationException) {
-        throw e
-    } catch (_: Exception) {
-        null
+    private val testClient by lazy { UpdateChecker.defaultClient() }
+
+    /** 给「测试镜像」用:整次测试限时,并复用客户端。 */
+    suspend fun test(
+        prefix: String,
+        client: OkHttpClient = testClient,
+        apiUrl: String = MikaLinks.LATEST_RELEASE_API,
+        releasesUrl: String = MikaLinks.RELEASES,
+        timeoutMs: Long = 12_000L,
+    ): ReleaseInfo? = withTimeoutOrNull(timeoutMs) {
+        try {
+            fetch(client, prefix, apiUrl, releasesUrl, emptyList(), "Mika")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**

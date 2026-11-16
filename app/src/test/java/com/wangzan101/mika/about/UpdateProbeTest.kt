@@ -180,6 +180,25 @@ class UpdateProbeTest {
         assertTrue(job.isCancelled)
     }
 
+    @Test fun mirrorTestLimitsTheWholeProbe() = runBlocking {
+        val latestStarted = CountDownLatch(1)
+        server.dispatcher = dispatcher { path ->
+            if (path.endsWith("/api")) {
+                MockResponse().setResponseCode(403).setHeadersDelay(150, TimeUnit.MILLISECONDS)
+            } else {
+                latestStarted.countDown()
+                MockResponse().setBody("<a href=\"/releases/tag/v0.3.0\">latest</a>")
+                    .setBodyDelay(2, TimeUnit.SECONDS)
+            }
+        }
+        val start = System.nanoTime()
+        val result = UpdateProbe.test(mirror, OkHttpClient(), api, releases, timeoutMs = 500)
+        val elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+        assertTrue(latestStarted.await(1, TimeUnit.SECONDS))
+        assertNull(result)
+        assertTrue("probe took ${elapsed}ms", elapsed < 1500)
+    }
+
     @Test fun allSourcesFailingMeansNoResult() = runTest {
         server.dispatcher = dispatcher { MockResponse().setResponseCode(500) }
         assertNull(UpdateProbe.fetch(UpdateChecker.defaultClient(), mirror, api, releases, emptyList(), "Mika/test"))

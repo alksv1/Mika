@@ -164,15 +164,27 @@ class UpdateChecker(
 
     /** 同版本补全缺失信息；校验数据只属于其对应的 APK 地址。 */
     private fun mergeRelease(previous: ReleaseInfo, candidate: ReleaseInfo): ReleaseInfo {
-        val apkUrl = candidate.apkUrl ?: previous.apkUrl
-        val sameApk = apkUrl != null && apkUrl == previous.apkUrl
+        val previousPreference = Releases.apkPreference(previous.apkUrl, deviceAbis)
+        val candidatePreference = Releases.apkPreference(candidate.apkUrl, deviceAbis)
+        fun completeness(release: ReleaseInfo) = (if (release.apkDigest != null) 2 else 0) + (if (release.apkSize != null) 1 else 0)
+        val selected = when {
+            candidate.apkUrl == null -> previous
+            previous.apkUrl == null -> candidate
+            candidatePreference == 0 && previousPreference > 0 -> previous
+            previousPreference == 0 && candidatePreference > 0 -> candidate
+            completeness(candidate) != completeness(previous) -> if (completeness(candidate) > completeness(previous)) candidate else previous
+            candidatePreference != previousPreference -> if (candidatePreference > previousPreference) candidate else previous
+            else -> candidate
+        }
+        val other = if (selected === previous) candidate else previous
+        val sameApk = selected.apkUrl != null && selected.apkUrl == other.apkUrl
         return candidate.copy(
             name = candidate.name.takeUnless { it.isBlank() || it == candidate.version } ?: previous.name,
             notes = previous.notes.ifBlank { candidate.notes },
             date = candidate.date ?: previous.date,
-            apkUrl = apkUrl,
-            apkSize = previous.apkSize.takeIf { sameApk } ?: candidate.apkSize,
-            apkDigest = previous.apkDigest.takeIf { sameApk } ?: candidate.apkDigest,
+            apkUrl = selected.apkUrl,
+            apkSize = selected.apkUrl?.let { selected.apkSize ?: other.apkSize.takeIf { sameApk } },
+            apkDigest = selected.apkUrl?.let { selected.apkDigest ?: other.apkDigest.takeIf { sameApk } },
         )
     }
 
