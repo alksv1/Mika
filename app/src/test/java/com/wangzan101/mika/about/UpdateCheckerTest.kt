@@ -23,7 +23,7 @@ class UpdateCheckerTest {
 
     private val server = MockWebServer()
     private var github: MockResponse = MockResponse().setResponseCode(500)
-    private val hits = mutableListOf<String>()
+    private val hits = java.util.Collections.synchronizedList(mutableListOf<String>())
     private var clock = 1_000_000_000L
 
     @Before
@@ -40,9 +40,11 @@ class UpdateCheckerTest {
     @After
     fun stop() = server.shutdown()
 
-    private fun checker(current: String = "0.1.0") = UpdateChecker(
+    private fun checker(current: String = "0.1.0", mirrors: MirrorSettings = MirrorSettings.OFF) = UpdateChecker(
         tmp.root.resolve("update.json"), current,
         releaseApi = server.url("/api").toString(),
+        releasesUrl = server.url("/releases").toString(),
+        mirrorSettings = { mirrors },
         now = { clock },
     )
 
@@ -84,6 +86,99 @@ class UpdateCheckerTest {
         assertEquals(listOf("/api"), hits)
         assertEquals(CheckStatus.Failed, c.state.value.status)
         assertNull(c.state.value.update)
+    }
+
+    /** 开了镜像后,镜像和官方并行问;官方失败、镜像成功时照样拿到新版本。 */
+    @Test
+    fun enabledMirrorIsQueriedInParallelAndCanWin() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                hits += request.path.orEmpty()
+                return if (request.path.orEmpty().contains("/mirror/")) release("v0.2.0")
+                else MockResponse().setResponseCode(500)
+            }
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertEquals(CheckStatus.Done, c.state.value.status)
+        assertEquals("0.2.0", c.state.value.update?.version)
+        assertTrue(hits.any { it.contains("/mirror/") })
+    }
+
+    @Test
+    fun slowerGitHubReleaseBeatsOlderMirror() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/")) release("v0.2.0")
+                else release("v0.3.0").setBodyDelay(300, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertEquals("0.3.0", c.state.value.update?.version)
+    }
+
+    @Test
+    fun githubSuccessDoesNotWaitForStalledMirrorBody() = runTest {
+        val mirrorStarted = java.util.concurrent.CountDownLatch(1)
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/")) {
+                    mirrorStarted.countDown()
+                    release("v0.2.0").setBodyDelay(4, java.util.concurrent.TimeUnit.SECONDS)
+                } else {
+                    check(mirrorStarted.await(2, java.util.concurrent.TimeUnit.SECONDS))
+                    release("v0.3.0")
+                }
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        val start = System.nanoTime()
+        c.check(manual = true)
+        val elapsed = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+        assertEquals("0.3.0", c.state.value.update?.version)
+        assertTrue("stalled mirror delayed check: ${elapsed}ms", elapsed < 3000)
+    }
+
+    @Test
+    fun olderSuccessfulResultDoesNotEraseKnownUpdate() = runTest {
+        val c = checker()
+        github = release("v0.3.0")
+        c.check(manual = true)
+        github = release("v0.1.0")
+        c.check(manual = true)
+        assertEquals(CheckStatus.Done, c.state.value.status)
+        assertEquals(2, c.state.value.manualRounds)
+        assertEquals("0.3.0", c.state.value.latest?.version)
+        assertEquals("0.3.0", c.state.value.update?.version)
+        val reopened = checker()
+        reopened.load()
+        assertEquals("0.3.0", reopened.state.value.update?.version)
+    }
+
+    @Test
+    fun sameVersionPrefersGitHubMetadata() = runTest {
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                if (request.path.orEmpty().contains("/mirror/"))
+                    MockResponse().setBody("""{"tag_name":"v0.2.0","name":"Mirror","assets":[]}""")
+                else release("v0.2.0").setBodyDelay(200, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+        val c = checker(mirrors = MirrorSettings(enabled = true, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertEquals("Mika v0.2.0", c.state.value.latest?.name)
+    }
+
+    /** 关掉镜像时一个镜像请求都不发。 */
+    @Test
+    fun disabledMirrorsAreNotContacted() = runTest {
+        github = release("v0.2.0")
+        val mirror = UpdateMirror("m", "Mirror", server.url("/mirror/").toString())
+        val c = checker(mirrors = MirrorSettings(enabled = false, mirrors = listOf(mirror)))
+        c.check(manual = true)
+        assertEquals(listOf("/api"), hits)
     }
 
     @Test

@@ -1,8 +1,12 @@
 package com.wangzan101.mika.about
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,7 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -20,7 +24,6 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import com.wangzan101.mika.core.net.NetProxy
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -51,7 +54,8 @@ object UpdateSchedule {
 }
 
 /**
- * 检查更新,没有自己的服务器:只问 GitHub 发布页接口;连不上、限流、读不懂都算这次没查到。
+ * 检查更新,没有自己的服务器:直连 GitHub 发布页接口,开了镜像时也按用户的顺序问镜像;
+ * 连不上、限流、读不懂都算这次没查到。镜像不支持 API 时退到发布页取 tag 和附件信息。
  * 查到的版本和上次自动检查的时间存在 [file],App 重开后红点还在;装了新版后当前版本不再落后,红点自然消失。
  * 这里只检查版本；用户主动下载、安装由 [ApkUpdater] 处理。
  */
@@ -60,6 +64,9 @@ class UpdateChecker(
     private val currentVersion: String,
     private val client: OkHttpClient = defaultClient(),
     private val releaseApi: String = MikaLinks.LATEST_RELEASE_API,
+    private val releasesUrl: String = MikaLinks.RELEASES,
+    /** 当前的镜像设置;每次检查取一次,用户在检查途中改了顺序也不影响这一次。 */
+    private val mirrorSettings: () -> MirrorSettings = { MirrorSettings.OFF },
     private val now: () -> Long = System::currentTimeMillis,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     /** 本机支持的 ABI(Build.SUPPORTED_ABIS),用来挑发布里合适的 APK;为空时取全架构包。 */
@@ -100,27 +107,48 @@ class UpdateChecker(
         mutex.withLock {
             loadLocked()
             if (manual) _state.update { it.copy(status = CheckStatus.Checking) }
-            val found = withContext(Dispatchers.IO) { fetchLatest() }
+            val found = fetchLatest(mirrorSettings())
             if (found != null) {
-                _state.update { it.withLatest(found) }
+                _state.update { state ->
+                    if (state.latest == null || AppVersion.compare(found.version, state.latest.version) >= 0) {
+                        state.withLatest(found)
+                    } else {
+                        state
+                    }
+                }
             }
             if (manual) _state.update { it.copy(status = if (found != null) CheckStatus.Done else CheckStatus.Failed, manualRounds = it.manualRounds + 1) }
             save()
         }
     }
 
-    /** GitHub 上最新的发布;没查到为空。 */
-    internal fun fetchLatest(): ReleaseInfo? = runCatching { Releases.fromGitHub(get(releaseApi), deviceAbis) }.getOrNull()
-
-    private fun get(url: String): String {
-        val req = Request.Builder().url(url)
-            .header("User-Agent", "Mika/$currentVersion")
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .build()
-        client.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) error("HTTP ${resp.code}")
-            return resp.body?.string() ?: error("empty body")
+    /** 各来源并行查询;官方成功时优先采用,失败时在限时内选择最新镜像。 */
+    internal suspend fun fetchLatest(settings: MirrorSettings = mirrorSettings()): ReleaseInfo? = coroutineScope {
+        val sources = buildList {
+            add("")
+            if (settings.enabled) settings.mirrors.forEach { add(it.prefix) }
+        }
+        val jobs = sources.map { source ->
+            async(Dispatchers.IO) {
+                withTimeoutOrNull(PROBE_TIMEOUT_MS) {
+                    try {
+                        UpdateProbe.fetch(client, source, releaseApi, releasesUrl, deviceAbis, "Mika/$currentVersion")
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }
+        }
+        val official = jobs.first().await()
+        if (official != null) {
+            jobs.drop(1).forEach { it.cancel() }
+            official
+        } else {
+            jobs.drop(1).awaitAll().filterNotNull().reduceOrNull { best, candidate ->
+                if (AppVersion.isNewer(candidate.version, best.version)) candidate else best
+            }
         }
     }
 
@@ -153,7 +181,10 @@ class UpdateChecker(
     }
 
     companion object {
-        /** 有的网络连 GitHub 时快时慢:超时放短,失败就换备用来源。走设置 › 网络代理。 */
+        /** 一个来源最多花这么久(镜像可能要走「API → 发布页 → 附件页」三次请求);各路并行,不会叠加。 */
+        private const val PROBE_TIMEOUT_MS = 12_000L
+
+        /** 有的网络连 GitHub 时快时慢:超时放短,失败就换备用来源。走设置 › 网络代理和更新镜像。 */
         fun defaultClient(): OkHttpClient = NetProxy.shared.client(OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)

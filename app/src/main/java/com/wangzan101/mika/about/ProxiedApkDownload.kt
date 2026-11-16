@@ -3,6 +3,7 @@ package com.wangzan101.mika.about
 import android.net.Network
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -34,7 +35,19 @@ class ProxiedApkDownload(
     @Volatile private var bytes = 0L
     @Volatile private var total = -1L
 
-    fun start(url: String, file: File, wifi: Network? = null, wifiProxy: Proxy = Proxy.NO_PROXY) {
+    /**
+     * 按 [sources] 的顺序下载,前一个失败就换下一个;每个来源下完都先过 [verify](大小、摘要),
+     * 不通过也当这个来源失败。全部失败时进程里不留目标文件,状态回到 Failed,用户可重试。
+     */
+    @Synchronized
+    fun start(
+        sources: List<String>,
+        file: File,
+        wifi: Network? = null,
+        wifiProxy: Proxy = Proxy.NO_PROXY,
+        verify: (File) -> Unit = {},
+    ) {
+        require(sources.isNotEmpty()) { "no download source" }
         cancel()
         target = file
         bytes = 0
@@ -50,19 +63,50 @@ class ProxiedApkDownload(
                 .connectionPool(ConnectionPool())
                 .build()
         } ?: http
-        job = scope.launch {
-            runCatching { fetch(client, url, file, onCall = { call = it }) { done, size -> bytes = done; total = size } }
-                .onFailure { if (it is CancellationException) throw it }
+        val download = scope.launch(start = CoroutineStart.LAZY) {
+            val current = coroutineContext[Job]!!
+            for (url in sources) {
+                coroutineContext.ensureActive()
+                synchronized(this@ProxiedApkDownload) {
+                    if (job === current) { bytes = 0; total = -1 }
+                }
+                try {
+                    fetch(client, url, file, onCall = { next ->
+                        synchronized(this@ProxiedApkDownload) {
+                            if (job === current && current.isActive) call = next else next.cancel()
+                        }
+                    }) { done, size ->
+                        synchronized(this@ProxiedApkDownload) {
+                            if (job === current) { bytes = done; total = size }
+                        }
+                    }
+                    coroutineContext.ensureActive()
+                    verify(file)
+                    coroutineContext.ensureActive()
+                    return@launch
+                } catch (e: CancellationException) {
+                    file.delete()
+                    throw e
+                } catch (_: Exception) {
+                    // 取消导致的连接异常不能触发下一个来源。
+                    file.delete()
+                    coroutineContext.ensureActive()
+                }
+            }
         }
+        job = download
+        download.start()
     }
 
     /** [file] 这一份的状态:正在下、下好了,或失败(没在下、也没有完整的文件)。 */
+    @Synchronized
     fun state(file: File): ApkDownloadState = when {
         job?.isActive == true && target == file -> ApkDownloadState(DownloadPhase.Downloading, bytes, total)
         file.isFile -> ApkDownloadState(DownloadPhase.Ready, file.length(), file.length())
         else -> ApkDownloadState(DownloadPhase.Failed)
     }
 
+    @Synchronized
     fun cancel() {
         job?.cancel()
         // 连带掐断连接,不等读完这一块
@@ -81,6 +125,7 @@ class ProxiedApkDownload(
             try {
                 val call = http.newCall(Request.Builder().url(url).build())
                 onCall(call)
+                coroutineContext.ensureActive()
                 call.execute().use { resp ->
                     if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
                     val body = resp.body ?: throw IOException("empty body")
@@ -102,6 +147,7 @@ class ProxiedApkDownload(
                     }
                     if (size >= 0 && done != size) throw IOException("incomplete download")
                 }
+                coroutineContext.ensureActive()
                 if (!part.renameTo(file)) throw IOException("cannot move download")
             } finally {
                 part.delete()
