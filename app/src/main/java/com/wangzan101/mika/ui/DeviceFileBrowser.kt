@@ -93,6 +93,23 @@ import java.util.Date
 
 internal data class DeviceBreadcrumb(val name: String, val path: String)
 
+internal fun crumbsIntoDirectory(
+    currentCrumbs: List<DeviceBreadcrumb>,
+    currentPath: String?,
+    entry: DeviceFileEntry,
+): List<DeviceBreadcrumb> {
+    if (currentPath == null) return currentCrumbs + DeviceBreadcrumb(entry.name, entry.path)
+    val trimmedRoot = currentPath.trimEnd('/')
+    if (!entry.path.startsWith("$trimmedRoot/")) return currentCrumbs + DeviceBreadcrumb(entry.name, entry.path)
+    val segments = entry.path.removePrefix(trimmedRoot).trimStart('/').split('/').filter { it.isNotEmpty() }
+    if (segments.isEmpty()) return currentCrumbs
+    var acc = trimmedRoot
+    return currentCrumbs + segments.map { seg ->
+        acc = "$acc/$seg"
+        DeviceBreadcrumb(seg, acc)
+    }
+}
+
 internal fun relativeSubdir(entryPath: String, rootPath: String?): String? {
     if (rootPath == null) return null
     val trimmedRoot = rootPath.trimEnd('/')
@@ -240,7 +257,19 @@ internal fun DeviceFileBrowserScreen(
         try {
             val search = activeQuery
             if (search != null && path != null) {
-                val result = files.search(DeviceFileSearchQuery(path, search, null, null, null, 5, 500, 3000))
+                val result = files.search(
+                    DeviceFileSearchQuery(
+                        path = path,
+                        name = search,
+                        extension = null,
+                        modifiedAfter = null,
+                        modifiedBefore = null,
+                        maxDepth = 5,
+                        maxEntries = 5000,
+                        timeoutMs = 5000,
+                        includeDirectories = true,
+                    ),
+                )
                 entries = result.entries
                 cursor = null
                 truncated = result.truncated
@@ -372,7 +401,7 @@ internal fun DeviceFileBrowserScreen(
                                         divider = index > 0,
                                         onClick = {
                                             if (entry.isDirectory) {
-                                                navigateTo(crumbs + DeviceBreadcrumb(entry.name, entry.path))
+                                                navigateTo(crumbsIntoDirectory(crumbs, path, entry))
                                             } else {
                                                 selected = if (isSelected) selected - entry.path else selected + entry.path
                                             }

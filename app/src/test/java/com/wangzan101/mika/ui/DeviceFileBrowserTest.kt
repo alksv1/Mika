@@ -24,4 +24,22 @@ class DeviceFileBrowserTest {
         assertNull(relativeSubdir("/storage/emulated/0/DownloadOther/a.pdf", "/storage/emulated/0/Download"))
         assertNull(relativeSubdir("/storage/emulated/0/Download/a.pdf", null))
     }
+
+    @Test
+    fun crumbsIntoDirectoryBuildsIntermediateSegmentsFromSearchResult() {
+        val base = listOf(DeviceBreadcrumb("Download", "/sdcard/Download"))
+        val entry = com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry(
+            name = "Invoices",
+            path = "/sdcard/Download/Work/Invoices",
+            isDirectory = true,
+        )
+        assertEquals(
+            listOf(
+                DeviceBreadcrumb("Download", "/sdcard/Download"),
+                DeviceBreadcrumb("Work", "/sdcard/Download/Work"),
+                DeviceBreadcrumb("Invoices", "/sdcard/Download/Work/Invoices"),
+            ),
+            crumbsIntoDirectory(base, "/sdcard/Download", entry),
+        )
+    }
 }

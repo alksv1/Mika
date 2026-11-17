@@ -58,6 +58,7 @@ class DeviceFileBrowserUiTest {
 
         override suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult = DeviceFileSearchResult(
             entries = listOf(
+                DeviceFileEntry("VeryDeepFolderName", "/sdcard/Download/Work/VeryDeepFolderName", isDirectory = true),
                 DeviceFileEntry("report.pdf", "/sdcard/Download/Work/VeryDeepFolderName/report.pdf", isDirectory = false, size = 2048),
             ),
             visited = 4,
@@ -121,6 +122,12 @@ class DeviceFileBrowserUiTest {
         compose.onNodeWithTag("device-browser-search-submit").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Work/VeryDeepFolderName").assertIsDisplayed()
+        compose.onNodeWithText("VeryDeepFolderName").performClick()
+        compose.waitForIdle()
+        compose.onNode(hasText("Work") and hasAnyAncestor(hasTestTag("device-browser-breadcrumbs")))
+            .assertIsDisplayed()
+        compose.onNode(hasText("VeryDeepFolderName") and hasAnyAncestor(hasTestTag("device-browser-breadcrumbs")))
+            .assertIsDisplayed()
 
         // Switch to history and back
         compose.onNodeWithTag("device-browser-history-toggle").performClick()
