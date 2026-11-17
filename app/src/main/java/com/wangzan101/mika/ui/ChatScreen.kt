@@ -551,7 +551,7 @@ fun ChatScreen(
                 scrollToBottomJob = scope.launch {
                     scrollingToBottom = true
                     try {
-                        scrollListToBottom(listState, reduceMotion)
+                        scrollListToBottom(listState, density, reduceMotion)
                         followingTail = listState.nearTail(tailThresholdPx)
                     } finally {
                         scrollingToBottom = false

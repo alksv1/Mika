@@ -871,6 +871,7 @@ private fun FooterLinks(actions: CardActions, primary: Pair<String, () -> Unit>?
 internal fun ThreadList(thread: ChatThread, conversationId: String?, actions: CardActions, footer: (@Composable () -> Unit)? = null) {
     val c = MikaTheme.colors
     val backdrop = rememberGlassBackdrop()
+    val density = LocalDensity.current
     val reduceMotion = MikaTheme.reduceMotion
     val scope = rememberCoroutineScope()
     val state = rememberLazyListState(initialFirstVisibleItemIndex = thread.anchor)
@@ -956,7 +957,7 @@ internal fun ThreadList(thread: ChatThread, conversationId: String?, actions: Ca
                 scrollToBottomJob = scope.launch {
                     scrollingToBottom = true
                     try {
-                        scrollListToBottom(state, reduceMotion)
+                        scrollListToBottom(state, density, reduceMotion)
                         following = !state.canScrollForward
                     } finally {
                         scrollingToBottom = false
