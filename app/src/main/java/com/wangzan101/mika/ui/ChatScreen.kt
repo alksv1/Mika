@@ -1,11 +1,5 @@
 package com.wangzan101.mika.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import com.wangzan101.mika.cap.sandbox.AttachmentFailure
 import com.wangzan101.mika.cap.sandbox.AttachmentFailureReason
@@ -154,11 +148,13 @@ import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaCard
 import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.PageBackground
+import com.wangzan101.mika.ui.components.ScrollToBottomButton
 import com.wangzan101.mika.ui.components.TopBar
 import com.wangzan101.mika.ui.components.cardSurface
 import com.wangzan101.mika.ui.components.floatShadow
 import com.wangzan101.mika.ui.components.glassSource
 import com.wangzan101.mika.ui.components.rememberGlassBackdrop
+import com.wangzan101.mika.ui.components.scrollListToBottom
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
@@ -546,8 +542,22 @@ fun ChatScreen(
 
         val pipOccupiesCorner = ui.pip.visible && ui.pip.mode != PipMode.Done
         val composerBottomDp = with(density) { composerHeight.toDp() }
-        AnimatedVisibility(
+        ScrollToBottomButton(
             visible = showScrollToBottom,
+            onClick = {
+                if (rowCount <= 0) return@ScrollToBottomButton
+                scrollToBottomJob?.cancel()
+                followingTail = true
+                scrollToBottomJob = scope.launch {
+                    scrollingToBottom = true
+                    try {
+                        scrollListToBottom(listState, reduceMotion)
+                        followingTail = listState.nearTail(tailThresholdPx)
+                    } finally {
+                        scrollingToBottom = false
+                    }
+                }
+            },
             modifier = Modifier
                 .align(if (pipOccupiesCorner) Alignment.BottomCenter else Alignment.BottomEnd)
                 .behindMenu(menuOpen) { lift.value }
@@ -556,37 +566,9 @@ fun ChatScreen(
                     end = if (pipOccupiesCorner) 0.dp else 16.dp,
                     bottom = composerBottomDp + 8.dp,
                 ),
-            enter = if (reduceMotion) fadeIn(tween(150)) else fadeIn(tween(180)) + scaleIn(tween(180, easing = MikaMotion.Decelerate), initialScale = 0.85f),
-            exit = if (reduceMotion) fadeOut(tween(120)) else fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.85f),
-        ) {
-            val label = stringResource(R.string.chat_scroll_to_bottom)
-            GlassSurface(
-                modifier = Modifier.size(MikaSize.IconButton).testTag("scroll-to-bottom"),
-                backdrop = backdrop,
-                shape = CircleShape,
-            ) {
-                Box(
-                    Modifier.fillMaxSize().clip(CircleShape)
-                        .clickable(onClickLabel = label, role = Role.Button) {
-                            if (rowCount <= 0) return@clickable
-                            scrollToBottomJob?.cancel()
-                            followingTail = true
-                            scrollToBottomJob = scope.launch {
-                                scrollingToBottom = true
-                                try {
-                                    scrollListToBottom(listState, reduceMotion)
-                                    followingTail = listState.nearTail(tailThresholdPx)
-                                } finally {
-                                    scrollingToBottom = false
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(MikaIcons.Down, label, Modifier.size(20.dp), tint = c.ink)
-                }
-            }
-        }
+            backdrop = backdrop,
+            reduceMotion = reduceMotion,
+        )
 
         AgentPip(
             pip = ui.pip,
@@ -776,24 +758,6 @@ private fun LazyListState.nearTail(thresholdPx: Int): Boolean {
     val end = layout.totalItemsCount - 1
     val tail = layout.visibleItemsInfo.firstOrNull { it.index == end } ?: return false
     return tail.offset + tail.size - layout.viewportEndOffset <= thresholdPx
-}
-
-/** 滚回列表真正的末尾：长消息超过一屏时补齐到最后一项底部，动画途中若新增了行再追一次。 */
-private suspend fun scrollListToBottom(listState: LazyListState, reduceMotion: Boolean) {
-    repeat(2) {
-        val end = listState.layoutInfo.totalItemsCount - 1
-        if (end < 0) return
-        if (reduceMotion) listState.scrollToItem(end) else listState.animateScrollToItem(end)
-        val layout = listState.layoutInfo
-        if (layout.totalItemsCount - 1 != end) return@repeat
-        val tail = layout.visibleItemsInfo.firstOrNull { it.index == end } ?: return@repeat
-        val remaining = tail.offset + tail.size - (layout.viewportEndOffset - layout.afterContentPadding)
-        if (remaining > 0) {
-            if (reduceMotion) listState.scrollBy(remaining.toFloat())
-            else listState.animateScrollBy(remaining.toFloat())
-        }
-        if (!listState.canScrollForward) return
-    }
 }
 
 // ---------- 空对话 ----------
