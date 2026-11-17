@@ -19,6 +19,10 @@
     <string name="playback_image">Tangkapan layar tugas</string>
     <string name="playback_missing">Tangkapan layar tidak tersedia</string>
     <string name="report_export">Ekspor</string>
+    <string name="report_copy_markdown">Salin sebagai Markdown</string>
+    <string name="report_copy_text">Salin sebagai teks biasa</string>
+    <string name="report_share">Bagikan laporan</string>
+    <string name="report_copied">Laporan disalin</string>
     <string name="report_saved">Laporan disimpan</string>
     <string name="report_save_failed">Tidak dapat menyimpan. Periksa rekaman dan lokasi tujuan.</string>
     <string name="report_close">Tutup</string>

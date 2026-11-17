@@ -19,6 +19,10 @@
     <string name="playback_image">Captura da tarefa</string>
     <string name="playback_missing">Captura indisponível</string>
     <string name="report_export">Exportar</string>
+    <string name="report_copy_markdown">Copiar como Markdown</string>
+    <string name="report_copy_text">Copiar como texto simples</string>
+    <string name="report_share">Compartilhar relatório</string>
+    <string name="report_copied">Relatório copiado</string>
     <string name="report_saved">Relatório salvo</string>
     <string name="report_save_failed">Não foi possível salvar. Verifique o registro e o destino.</string>
     <string name="report_close">Fechar</string>

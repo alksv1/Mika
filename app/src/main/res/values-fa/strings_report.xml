@@ -19,6 +19,10 @@
     <string name="playback_image">تصویر ثبت‌شدهٔ کار</string>
     <string name="playback_missing">تصویر در دسترس نیست</string>
     <string name="report_export">صدور</string>
+    <string name="report_copy_markdown">رونوشت به‌صورت Markdown</string>
+    <string name="report_copy_text">رونوشت به‌صورت متن ساده</string>
+    <string name="report_share">هم‌رسانی گزارش</string>
+    <string name="report_copied">گزارش رونوشت شد</string>
     <string name="report_saved">گزارش ذخیره شد</string>
     <string name="report_save_failed">ذخیره نشد. سابقه و مقصد را بررسی و دوباره تلاش کنید.</string>
     <string name="report_close">بستن</string>

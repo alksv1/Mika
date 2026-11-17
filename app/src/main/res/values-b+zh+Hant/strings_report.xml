@@ -19,6 +19,10 @@
     <string name="playback_image">任務記錄截圖</string>
     <string name="playback_missing">截圖未儲存或已被清理</string>
     <string name="report_export">匯出</string>
+    <string name="report_copy_markdown">複製為 Markdown</string>
+    <string name="report_copy_text">複製為純文字</string>
+    <string name="report_share">分享報告</string>
+    <string name="report_copied">報告已複製</string>
     <string name="report_saved">報告已儲存</string>
     <string name="report_save_failed">儲存失敗，請檢查記錄及儲存位置後重試。</string>
     <string name="report_close">關閉</string>

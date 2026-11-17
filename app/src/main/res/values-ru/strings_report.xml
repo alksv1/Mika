@@ -19,6 +19,10 @@
     <string name="playback_image">Снимок экрана задачи</string>
     <string name="playback_missing">Снимок недоступен</string>
     <string name="report_export">Экспорт</string>
+    <string name="report_copy_markdown">Копировать как Markdown</string>
+    <string name="report_copy_text">Копировать как обычный текст</string>
+    <string name="report_share">Поделиться отчётом</string>
+    <string name="report_copied">Отчёт скопирован</string>
     <string name="report_saved">Отчёт сохранён</string>
     <string name="report_save_failed">Не удалось сохранить. Проверьте запись и место сохранения.</string>
     <string name="report_close">Закрыть</string>
