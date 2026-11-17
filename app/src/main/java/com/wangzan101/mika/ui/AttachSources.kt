@@ -98,6 +98,24 @@ object AttachFiles {
         FileViewer.open(context, FileProvider.getUriForFile(context, AttachFilesProvider.authority(context.packageName), copy), name)
         return true
     }
+
+    /**
+     * 点开待发出的本地附件:先确认内容地址可读,再交给 App 里的查看页;
+     * 看不了的类型交给系统里能打开它的 App。读不到或打不开时返回 false。
+     */
+    suspend fun openPending(context: Context, uri: String, name: String): Boolean {
+        val parsed = runCatching { Uri.parse(uri) }.getOrNull()?.takeIf { !it.scheme.isNullOrBlank() } ?: return false
+        val readable = withContext(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(parsed)?.use { true } ?: false
+            }.getOrDefault(false)
+        }
+        if (!readable) return false
+        return runCatching {
+            FileViewer.open(context, parsed, name)
+            true
+        }.getOrDefault(false)
+    }
 }
 
 /** 照片能不能直接读:全部、只给了部分(安卓 14 起)、没给。 */
