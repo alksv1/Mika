@@ -83,7 +83,7 @@ class DeviceFileBrowserUiTest {
         )
         compose.setContent {
             MikaTheme {
-                DeviceFileBrowserScreen(
+                DeviceFileBrowserDialog(
                     files = FakeDeviceFiles(),
                     loadRootDescriptions = { mapOf("/sdcard/Download" to "下载目录") },
                     records = records,

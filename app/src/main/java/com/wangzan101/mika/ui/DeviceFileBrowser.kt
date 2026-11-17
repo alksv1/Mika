@@ -15,10 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -57,8 +56,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.wangzan101.mika.R
 import com.wangzan101.mika.cap.phone.PhoneServices
 import com.wangzan101.mika.cap.sandbox.AndroidSandbox
@@ -72,6 +69,7 @@ import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.task.AndroidDeviceFiles
 import com.wangzan101.mika.task.DeviceImportRecord
 import com.wangzan101.mika.task.DeviceImportStore
+import com.wangzan101.mika.ui.components.ActivitySizedDialog
 import com.wangzan101.mika.ui.components.BarIconButton
 import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
@@ -147,15 +145,13 @@ internal fun DeviceFileBrowserDialog(
     onClose: () -> Unit,
 ) {
     var backSignal by remember { mutableIntStateOf(0) }
-    Dialog(
-        onDismissRequest = { backSignal++ },
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-    ) {
+    ActivitySizedDialog(onDismiss = { backSignal++ }, dismissOnClickOutside = false) { safeArea ->
         DeviceFileBrowserScreen(
             files = files,
             loadRootDescriptions = loadRootDescriptions,
             records = records,
             backSignal = backSignal,
+            safeAreaModifier = safeArea,
             onAddSelected = onAddSelected,
             onClose = onClose,
         )
@@ -168,6 +164,7 @@ internal fun DeviceFileBrowserScreen(
     loadRootDescriptions: suspend (Set<String>) -> Map<String, String> = { emptyMap() },
     records: List<DeviceImportRecord> = emptyList(),
     backSignal: Int = 0,
+    safeAreaModifier: Modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars).imePadding(),
     onAddSelected: (List<String>) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -267,7 +264,7 @@ internal fun DeviceFileBrowserScreen(
 
     PageBackground {
         Column(
-            Modifier.fillMaxSize().navigationBarsPadding().imePadding().testTag("device-browser-dialog"),
+            Modifier.fillMaxSize().then(safeAreaModifier).testTag("device-browser-dialog"),
         ) {
             DeviceBrowserTopBar(
                 showHistory = showHistory,
@@ -431,8 +428,8 @@ private fun DeviceBrowserTopBar(
 ) {
     val c = MikaTheme.colors
     Row(
-        Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars)
-            .heightIn(min = 64.dp).padding(start = 4.dp, end = 12.dp),
+        Modifier.fillMaxWidth()
+            .heightIn(min = 60.dp).padding(start = 4.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         BarIconButton(MikaIcons.Back, stringResource(R.string.back), onBack)
