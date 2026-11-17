@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import android.net.Uri
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -199,6 +200,27 @@ class ChatAttachmentsTest {
             compose.onNodeWithTag("tray-file").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("viewer.text").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("pending preview body", substring = true).assertIsDisplayed()
+            Espresso.pressBack()
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test fun externalUriPendingAttachmentCopiesToViewingAndOpensInFileViewer() {
+        val context = compose.activity
+        val file = File(context.cacheDir, "external-pending.txt").apply { writeText("copied external body") }
+        try {
+            val uri = Uri.fromFile(file).toString()
+            compose.setContent {
+                MikaTheme {
+                    CompositionLocalProvider(LocalAttachImages provides images) {
+                        PendingTray(listOf(PendingAttachment(uri, "external-pending.txt", file.length())), onRemove = {})
+                    }
+                }
+            }
+            compose.onNodeWithTag("tray-file").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithTag("viewer.text").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("copied external body", substring = true).assertIsDisplayed()
             Espresso.pressBack()
         } finally {
             file.delete()
