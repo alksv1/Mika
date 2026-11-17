@@ -22,6 +22,12 @@
     <string name="report_copy_markdown">Copiar como Markdown</string>
     <string name="report_copy_text">Copiar como texto sin formato</string>
     <string name="report_share">Compartir informe</string>
+    <string name="report_share_text">Texto sin formato</string>
+    <string name="report_share_txt">Archivo TXT</string>
+    <string name="report_share_md">Archivo Markdown</string>
+    <string name="report_share_docx">Archivo Word</string>
+    <string name="report_share_failed">No se pudo compartir. Inténtalo de nuevo o exporta el informe primero.</string>
+    <string name="report_share_too_long">El informe es demasiado largo para compartirlo como texto. Compártelo como archivo TXT, Markdown o Word.</string>
     <string name="report_copied">Informe copiado</string>
     <string name="report_saved">Informe guardado</string>
     <string name="report_save_failed">No se pudo guardar. Revisa el registro y el destino.</string>

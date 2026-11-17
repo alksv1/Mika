@@ -90,7 +90,13 @@ class TaskReportScreenTest {
         compose.waitUntil(5_000) { compose.onAllNodesWithText("完整的测试报告。").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("导出").performClick()
         compose.onNodeWithText("复制为 Markdown").assertExists()
-        compose.onNodeWithText("分享报告").assertExists()
+        compose.onNodeWithText("分享报告").performClick()
+        compose.onNodeWithText("纯文本").assertExists()
+        compose.onNodeWithText("TXT 文件").assertExists()
+        compose.onNodeWithText("Markdown 文件").assertExists()
+        compose.onNodeWithText("Word 文件").assertExists()
+        compose.onNodeWithText("关闭").performClick()
+        compose.onNodeWithText("导出").performClick()
         compose.onNodeWithText("复制为纯文本").performClick()
         val clipboard = InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(ClipboardManager::class.java)
         compose.waitUntil(5_000) { clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.contains("完整的测试报告。") == true }
