@@ -7,6 +7,7 @@ import com.wangzan101.mika.core.capability.PromptEnv
 import com.wangzan101.mika.core.prompt.Prompts
 import com.wangzan101.mika.core.tool.*
 import com.wangzan101.mika.core.workspace.SandboxError
+import com.wangzan101.mika.core.cap.sandbox.sandboxRunner
 import kotlinx.serialization.json.*
 import java.io.IOException
 
@@ -88,15 +89,26 @@ private object WriteDeviceFile : DeviceFileTool {
     override val wideTarget = true
     override val def = ToolDef("write_device_file", Prompts.tool("write_device_file"), mapOf(
         "path" to str("Destination file identifier from the write target in list_device_directory_hints."),
-        "content" to str("UTF-8 text to write, at most 1 MiB."),
+        "content" to str("UTF-8 text to write, at most 1 MiB. Use content or source, not both."),
+        "source" to str("Workspace file to copy as bytes. Use source or content, not both."),
         "expected_sha256" to str("SHA-256 of the current file when replacing or appending."),
         "append" to bool("Append instead of replacing (default false)."),
-    ), listOf("path", "content"))
+    ), listOf("path"))
     override fun logTarget(o: JsonObject, r: ToolExecution, ctx: ToolContext) = o.argStr("path")
     override suspend fun execute(a: Args, ctx: ToolContext): ToolExecution = guarded {
         val cap = ctx[DeviceFilesCapability.KEY]!!
         val path = a.str("path", max = 4096)!!
-        val content = a.str("content", min = 0)!!.toByteArray(Charsets.UTF_8)
+        val inline = a.str("content", min = 0)
+        val source = a.str("source", max = 4096)
+        if ((inline == null) == (source == null)) throw SandboxError("invalid", "Provide exactly one of content or source.", true)
+        val content = if (inline != null) {
+            val bytes = inline.toByteArray(Charsets.UTF_8)
+            if (bytes.size > 1_048_576) throw SandboxError("file_too_large", "Inline device text is limited to 1 MiB. Use source for a workspace file.", true)
+            bytes
+        } else {
+            ctx.sandboxRunner?.readBytesForDevice(source!!, cap.workspace())
+                ?: throw SandboxError("sandbox_unavailable", "The workspace is unavailable for reading the source file.", true)
+        }
         val expected = a.str("expected_sha256", max = 64)
         val append = a.bool("append", false)
         val result = cap.port.writeFile(path, content, expected, append)

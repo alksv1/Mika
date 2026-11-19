@@ -7,8 +7,6 @@ import com.wangzan101.mika.core.cap.devicefiles.DeviceFileWrite
 import com.wangzan101.mika.core.workspace.SandboxError
 import com.wangzan101.mika.settings.DeviceWriteGrantStore
 import java.io.IOException
-import java.nio.ByteBuffer
-import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 
 /** Writes UTF-8 text through a persisted SAF tree grant. The URI stays inside the app. */
@@ -18,7 +16,7 @@ internal class SafDeviceFileWriter(
 ) {
     fun write(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite = synchronized(lock) {
         guarded {
-            checkText(content)
+            checkBytes(content)
             val target = grants.resolveTarget(path) ?: fail("device_write_denied", "The device write location is not authorized.")
             val permission = resolver.persistedUriPermissions.firstOrNull { it.uri == target.uri }
                 ?: fail("device_write_revoked", "The device write permission was revoked. Choose the folder again.")
@@ -37,7 +35,7 @@ internal class SafDeviceFileWriter(
                 if (it.directory) fail("not_a_file", "The device target is a folder.")
                 if (it.flags and DocumentsContract.Document.FLAG_SUPPORTS_WRITE == 0)
                     fail("device_write_denied", "The provider does not allow changing this file.")
-                readText(document(tree, it.id), it)
+                readBytes(document(tree, it.id), it)
             }
             if (old != null && (expectedSha256 == null || sha256(old) != expectedSha256))
                 fail("file_changed", "The device file changed. Read it again before updating it.")
@@ -45,26 +43,26 @@ internal class SafDeviceFileWriter(
                 fail("file_changed", "The device file no longer exists. Nothing was written.")
 
             val bytes = if (append && old != null) old + content else content
-            checkText(bytes)
+            checkBytes(bytes)
             if (existing == null && parent.flags and DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE == 0)
                 fail("device_write_denied", "The provider does not allow creating files here.")
 
             val uri = existing?.let { document(tree, it.id) } ?: DocumentsContract.createDocument(
                 resolver,
                 document(tree, parent.id),
-                if (name.endsWith(".md", ignoreCase = true)) "text/markdown" else "text/plain",
+                mime(name),
                 name,
             ) ?: fail("device_write_failed", "The device file could not be created.")
             try {
                 writeBytes(uri, bytes)
-                val written = readText(uri, metadata(uri))
+                val written = readBytes(uri, metadata(uri))
                 if (!written.contentEquals(bytes)) throw IOException("Read-back mismatch")
             } catch (error: Exception) {
                 val restored = runCatching {
                     if (old == null) DocumentsContract.deleteDocument(resolver, uri)
                     else {
                         writeBytes(uri, old)
-                        readText(uri, metadata(uri)).contentEquals(old)
+                        readBytes(uri, metadata(uri)).contentEquals(old)
                     }
                 }.getOrDefault(false)
                 fail(
@@ -124,21 +122,21 @@ internal class SafDeviceFileWriter(
 
     private fun document(tree: Uri, id: String): Uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
 
-    private fun readText(uri: Uri, doc: Doc): ByteArray {
+    private fun readBytes(uri: Uri, doc: Doc): ByteArray {
         if (doc.directory) fail("not_a_file", "The device target is a folder.")
-        if ((doc.size ?: 0) > MAX_BYTES) fail("file_too_large", "Device text files are limited to 1 MiB.")
+        if ((doc.size ?: 0) > MAX_BYTES) fail("file_too_large", "The device file is too large to update.")
         val bytes = resolver.openInputStream(uri)?.use { input ->
             val output = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(8192)
             while (true) {
                 val count = input.read(buffer)
                 if (count < 0) break
-                if (output.size() + count > MAX_BYTES) fail("file_too_large", "Device text files are limited to 1 MiB.")
+                if (output.size().toLong() + count > MAX_BYTES) fail("file_too_large", "The device file is too large to update.")
                 output.write(buffer, 0, count)
             }
             output.toByteArray()
         } ?: throw IOException("Cannot read device file")
-        checkText(bytes)
+        checkBytes(bytes)
         return bytes
     }
 
@@ -149,17 +147,19 @@ internal class SafDeviceFileWriter(
         } ?: throw IOException("Cannot open device file for writing")
     }
 
-    private fun checkText(bytes: ByteArray) {
-        if (bytes.size > MAX_BYTES) fail("file_too_large", "Device text files are limited to 1 MiB.")
-        if (bytes.any { it == 0.toByte() }) fail("not_text", "Only UTF-8 text files are supported.")
-        try {
-            Charsets.UTF_8.newDecoder()
-                .onMalformedInput(CodingErrorAction.REPORT)
-                .onUnmappableCharacter(CodingErrorAction.REPORT)
-                .decode(ByteBuffer.wrap(bytes))
-        } catch (_: java.nio.charset.CharacterCodingException) {
-            fail("not_text", "Only UTF-8 text files are supported.")
-        }
+    private fun checkBytes(bytes: ByteArray) {
+        if (bytes.size.toLong() > MAX_BYTES) fail("file_too_large", "The device file is too large to write.")
+    }
+
+    private fun mime(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
+        "txt", "log", "csv" -> "text/plain"
+        "md" -> "text/markdown"
+        "json" -> "application/json"
+        "xml" -> "application/xml"
+        "jpg", "jpeg" -> "image/jpeg"
+        "png" -> "image/png"
+        "pdf" -> "application/pdf"
+        else -> "application/octet-stream"
     }
 
     private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
@@ -179,7 +179,7 @@ internal class SafDeviceFileWriter(
     private fun fail(code: String, message: String): Nothing = throw SandboxError(code, message, true)
 
     companion object {
-        private const val MAX_BYTES = 1_048_576
+        private const val MAX_BYTES = 100L * 1024 * 1024
         private val lock = Any()
         private val COLUMNS = arrayOf(
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
