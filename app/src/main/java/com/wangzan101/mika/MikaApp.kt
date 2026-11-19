@@ -524,6 +524,13 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             stopVoice = { voicePlayer.stop() },
             voiceFailed = voicePlayer::fail,
             personaStore = if (FeatureFlags.get(this).persona()) personas else null,
+            projectStore = projects,
+            projectDeletionImpact = projectDeleter::impact,
+            removeProject = { pid ->
+                conversations.list(includeArchived = true).filter { it.projectId == pid }.forEach { followUpQueue.dropConversation(it.id) }
+                projectDeleter.delete(pid)
+            },
+            workspaceResolver = workspaceResolver,
         )
     }
 
