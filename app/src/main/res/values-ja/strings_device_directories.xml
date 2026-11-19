@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">フォルダが見つかりません</string>
     <string name="device_dirs_denied">アクセスが拒否されました</string>
     <string name="device_dirs_unknown">状態を確認できません</string>
+    <string name="device_dirs_write_authorize">書き込み権限</string>
+    <string name="device_dirs_write_select">フォルダを選択</string>
+    <string name="device_dirs_write_reselect">再選択</string>
+    <string name="device_dirs_write_available">利用可能</string>
+    <string name="device_dirs_write_not_granted">未許可</string>
+    <string name="device_dirs_write_restricted">Android により制限</string>
+    <string name="device_dirs_write_revoked">権限が取り消されました</string>
+    <string name="device_dirs_write_read_only">読み取り専用プロバイダ</string>
+    <string name="device_dirs_write_unknown">状態を確認できません</string>
     <string name="device_dirs_entry">フォルダの手がかり</string>
     <string name="device_dirs_entry_sub">Mika がダウンロードしたファイルを見つけるのを助けます</string>
     <string name="device_dirs_source_preset">プリセット</string>

@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">Папка не найдена</string>
     <string name="device_dirs_denied">Доступ запрещён</string>
     <string name="device_dirs_unknown">Статус недоступен</string>
+    <string name="device_dirs_write_authorize">Доступ на запись</string>
+    <string name="device_dirs_write_select">Выбрать папку</string>
+    <string name="device_dirs_write_reselect">Выбрать снова</string>
+    <string name="device_dirs_write_available">Доступно</string>
+    <string name="device_dirs_write_not_granted">Не разрешено</string>
+    <string name="device_dirs_write_restricted">Ограничено Android</string>
+    <string name="device_dirs_write_revoked">Разрешение отозвано</string>
+    <string name="device_dirs_write_read_only">Провайдер доступен только для чтения</string>
+    <string name="device_dirs_write_unknown">Статус недоступен</string>
     <string name="device_dirs_entry">Подсказки о папках</string>
     <string name="device_dirs_entry_sub">Помогают Mika находить скачанные файлы</string>
     <string name="device_dirs_source_preset">Предустановлено</string>

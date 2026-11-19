@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">Carpeta no encontrada</string>
     <string name="device_dirs_denied">Acceso denegado</string>
     <string name="device_dirs_unknown">Estado no disponible</string>
+    <string name="device_dirs_write_authorize">Acceso de escritura</string>
+    <string name="device_dirs_write_select">Elegir carpeta</string>
+    <string name="device_dirs_write_reselect">Elegir de nuevo</string>
+    <string name="device_dirs_write_available">Disponible</string>
+    <string name="device_dirs_write_not_granted">Sin autorización</string>
+    <string name="device_dirs_write_restricted">Restringido por Android</string>
+    <string name="device_dirs_write_revoked">Permiso revocado</string>
+    <string name="device_dirs_write_read_only">Proveedor de solo lectura</string>
+    <string name="device_dirs_write_unknown">Estado no disponible</string>
     <string name="device_dirs_entry">Pistas de carpetas</string>
     <string name="device_dirs_entry_sub">Ayuda a Mika a encontrar archivos descargados</string>
     <string name="device_dirs_source_preset">Predefinida</string>

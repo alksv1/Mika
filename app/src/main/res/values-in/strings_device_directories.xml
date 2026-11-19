@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">Folder tidak ditemukan</string>
     <string name="device_dirs_denied">Akses ditolak</string>
     <string name="device_dirs_unknown">Status tidak tersedia</string>
+    <string name="device_dirs_write_authorize">Akses tulis</string>
+    <string name="device_dirs_write_select">Pilih folder</string>
+    <string name="device_dirs_write_reselect">Pilih lagi</string>
+    <string name="device_dirs_write_available">Tersedia</string>
+    <string name="device_dirs_write_not_granted">Belum diberikan</string>
+    <string name="device_dirs_write_restricted">Dibatasi oleh Android</string>
+    <string name="device_dirs_write_revoked">Izin dicabut</string>
+    <string name="device_dirs_write_read_only">Penyedia hanya dapat dibaca</string>
+    <string name="device_dirs_write_unknown">Status tidak tersedia</string>
     <string name="device_dirs_entry">Petunjuk folder</string>
     <string name="device_dirs_entry_sub">Bantu Mika menemukan file yang diunduh</string>
     <string name="device_dirs_source_preset">Bawaan</string>

@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">المجلد غير موجود</string>
     <string name="device_dirs_denied">تم رفض الوصول</string>
     <string name="device_dirs_unknown">الحالة غير متاحة</string>
+    <string name="device_dirs_write_authorize">إذن الكتابة</string>
+    <string name="device_dirs_write_select">اختيار مجلد</string>
+    <string name="device_dirs_write_reselect">اختيار مرة أخرى</string>
+    <string name="device_dirs_write_available">متاح</string>
+    <string name="device_dirs_write_not_granted">غير ممنوح</string>
+    <string name="device_dirs_write_restricted">مقيّد بواسطة Android</string>
+    <string name="device_dirs_write_revoked">تم إلغاء الإذن</string>
+    <string name="device_dirs_write_read_only">الموفر للقراءة فقط</string>
+    <string name="device_dirs_write_unknown">الحالة غير متاحة</string>
     <string name="device_dirs_entry">تلميحات المجلدات</string>
     <string name="device_dirs_entry_sub">ساعد Mika في العثور على الملفات التي تم تنزيلها</string>
     <string name="device_dirs_source_preset">إعداد مسبق</string>

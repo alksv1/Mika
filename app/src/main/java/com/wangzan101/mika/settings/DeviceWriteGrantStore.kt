@@ -56,7 +56,8 @@ class DeviceWriteGrantStore(
     fun resolveTarget(path: String): DeviceWriteTarget? {
         if (!path.startsWith("/device-write/") || path.length > 4096) return null
         for ((key, value) in prefs.all) {
-            if (!key.startsWith(KEY_PREFIX) || value !is String) continue
+            if (!key.startsWith(KEY_PREFIX)) continue
+            val uriString = value as? String ?: continue
             val rawPath = key.removePrefix(KEY_PREFIX)
             val base = writeTarget(rawPath)
             if (path != base && !path.startsWith("$base/")) continue
@@ -66,7 +67,7 @@ class DeviceWriteGrantStore(
                     part.isEmpty() || part == "." || part == ".." || part.length > 255 ||
                         part.any { character -> character.code < 32 || character == '\\' }
                 }) return null
-            return DeviceWriteTarget(Uri.parse(value), parts)
+            return DeviceWriteTarget(Uri.parse(uriString), parts)
         }
         return null
     }
@@ -135,6 +136,7 @@ class DeviceWriteGrantStore(
     }
 
     companion object {
+        private const val KEY_PREFIX = "uri:"
         private val ACCESS_FLAGS = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
         fun get(context: Context) = DeviceWriteGrantStore(

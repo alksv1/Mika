@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">Pasta não encontrada</string>
     <string name="device_dirs_denied">Acesso negado</string>
     <string name="device_dirs_unknown">Status indisponível</string>
+    <string name="device_dirs_write_authorize">Acesso de escrita</string>
+    <string name="device_dirs_write_select">Escolher pasta</string>
+    <string name="device_dirs_write_reselect">Escolher novamente</string>
+    <string name="device_dirs_write_available">Disponível</string>
+    <string name="device_dirs_write_not_granted">Não autorizado</string>
+    <string name="device_dirs_write_restricted">Restrito pelo Android</string>
+    <string name="device_dirs_write_revoked">Permissão revogada</string>
+    <string name="device_dirs_write_read_only">Provedor somente leitura</string>
+    <string name="device_dirs_write_unknown">Status indisponível</string>
     <string name="device_dirs_entry">Dicas de pasta</string>
     <string name="device_dirs_entry_sub">Ajude o Mika a encontrar arquivos baixados</string>
     <string name="device_dirs_source_preset">Predefinida</string>

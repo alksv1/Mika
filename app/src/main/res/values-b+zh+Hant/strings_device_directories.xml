@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">目錄不存在</string>
     <string name="device_dirs_denied">無權存取</string>
     <string name="device_dirs_unknown">狀態暫不可用</string>
+    <string name="device_dirs_write_authorize">寫入權限</string>
+    <string name="device_dirs_write_select">選擇目錄</string>
+    <string name="device_dirs_write_reselect">重新選擇</string>
+    <string name="device_dirs_write_available">可寫入</string>
+    <string name="device_dirs_write_not_granted">尚未授權</string>
+    <string name="device_dirs_write_restricted">Android 限制</string>
+    <string name="device_dirs_write_revoked">權限已撤銷</string>
+    <string name="device_dirs_write_read_only">檔案提供者唯讀</string>
+    <string name="device_dirs_write_unknown">狀態暫不可用</string>
     <string name="device_dirs_entry">手機目錄線索</string>
     <string name="device_dirs_entry_sub">幫助 Mika 尋找下載的檔案</string>
     <string name="device_dirs_source_preset">系統預設</string>

@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">پوشه پیدا نشد</string>
     <string name="device_dirs_denied">دسترسی رد شد</string>
     <string name="device_dirs_unknown">وضعیت در دسترس نیست</string>
+    <string name="device_dirs_write_authorize">دسترسی نوشتن</string>
+    <string name="device_dirs_write_select">انتخاب پوشه</string>
+    <string name="device_dirs_write_reselect">انتخاب دوباره</string>
+    <string name="device_dirs_write_available">در دسترس</string>
+    <string name="device_dirs_write_not_granted">اعطا نشده</string>
+    <string name="device_dirs_write_restricted">محدودشده توسط Android</string>
+    <string name="device_dirs_write_revoked">مجوز لغو شد</string>
+    <string name="device_dirs_write_read_only">ارائه‌دهنده فقط خواندنی است</string>
+    <string name="device_dirs_write_unknown">وضعیت در دسترس نیست</string>
     <string name="device_dirs_entry">راهنماهای پوشه</string>
     <string name="device_dirs_entry_sub">به میکا کمک کنید فایل‌های دانلودشده را پیدا کند</string>
     <string name="device_dirs_source_preset">پیش‌فرض</string>
