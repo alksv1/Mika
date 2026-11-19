@@ -3834,12 +3834,11 @@ class ChatViewModelTest {
         assertFalse(vm.selectPersona("p1"))
     }
 
-    @Test fun projectDraftPersistsOnSendMoveAndDeletesWithProject() = runTest {
+    @Test fun projectDraftPersistsOnSendAndDeletesWithProject() = runTest {
         val conversations = ConversationStore(tmp.newFolder("chats"))
         val projects = com.wangzan101.mika.chat.ProjectStore(tmp.newFolder("projects"))
         val resolver = com.wangzan101.mika.chat.WorkspaceResolver(conversations, projects)
         val p1 = projects.create("科研").getOrThrow()
-        val p2 = projects.create("工作").getOrThrow()
         var deletedProjectId: String? = null
         val vm = ChatViewModel(
             backgroundScope, state, stage, actions, conversations,
@@ -3857,13 +3856,9 @@ class ChatViewModelTest {
         assertTrue(vm.send("先建个草稿", ok))
         assertEquals(p1.id, conversations.projectId(draftId))
 
-        assertTrue(vm.moveConversationToProject(draftId, p2.id))
-        assertEquals(p2.id, vm.ui.value.projectId)
-        assertEquals(p2.id, conversations.projectId(draftId))
-
-        vm.deleteProject(p2.id)
+        vm.deleteProject(p1.id)
         runCurrent()
-        assertEquals(p2.id, deletedProjectId)
+        assertEquals(p1.id, deletedProjectId)
         assertNull(vm.ui.value.conversationId)
         assertNull(vm.ui.value.projectId)
     }

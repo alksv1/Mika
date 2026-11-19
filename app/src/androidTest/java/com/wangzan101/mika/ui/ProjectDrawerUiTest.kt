@@ -40,7 +40,7 @@ import java.io.File
 import java.util.UUID
 
 /**
- * 侧栏项目分组 UI 测试:新建项目并在其中发起对话、聊天页顶部显示项目胶囊、长按对话移入项目、
+ * 侧栏项目分组 UI 测试:新建项目并在其中发起对话、聊天页顶部显示项目胶囊、
  * 折叠/展开项目、重命名项目、以及删除项目时清理成员对话并保留独立对话。
  */
 @RunWith(AndroidJUnit4::class)
@@ -133,10 +133,11 @@ class ProjectDrawerUiTest {
         compose.onNodeWithTag("chat-project-pill").assertTextContains("Mika 研发")
     }
 
-    @Test fun moveConversationCollapseRenameAndDeleteProjectRemoveMembersOnly() {
+    @Test fun collapseRenameAndDeleteProjectRemoveMembersOnly() {
         val existing = projects.create("客户端").getOrThrow()
         store.append("c1", Turn("架构讨论", "好", "succeeded"))
         store.setTitle("c1", "架构讨论")
+        store.setProject("c1", existing.id)
         store.append("c2", Turn("成员聊天", "好", "succeeded"))
         store.setTitle("c2", "成员聊天")
         store.setProject("c2", existing.id)
@@ -154,13 +155,6 @@ class ProjectDrawerUiTest {
         compose.onNode(hasTestTag("project-header") and hasText("客户端")).performClick()
         compose.waitForIdle()
         compose.onNode(hasTestTag("conversation-row") and hasText("成员聊天")).assertExists()
-
-        // 长按独立对话并移入「客户端」项目
-        compose.onNode(hasTestTag("conversation-row") and hasText("架构讨论")).performTouchInput { longClick() }
-        compose.onNodeWithTag("drawer-menu-move-project").performClick()
-        compose.onNode(hasTestTag("move-project-option") and hasText("客户端")).performClick()
-        compose.waitForIdle()
-        assertEquals(existing.id, store.projectId("c1"))
 
         // 长按项目头重命名为「端侧内核」
         compose.onNode(hasTestTag("project-header") and hasText("客户端")).performTouchInput { longClick() }

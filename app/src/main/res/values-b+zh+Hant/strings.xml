@@ -150,9 +150,6 @@
     <string name="drawer_project_empty">暫無對話</string>
     <string name="drawer_project_delete_title">刪除此專案？</string>
     <string name="drawer_project_delete_body">專案「%1$s」內的全部對話與共用工作區檔案都會被刪除，無法復原。</string>
-    <string name="drawer_move_to_project">歸入專案</string>
-    <string name="drawer_remove_from_project">移出專案</string>
-    <string name="drawer_project_none">不歸屬專案（獨立工作區）</string>
     <string name="drawer_project_actions">專案操作</string>
     <string name="chat_project_shared">專案</string>
 </resources>

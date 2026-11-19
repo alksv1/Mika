@@ -150,9 +150,6 @@
     <string name="drawer_project_empty">Ainda não há conversas</string>
     <string name="drawer_project_delete_title">Excluir este projeto?</string>
     <string name="drawer_project_delete_body">Todas as conversas e arquivos compartilhados do espaço de trabalho em "%1$s" serão excluídos e não poderão ser recuperados.</string>
-    <string name="drawer_move_to_project">Mover para projeto</string>
-    <string name="drawer_remove_from_project">Remover do projeto</string>
-    <string name="drawer_project_none">Sem projeto (espaço independente)</string>
     <string name="drawer_project_actions">Ações do projeto</string>
     <string name="chat_project_shared">Projeto</string>
 </resources>

@@ -86,7 +86,6 @@ internal fun ConversationMenu(
     onArchive: () -> Unit,
     onUnarchive: () -> Unit,
     onRename: () -> Unit,
-    onMoveToProject: (() -> Unit)? = null,
     onTerminal: () -> Unit,
     onExport: () -> Unit,
     onDelete: () -> Unit,
@@ -105,9 +104,6 @@ internal fun ConversationMenu(
                 else -> null
             },
             MenuEntry(stringResource(R.string.drawer_rename), MikaIcons.Edit, "drawer-menu-rename", onClick = onRename),
-            onMoveToProject?.takeUnless { item.running }?.let { move ->
-                MenuEntry(stringResource(R.string.drawer_move_to_project), MikaIcons.Folder, "drawer-menu-move-project", onClick = move)
-            },
             MenuEntry(stringResource(R.string.terminal_open), MikaIcons.Terminal, "drawer-menu-terminal", onClick = onTerminal),
             MenuEntry(stringResource(R.string.export_conversation), MikaIcons.Share, "drawer-menu-export", onClick = onExport),
             MenuEntry(stringResource(R.string.confirm_delete), MikaIcons.Trash, "drawer-menu-delete", c.bad, onDelete),

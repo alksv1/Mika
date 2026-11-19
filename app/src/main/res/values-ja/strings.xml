@@ -150,9 +150,6 @@
     <string name="drawer_project_empty">チャットはまだありません</string>
     <string name="drawer_project_delete_title">このプロジェクトを削除しますか？</string>
     <string name="drawer_project_delete_body">「%1$s」のすべてのチャットと共有ワークスペースのファイルが削除され、元に戻せません。</string>
-    <string name="drawer_move_to_project">プロジェクトに移動</string>
-    <string name="drawer_remove_from_project">プロジェクトから外す</string>
-    <string name="drawer_project_none">プロジェクトなし（個別ワークスペース）</string>
     <string name="drawer_project_actions">プロジェクトの操作</string>
     <string name="chat_project_shared">プロジェクト</string>
 </resources>

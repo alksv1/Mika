@@ -1186,47 +1186,6 @@ private fun DeleteProjectDialog(
     )
 }
 
-/** 把一条对话归入某个项目，或移出回独立工作区。 */
-@Composable
-private fun MoveToProjectDialog(
-    currentProjectId: String?,
-    projects: List<Project>,
-    onPick: (String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val c = MikaTheme.colors
-    MikaDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.drawer_move_to_project)) },
-        text = {
-            Column(Modifier.fillMaxWidth()) {
-                Row(
-                    Modifier.fillMaxWidth().clip(NavShape).clickable { onPick(null) }.padding(horizontal = 8.dp, vertical = 10.dp).testTag("move-project-none"),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(stringResource(R.string.drawer_project_none), Modifier.weight(1f), style = MikaType.Body, color = if (currentProjectId == null) c.accent else c.ink)
-                    if (currentProjectId == null) Icon(MikaIcons.Check, null, Modifier.size(16.dp), tint = c.accent)
-                }
-                projects.forEach { p ->
-                    val selected = p.id == currentProjectId
-                    Row(
-                        Modifier.fillMaxWidth().clip(NavShape).clickable { onPick(p.id) }.padding(horizontal = 8.dp, vertical = 10.dp).testTag("move-project-option"),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon(MikaIcons.Folder, null, Modifier.size(16.dp), tint = if (selected) c.accent else c.ink2)
-                        Text(p.name, Modifier.weight(1f), style = MikaType.Body, color = if (selected) c.accent else c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (selected) Icon(MikaIcons.Check, null, Modifier.size(16.dp), tint = c.accent)
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
-}
-
 internal const val MENU_IN_MS = 200
 internal const val MENU_OUT_MS = 140
 private val DrawerWidth = 360.dp
@@ -1407,7 +1366,6 @@ fun ChatWithDrawer(
     var creatingProject by remember { mutableStateOf(false) }
     var renamingProject by remember { mutableStateOf<Project?>(null) }
     var confirmingProject by remember { mutableStateOf<Pair<Project, ProjectDeleteImpact>?>(null) }
-    var movingConversation by remember { mutableStateOf<DrawerConversation?>(null) }
     /** 菜单出现的进度:0 是没有,1 是完全出来;关了动画时直接到位。 */
     val lift = remember { Animatable(0f) }
     LaunchedEffect(acting, actingProject) {
@@ -1438,7 +1396,6 @@ fun ChatWithDrawer(
             creatingProject = false
             renamingProject = null
             confirmingProject = null
-            movingConversation = null
             renaming = null
             confirming = null
             selecting = false
@@ -1717,7 +1674,6 @@ fun ChatWithDrawer(
                 onArchive = { closeMenu { archiveWithUndo(id, item.title) } },
                 onUnarchive = { closeMenu { vm.unarchiveConversation(id) } },
                 onRename = { closeMenu { renaming = item } },
-                onMoveToProject = if (projects.isNotEmpty() || item.projectId != null) ({ closeMenu { movingConversation = item } }) else null,
                 onTerminal = { closeMenu { activity?.let { a -> com.wangzan101.mika.ui.terminal.TerminalLauncher.open(a, id, item.title) } } },
                 onExport = { closeMenu { exporting = item } },
                 onDelete = { closeMenu { confirming = item to vm.deleteImpact(id) } },
@@ -1777,18 +1733,6 @@ fun ChatWithDrawer(
                 vm.deleteProject(project.id)
             },
             onDismiss = { confirmingProject = null },
-        )
-    }
-    movingConversation?.let { item ->
-        val id = item.id
-        MoveToProjectDialog(
-            currentProjectId = item.projectId,
-            projects = projects,
-            onPick = { pid ->
-                movingConversation = null
-                if (id != null) vm.moveConversationToProject(id, pid)
-            },
-            onDismiss = { movingConversation = null },
         )
     }
     renaming?.let { item ->

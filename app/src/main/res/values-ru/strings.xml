@@ -150,9 +150,6 @@
     <string name="drawer_project_empty">Пока нет чатов</string>
     <string name="drawer_project_delete_title">Удалить этот проект?</string>
     <string name="drawer_project_delete_body">Все чаты и общие файлы рабочего пространства в «%1$s» будут удалены без возможности восстановления.</string>
-    <string name="drawer_move_to_project">Переместить в проект</string>
-    <string name="drawer_remove_from_project">Убрать из проекта</string>
-    <string name="drawer_project_none">Без проекта (отдельная область)</string>
     <string name="drawer_project_actions">Действия с проектом</string>
     <string name="chat_project_shared">Проект</string>
 </resources>

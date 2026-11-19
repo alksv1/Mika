@@ -1887,23 +1887,6 @@ class ChatViewModel(
 
     fun projectDeleteImpact(projectId: String): ProjectDeleteImpact = projectDeletionImpact(projectId)
 
-    /** 把对话移入项目(或传 null 移出回独立对话)。进行中/排队中的对话不允许改动项目归属。 */
-    fun moveConversationToProject(conversationId: String, projectId: String?): Boolean {
-        if (conversationId in _deleted.value || conversationId in deleting || conversationId in activeConversations.value) return false
-        if (projectId != null && projectStore?.get(projectId) == null) return false
-        val ok = runCatching { store.setProject(conversationId, projectId) }.getOrDefault(false)
-        if (!ok) return false
-        if (_ui.value.conversationId == conversationId) {
-            workspaceResolver?.setDraftProject(conversationId, projectId)
-            _ui.update { it.copy(projectId = projectId) }
-        }
-        drafts.update { saved ->
-            val d = saved[conversationId] ?: return@update saved
-            saved + (conversationId to d.copy(projectId = projectId))
-        }
-        return true
-    }
-
     /** 删除项目及其全部成员对话和共享工作区 `p-<projectId>`。 */
     fun deleteProject(projectId: String) {
         val members = store.list(includeArchived = true).filter { it.projectId == projectId }.map { it.id }

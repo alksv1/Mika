@@ -150,9 +150,6 @@
     <string name="drawer_project_empty">아직 대화가 없습니다</string>
     <string name="drawer_project_delete_title">이 프로젝트를 삭제할까요?</string>
     <string name="drawer_project_delete_body">"%1$s"의 모든 대화와 공유 작업 공간 파일이 삭제되며 복구할 수 없습니다.</string>
-    <string name="drawer_move_to_project">프로젝트로 이동</string>
-    <string name="drawer_remove_from_project">프로젝트에서 제거</string>
-    <string name="drawer_project_none">프로젝트 없음(독립 작업 공간)</string>
     <string name="drawer_project_actions">프로젝트 작업</string>
     <string name="chat_project_shared">프로젝트</string>
 </resources>

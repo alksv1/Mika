@@ -151,9 +151,6 @@
     <string name="drawer_project_empty">هنوز گفت‌وگویی نیست</string>
     <string name="drawer_project_delete_title">این پروژه حذف شود؟</string>
     <string name="drawer_project_delete_body">تمام گفت‌وگوها و فایل‌های فضای کاری مشترک در «%1$s» حذف می‌شوند و قابل بازیابی نیستند.</string>
-    <string name="drawer_move_to_project">انتقال به پروژه</string>
-    <string name="drawer_remove_from_project">خروج از پروژه</string>
-    <string name="drawer_project_none">بدون پروژه (فضای کاری مستقل)</string>
     <string name="drawer_project_actions">عملیات پروژه</string>
     <string name="chat_project_shared">پروژه</string>
 </resources>

@@ -150,9 +150,6 @@
     <string name="drawer_project_empty">لا توجد محادثات بعد</string>
     <string name="drawer_project_delete_title">هل تريد حذف هذا المشروع؟</string>
     <string name="drawer_project_delete_body">سيتم حذف جميع المحادثات وملفات مساحة العمل المشتركة في "%1$s" ولا يمكن استعادتها.</string>
-    <string name="drawer_move_to_project">نقل إلى مشروع</string>
-    <string name="drawer_remove_from_project">إزالة من المشروع</string>
-    <string name="drawer_project_none">بدون مشروع (مساحة عمل مستقلة)</string>
     <string name="drawer_project_actions">إجراءات المشروع</string>
     <string name="chat_project_shared">مشروع</string>
 </resources>
