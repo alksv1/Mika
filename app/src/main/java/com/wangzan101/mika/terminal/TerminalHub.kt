@@ -7,6 +7,7 @@ import com.wangzan101.mika.cap.sandbox.WorkspaceKey
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.ProjectStore
 import com.wangzan101.mika.chat.WorkspaceResolver
+import com.wangzan101.mika.core.cap.sandbox.SandboxShell
 import com.wangzan101.mika.core.cap.sandbox.SandboxStatus
 import com.wangzan101.mika.core.workspace.SandboxError
 import kotlinx.coroutines.CoroutineScope
@@ -25,15 +26,40 @@ import kotlinx.coroutines.sync.withLock
  * 终端不属于任何任务,不经过模型,也不写运行记录;同一工作区只开一个,全局最多 [MAX_SESSIONS] 个。
  * 对话或项目删除、树锁收回、用户关闭都会结束对应会话。
  */
-class TerminalHub(
-    context: Context,
+class TerminalHub internal constructor(
     private val conversations: ConversationStore,
     private val projects: ProjectStore? = null,
+    private val resolveWorkspace: (String) -> WorkspaceKey,
+    private val awaitReady: suspend () -> SandboxStatus,
+    private val isolationIssue: () -> String?,
+    private val openShell: suspend (WorkspaceKey, Int, Int) -> SandboxShell,
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
-    private val app = context.applicationContext
-    private val state = SandboxState.get(app)
-    private val sandbox = AndroidSandbox(app, state)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private class AndroidRuntime(context: Context) {
+        val app: Context = context.applicationContext
+        val state = SandboxState.get(app)
+        val sandbox = AndroidSandbox(app, state)
+    }
+
+    private constructor(
+        runtime: AndroidRuntime,
+        conversations: ConversationStore,
+        projects: ProjectStore?,
+    ) : this(
+        conversations = conversations,
+        projects = projects,
+        resolveWorkspace = { id -> WorkspaceResolver.resolveFor(runtime.app, id) },
+        awaitReady = { runtime.sandbox.awaitReady(PREPARE_WAIT_MS) },
+        isolationIssue = { runtime.state.isolationIssue },
+        openShell = { key, cols, rows -> runtime.sandbox.openShell(key, cols, rows) },
+    )
+
+    constructor(
+        context: Context,
+        conversations: ConversationStore,
+        projects: ProjectStore? = null,
+    ) : this(AndroidRuntime(context), conversations, projects)
+
     private val mutex = Mutex()
     private val _sessions = MutableStateFlow<Map<String, TerminalSession>>(emptyMap())
     val sessions: StateFlow<Map<String, TerminalSession>> = _sessions.asStateFlow()
@@ -50,13 +76,13 @@ class TerminalHub(
     }
 
     fun session(conversationId: String): TerminalSession? =
-        sessionForWorkspace(WorkspaceResolver.resolveFor(app, conversationId))
+        sessionForWorkspace(resolveWorkspace(conversationId))
 
     fun sessionForWorkspace(key: WorkspaceKey): TerminalSession? = _sessions.value[key.wire]
 
     /** 打开或附着这个对话所属工作区的终端;运行环境没准备好时先等它(最多两分钟)。 */
     suspend fun open(conversationId: String, title: String?, cols: Int = 80, rows: Int = 24): TerminalSession {
-        val key = WorkspaceResolver.resolveFor(app, conversationId)
+        val key = resolveWorkspace(conversationId)
         val displayTitle = if (key is WorkspaceKey.Project) projects?.get(key.id)?.name ?: title else title
         return openWorkspace(key, displayTitle, cols, rows)
     }
@@ -78,28 +104,28 @@ class TerminalHub(
             if (_sessions.value.size >= MAX_SESSIONS) {
                 throw SandboxError("terminal_limit", "Close another terminal first.", recoverable = true)
             }
-            val ready = sandbox.awaitReady(PREPARE_WAIT_MS)
+            val ready = awaitReady()
             when (ready) {
                 is SandboxStatus.Ready -> Unit
                 is SandboxStatus.Unsupported -> throw SandboxError("sandbox_unsupported", ready.reason, recoverable = false)
                 else -> throw SandboxError("sandbox_unavailable", "The Linux environment is not ready yet.", recoverable = true)
             }
             val readyNetwork = (ready as SandboxStatus.Ready).network
-            if (!readyNetwork && state.isolationIssue != null) {
+            if (!readyNetwork && isolationIssue() != null) {
                 throw SandboxError(
                     "sandbox_network_isolation_unavailable",
                     "The sandbox cannot cut off the network on this device, so the terminal is refused while network access is off.",
                     recoverable = true,
                 )
             }
-            val shell = sandbox.openShell(key, cols, rows)
+            val shell = openShell(key, cols, rows)
             val session = TerminalSession(sessionKey, title, readyNetwork, shell, scope)
             _sessions.update { it + (sessionKey to session) }
             session
         }
     }
 
-    fun close(conversationId: String) = closeWorkspace(WorkspaceResolver.resolveFor(app, conversationId))
+    fun close(conversationId: String) = closeWorkspace(resolveWorkspace(conversationId))
 
     fun closeWorkspace(key: WorkspaceKey) {
         val sessionKey = key.wire
@@ -112,7 +138,12 @@ class TerminalHub(
     }
 
     fun closeAll() {
-        _sessions.value.keys.toList().forEach(::close)
+        var existing: Collection<TerminalSession> = emptyList()
+        _sessions.update { current ->
+            existing = current.values
+            emptyMap()
+        }
+        existing.forEach { it.close() }
     }
 
     companion object {

@@ -70,8 +70,11 @@ object SandboxCopy {
 
     fun clearBody(w: WorkspaceUsage): String = tr(R.string.sandbox_usage_clear_body, workspaceTitle(w))
 
-    /** 工作区那一行的名字:对话标题;对话已经删了的写明。 */
-    fun workspaceTitle(w: WorkspaceUsage): String = w.title?.let(ChatCopy::plainTitle)?.takeIf(String::isNotBlank) ?: tr(R.string.sandbox_usage_deleted_chat)
+    /** 工作区那一行的名字:项目工作区标明项目共用;普通对话用标题,删了的写明。 */
+    fun workspaceTitle(w: WorkspaceUsage): String {
+        val name = w.title?.let(ChatCopy::plainTitle)?.takeIf(String::isNotBlank) ?: tr(R.string.sandbox_usage_deleted_chat)
+        return if (w.projectId != null) "${tr(R.string.chat_project_shared)} · $name" else name
+    }
 
     fun usageRows(u: SandboxUsage): List<Pair<String, Long>> = listOf(
         tr(R.string.sandbox_usage_total) to u.total,
