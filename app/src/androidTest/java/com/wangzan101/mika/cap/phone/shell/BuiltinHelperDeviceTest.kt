@@ -111,6 +111,7 @@ class BuiltinHelperDeviceTest {
                     hintStore,
                     com.wangzan101.mika.settings.DeviceWriteGrantStore.get(context),
                     store,
+                    context.contentResolver,
                 )
                 val hint = runBlocking { deviceFiles.listDirectoryHints().single { it.path == dir } }
                 assertEquals("ok", hint.status)

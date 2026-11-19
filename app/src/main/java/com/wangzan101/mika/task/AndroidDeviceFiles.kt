@@ -9,6 +9,7 @@ import com.wangzan101.mika.cap.phone.shell.HelperHub
 import com.wangzan101.mika.cap.sandbox.AndroidSandbox
 import com.wangzan101.mika.cap.sandbox.Attachments
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
+import android.content.ContentResolver
 import com.wangzan101.mika.settings.DeviceDirectory
 import com.wangzan101.mika.settings.DeviceDirectoryStore
 import com.wangzan101.mika.settings.DeviceWriteGrantStore
@@ -17,6 +18,7 @@ import com.wangzan101.mika.core.cap.devicefiles.DeviceDirectoryHint
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFilePage
+import com.wangzan101.mika.core.cap.devicefiles.DeviceFileWrite
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFilesPort
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchResult
@@ -36,7 +38,10 @@ internal class AndroidDeviceFiles(
     private val directoryStore: DeviceDirectoryStore,
     private val writeGrants: DeviceWriteGrantStore,
     private val imports: DeviceImportStore,
+    resolver: ContentResolver,
 ) : DeviceFilesPort {
+    private val safWriter = SafDeviceFileWriter(resolver, writeGrants)
+
     private fun hint(directory: DeviceDirectory): DeviceDirectoryHint {
         val status = try { hub.listFiles(directory.path, null, 1).getString("status") ?: "helper_error" }
         catch (_: Exception) { "helper_unavailable" }
@@ -57,7 +62,7 @@ internal class AndroidDeviceFiles(
             directory.source,
             status,
             read = DeviceAccess(readState, "shell", reason = status, operations = readOperations),
-            write = DeviceAccess(write.state, "saf", write.reason, write.operations),
+            write = DeviceAccess(write.state, "saf", write.reason, write.operations, write.target),
         )
     }
 
@@ -95,6 +100,9 @@ internal class AndroidDeviceFiles(
         }
         DeviceFilePage(entries, response.getString("next"))
     }
+
+    override suspend fun writeFile(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite =
+        withContext(Dispatchers.IO) { safWriter.write(path, content, expectedSha256, append) }
 
     override suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult = withContext(Dispatchers.IO) {
         val response = callHelper { hub.searchFiles(query.path, query.name, query.extension, query.modifiedAfter ?: -1, query.modifiedBefore ?: -1, query.maxDepth, query.maxEntries, query.timeoutMs) }

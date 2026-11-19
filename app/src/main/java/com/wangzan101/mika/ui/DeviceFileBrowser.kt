@@ -132,6 +132,7 @@ internal fun DeviceFileBrowser(vm: ChatViewModel, conversationId: String, onClos
             directories,
             DeviceWriteGrantStore.get(context),
             importStore,
+            context.contentResolver,
         )
     }
     val records by remember(importStore) {

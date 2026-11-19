@@ -4,11 +4,13 @@ package com.wangzan101.mika.core.cap.devicefiles
 data class DeviceFileEntry(val name: String, val path: String, val isDirectory: Boolean, val size: Long? = null, val modifiedAt: Long? = null)
 data class DeviceFilePage(val entries: List<DeviceFileEntry>, val nextCursor: String? = null)
 data class DeviceFileImport(val path: String, val size: Long)
+data class DeviceFileWrite(val path: String, val size: Long, val sha256: String)
 data class DeviceAccess(
     val state: String,
     val source: String,
     val reason: String? = null,
     val operations: List<String> = emptyList(),
+    val target: String? = null,
 )
 data class DeviceDirectoryHint(
     val path: String,
@@ -43,6 +45,8 @@ data class DeviceFileSearchResult(val entries: List<DeviceFileEntry>, val visite
 interface DeviceFilesPort {
     suspend fun list(path: String?, cursor: String?, limit: Int): DeviceFilePage
     suspend fun importFile(path: String, workspace: String): DeviceFileImport
+    suspend fun writeFile(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite =
+        throw com.wangzan101.mika.core.workspace.SandboxError("unsupported", "Device file writing is unavailable.", true)
     suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult
     // Platform implementations supply persisted hints and validate updates against existing directories.
     suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = throw com.wangzan101.mika.core.workspace.SandboxError("unsupported", "Directory hints are unavailable.", true)

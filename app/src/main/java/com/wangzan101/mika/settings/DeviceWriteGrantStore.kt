@@ -6,13 +6,17 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
+import java.security.MessageDigest
 
 /** The app-side SAF grant for one logical device directory. The URI never leaves this layer. */
 data class DeviceWriteGrantStatus(
     val state: String,
     val reason: String? = null,
     val operations: List<String> = emptyList(),
+    val target: String? = null,
 )
+
+data class DeviceWriteTarget internal constructor(val uri: Uri, val parts: List<String>)
 
 class DeviceWriteGrantStore(
     private val resolver: ContentResolver,
@@ -22,30 +26,49 @@ class DeviceWriteGrantStore(
         val uri = uriFor(path)
         if (uri == null) {
             return if (restrictedTree(path)) {
-                DeviceWriteGrantStatus("android_restricted", "android_restricted_tree")
+                DeviceWriteGrantStatus("android_restricted", "android_restricted_tree", target = writeTarget(path))
             } else {
-                DeviceWriteGrantStatus("not_granted", "choose_write_folder")
+                DeviceWriteGrantStatus("not_granted", "choose_write_folder", target = writeTarget(path))
             }
         }
+        val target = writeTarget(path)
         val permission = resolver.persistedUriPermissions.firstOrNull { it.uri == uri }
-            ?: return DeviceWriteGrantStatus("revoked", "persisted_permission_missing")
+            ?: return DeviceWriteGrantStatus("revoked", "persisted_permission_missing", target = target)
         if (!permission.isReadPermission || !permission.isWritePermission) {
-            return DeviceWriteGrantStatus("provider_read_only", "write_permission_missing")
+            return DeviceWriteGrantStatus("provider_read_only", "write_permission_missing", target = target)
         }
         return try {
             val root = metadata(uri)
             when {
                 root.mimeType != DocumentsContract.Document.MIME_TYPE_DIR ->
-                    DeviceWriteGrantStatus("provider_unavailable", "not_a_directory")
+                    DeviceWriteGrantStatus("provider_unavailable", "not_a_directory", target = target)
                 root.flags and DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE == 0 ->
-                    DeviceWriteGrantStatus("provider_read_only", "create_not_supported")
-                else -> DeviceWriteGrantStatus("available", operations = listOf("create", "replace"))
+                    DeviceWriteGrantStatus("provider_read_only", "create_not_supported", target = target)
+                else -> DeviceWriteGrantStatus("available", operations = listOf("create", "replace"), target = target)
             }
         } catch (_: SecurityException) {
-            DeviceWriteGrantStatus("revoked", "provider_denied")
+            DeviceWriteGrantStatus("revoked", "provider_denied", target = target)
         } catch (_: Exception) {
-            DeviceWriteGrantStatus("provider_unavailable", "metadata_unavailable")
+            DeviceWriteGrantStatus("provider_unavailable", "metadata_unavailable", target = target)
         }
+    }
+
+    fun resolveTarget(path: String): DeviceWriteTarget? {
+        if (!path.startsWith("/device-write/") || path.length > 4096) return null
+        for ((key, value) in prefs.all) {
+            if (!key.startsWith(KEY_PREFIX) || value !is String) continue
+            val rawPath = key.removePrefix(KEY_PREFIX)
+            val base = writeTarget(rawPath)
+            if (path != base && !path.startsWith("$base/")) continue
+            val relative = path.removePrefix(base).trimStart('/')
+            val parts = if (relative.isEmpty()) emptyList() else relative.split('/')
+            if (parts.any { part ->
+                    part.isEmpty() || part == "." || part == ".." || part.length > 255 ||
+                        part.any { character -> character.code < 32 || character == '\\' }
+                }) return null
+            return DeviceWriteTarget(Uri.parse(value), parts)
+        }
+        return null
     }
 
     fun authorize(path: String, uri: Uri) {
@@ -98,6 +121,12 @@ class DeviceWriteGrantStore(
         return path == "/sdcard" || path == shared ||
             path == "/sdcard/Download" || path == "$shared/Download"
     }
+
+    private fun writeTarget(path: String): String = "/device-write/" + sha256(path).take(24)
+
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
 
     private fun key(path: String) = "uri:$path"
 

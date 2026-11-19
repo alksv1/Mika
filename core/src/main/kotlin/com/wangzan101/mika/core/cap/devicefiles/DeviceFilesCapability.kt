@@ -108,6 +108,7 @@ private fun accessJson(access: DeviceAccess) = buildJsonObject {
     put("state", access.state)
     put("source", access.source)
     access.reason?.let { put("reason", it) }
+    access.target?.let { put("target", it) }
     put("operations", JsonArray(access.operations.map { JsonPrimitive(it) }))
 }
 
