@@ -51,7 +51,6 @@ import com.wangzan101.mika.task.TaskCenterState
 import com.wangzan101.mika.teach.TeachRuntime
 import com.wangzan101.mika.ui.ChatViewModel
 import com.wangzan101.mika.ui.TaskActions
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -380,18 +379,12 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
 
     /** 合成一句话并在本机播放;总开关关闭或没配置声音模型时跳过。 */
     private suspend fun speak(text: String) {
-        try {
-            com.wangzan101.mika.media.readAloud(
-                text,
-                voiceSettings,
-                model = { choice, caps -> ProviderStore.get(this).ttsModel(choice, caps) },
-                play = { voicePlayer.play(it.bytes, it.mime) },
-            )
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // 朗读失败不应让聊天页的协程因服务商响应或配置问题退出。
-        }
+        com.wangzan101.mika.media.readAloud(
+            text,
+            voiceSettings,
+            model = { choice, caps -> ProviderStore.get(this).ttsModel(choice, caps) },
+            play = { voicePlayer.play(it.bytes, it.mime) },
+        )
     }
 
     /** 人工示范。onCreate 里建好；在那之前的无障碍事件不采集。 */
