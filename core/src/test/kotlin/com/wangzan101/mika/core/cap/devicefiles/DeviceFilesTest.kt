@@ -37,8 +37,8 @@ class DeviceFilesTest {
             return DeviceFileImport("/workspace/inbox/a.txt", 3)
         }
         override suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = hints
-        override suspend fun writeFile(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite {
-            written = Quadruple(path, content, expectedSha256, append)
+        override suspend fun writeFile(path: String, content: ByteArray?, expectedSha256: String?, append: Boolean, source: String?, workspace: String?): DeviceFileWrite {
+            written = Quadruple(path, content ?: source!!.toByteArray(), expectedSha256, append)
             return DeviceFileWrite(path, content.size.toLong(), "hash")
         }
     }

@@ -45,8 +45,18 @@ data class DeviceFileSearchResult(val entries: List<DeviceFileEntry>, val visite
 interface DeviceFilesPort {
     suspend fun list(path: String?, cursor: String?, limit: Int): DeviceFilePage
     suspend fun importFile(path: String, workspace: String): DeviceFileImport
-    suspend fun writeFile(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite =
-        throw com.wangzan101.mika.core.workspace.SandboxError("unsupported", "Device file writing is unavailable.", true)
+    suspend fun writeFile(
+        path: String,
+        content: ByteArray?,
+        expectedSha256: String?,
+        append: Boolean,
+        source: String? = null,
+        workspace: String? = null,
+    ): DeviceFileWrite = throw com.wangzan101.mika.core.workspace.SandboxError(
+        "unsupported",
+        "Device file writing is unavailable.",
+        true,
+    )
     suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult
     // Platform implementations supply persisted hints and validate updates against existing directories.
     suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = throw com.wangzan101.mika.core.workspace.SandboxError("unsupported", "Directory hints are unavailable.", true)

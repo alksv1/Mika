@@ -23,6 +23,7 @@ import com.wangzan101.mika.core.cap.devicefiles.DeviceFilesPort
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchResult
 import com.wangzan101.mika.core.workspace.SandboxError
+import com.wangzan101.mika.core.workspace.SandboxPaths
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -101,8 +102,33 @@ internal class AndroidDeviceFiles(
         DeviceFilePage(entries, response.getString("next"))
     }
 
-    override suspend fun writeFile(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite =
-        withContext(Dispatchers.IO) { safWriter.write(path, content, expectedSha256, append) }
+    override suspend fun writeFile(
+        path: String,
+        content: ByteArray?,
+        expectedSha256: String?,
+        append: Boolean,
+        source: String?,
+        workspace: String?,
+    ): DeviceFileWrite = withContext(Dispatchers.IO) {
+        val bytes = content ?: source?.let { readWorkspaceSource(it, workspace ?: throw failure("invalid", "Workspace is unavailable.")) }
+            ?: throw failure("invalid", "Provide exactly one device file source.")
+        safWriter.write(path, bytes, expectedSha256, append)
+    }
+
+    private fun readWorkspaceSource(path: String, workspace: String): ByteArray {
+        val normalized = SandboxPaths.normalize(path)
+            ?.takeIf { it.startsWith("/workspace/") }
+            ?: throw failure("outside", "The source file must be under /workspace.")
+        val relative = normalized.removePrefix("/workspace/")
+        return try {
+            dirs.gate.openRead(dirs.workspace(workspace), relative).use { file ->
+                if (file.size > 100L * 1024 * 1024) throw failure("file_too_large", "The workspace file is too large to write to the device.")
+                file.read(0, file.size.toInt())
+            }
+        } catch (error: SandboxError) {
+            throw error
+        }
+    }
 
     override suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult = withContext(Dispatchers.IO) {
         val response = callHelper { hub.searchFiles(query.path, query.name, query.extension, query.modifiedAfter ?: -1, query.modifiedBefore ?: -1, query.maxDepth, query.maxEntries, query.timeoutMs) }

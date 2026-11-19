@@ -48,7 +48,6 @@ private const val WORKSPACE_MAX = 4 * GB
 private const val DEFAULT_READ = 65_536
 private const val MAX_WRITE = MB
 private const val MAX_IMAGE = 5 * MB
-private const val DEVICE_EXPORT_MAX = 100L * MB
 private const val MAX_SCRIPT_ARGS = 50
 private const val MAX_MATCHES = 100
 private const val MATCH_TEXT = 300
@@ -268,32 +267,6 @@ internal class SandboxTools(
         val limit = a.int("limit", 1, MAX_READ_BYTES) ?: DEFAULT_READ
         val g = try { sandbox.files.openRead(t.root, t.rel) } catch (e: SandboxError) { return refused(t.path, e) }
         return g.use { readOpened(t.path, g, offset, limit) }
-    }
-
-    /** Read a workspace file as bytes for a device-file export, after the same sandbox readiness and file gate checks. */
-    internal suspend fun readBytesForDevice(path: String, ws: String): ByteArray {
-        var status = sandbox.status()
-        if (status !is SandboxStatus.Ready && status !is SandboxStatus.Unsupported) {
-            onPreparing()
-            status = sandbox.awaitReady(prepareWaitMs)
-        }
-        if (status !is SandboxStatus.Ready) throw SandboxError(
-            "sandbox_unavailable",
-            "The workspace environment is not ready for reading this file.",
-            status !is SandboxStatus.Unsupported,
-        )
-        return readBytesFromWorkspace(path, ws)
-    }
-
-    private fun readBytesFromWorkspace(path: String, ws: String): ByteArray {
-        val target = resolve(ws, path, write = false) ?: throw SandboxError(WorkspaceFileGate.OUTSIDE, OUTSIDE, true)
-        val gate = try { sandbox.files.openRead(target.root, target.rel) } catch (error: SandboxError) {
-            throw error
-        }
-        gate.use {
-            if (it.size > DEVICE_EXPORT_MAX) throw SandboxError("file_too_large", "$path is too large to write to the device.", true)
-            return it.read(0, it.size.toInt())
-        }
     }
 
     /** 读一张图给看图模型看:不检查主模型能不能看图,越界/非图/过大照 read_file 拒绝。 */
