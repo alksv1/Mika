@@ -104,8 +104,17 @@ private object SearchDeviceFiles : DeviceFileTool {
     }
 }
 
+private fun accessJson(access: DeviceAccess) = buildJsonObject {
+    put("state", access.state)
+    put("source", access.source)
+    access.reason?.let { put("reason", it) }
+    put("operations", JsonArray(access.operations.map { JsonPrimitive(it) }))
+}
+
 private fun hintJson(h: DeviceDirectoryHint) = buildJsonObject {
     put("path", h.path); put("name", h.name); put("description", h.description); put("source", h.source); put("status", h.status)
+    put("read", accessJson(h.read))
+    put("write", accessJson(h.write))
 }
 private object ListDirectoryHints : DeviceFileTool {
     override val verb = Verb.ListDeviceDirectoryHints

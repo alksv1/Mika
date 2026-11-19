@@ -19,6 +19,7 @@ class DeviceFilesTest {
         var imported: Pair<String, String>? = null
         var fail = false
         var query: DeviceFileSearchQuery? = null
+        var hints = emptyList<DeviceDirectoryHint>()
         override suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult {
             this.query = query
             return DeviceFileSearchResult(listOf(DeviceFileEntry("a.txt", "/sdcard/a.txt", false)), 12, true, "max_entries")
@@ -32,6 +33,7 @@ class DeviceFilesTest {
             imported = path to workspace
             return DeviceFileImport("/workspace/inbox/a.txt", 3)
         }
+        override suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = hints
     }
     private fun call(name: String, args: String) = Part.ToolCall("1", name, args)
     private fun spec(origin: RunOrigin = RunOrigin.Ui, attendance: Attendance = Attendance.Present, readOnly: Boolean = false) =
@@ -58,6 +60,29 @@ class DeviceFilesTest {
         assertEquals("true", response.getValue("truncated").jsonPrimitive.content)
         assertEquals("max_entries", response.getValue("reason").jsonPrimitive.content)
         assertEquals("/sdcard/a.txt", response.getValue("entries").jsonArray.single().jsonObject.getValue("path").jsonPrimitive.content)
+    }
+
+    @Test fun directoryHintsExposeReadAndWriteIndependently() = runTest {
+        val port = Port().apply {
+            hints = listOf(
+                DeviceDirectoryHint(
+                    "/sdcard/Download",
+                    "Download",
+                    "downloads",
+                    "preset",
+                    "denied",
+                    read = DeviceAccess("available", "shell", operations = listOf("list")),
+                    write = DeviceAccess("android_restricted", "saf", "restricted_tree"),
+                ),
+            )
+        }
+        val dispatcher = toolDispatcher(FakeScreen(), deviceFiles = port)
+        val response = dispatcher.execute(call("list_device_directory_hints", "{}"), ActionPass()).content
+        val directory = response.getValue("directories").jsonArray.single().jsonObject
+        assertEquals("available", directory.getValue("read").jsonObject.getValue("state").jsonPrimitive.content)
+        assertEquals("shell", directory.getValue("read").jsonObject.getValue("source").jsonPrimitive.content)
+        assertEquals("android_restricted", directory.getValue("write").jsonObject.getValue("state").jsonPrimitive.content)
+        assertEquals("restricted_tree", directory.getValue("write").jsonObject.getValue("reason").jsonPrimitive.content)
     }
 
     @Test fun listAndImportForwardArgumentsAndErrors() = runTest {

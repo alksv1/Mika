@@ -11,6 +11,7 @@ import com.wangzan101.mika.cap.sandbox.Attachments
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.settings.DeviceDirectory
 import com.wangzan101.mika.settings.DeviceDirectoryStore
+import com.wangzan101.mika.core.cap.devicefiles.DeviceAccess
 import com.wangzan101.mika.core.cap.devicefiles.DeviceDirectoryHint
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
@@ -37,7 +38,24 @@ internal class AndroidDeviceFiles(
     private fun hint(directory: DeviceDirectory): DeviceDirectoryHint {
         val status = try { hub.listFiles(directory.path, null, 1).getString("status") ?: "helper_error" }
         catch (_: Exception) { "helper_unavailable" }
-        return DeviceDirectoryHint(directory.path, directory.name, directory.description, directory.source, status)
+        val readState = when {
+            !directory.allowed -> "not_authorized"
+            status == "ok" -> "available"
+            status == "not_found" -> "missing"
+            status == "denied" -> "denied"
+            status == "helper_unavailable" -> "helper_unavailable"
+            else -> status
+        }
+        val readOperations = if (readState == "available") listOf("list", "search", "copy_to_workspace") else emptyList()
+        return DeviceDirectoryHint(
+            directory.path,
+            directory.name,
+            directory.description,
+            directory.source,
+            status,
+            read = DeviceAccess(readState, "shell", reason = status, operations = readOperations),
+            write = DeviceAccess("unavailable", "saf", reason = "saf_not_connected"),
+        )
     }
 
     override suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = withContext(Dispatchers.IO) {
