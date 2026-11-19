@@ -11,6 +11,7 @@ import com.wangzan101.mika.cap.sandbox.Attachments
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.settings.DeviceDirectory
 import com.wangzan101.mika.settings.DeviceDirectoryStore
+import com.wangzan101.mika.settings.DeviceWriteGrantStore
 import com.wangzan101.mika.core.cap.devicefiles.DeviceAccess
 import com.wangzan101.mika.core.cap.devicefiles.DeviceDirectoryHint
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
@@ -33,6 +34,7 @@ internal class AndroidDeviceFiles(
     private val dirs: SandboxDirs,
     private val sandbox: AndroidSandbox,
     private val directoryStore: DeviceDirectoryStore,
+    private val writeGrants: DeviceWriteGrantStore,
     private val imports: DeviceImportStore,
 ) : DeviceFilesPort {
     private fun hint(directory: DeviceDirectory): DeviceDirectoryHint {
@@ -47,6 +49,7 @@ internal class AndroidDeviceFiles(
             else -> status
         }
         val readOperations = if (readState == "available") listOf("list", "search", "copy_to_workspace") else emptyList()
+        val write = writeGrants.status(directory.path)
         return DeviceDirectoryHint(
             directory.path,
             directory.name,
@@ -54,7 +57,7 @@ internal class AndroidDeviceFiles(
             directory.source,
             status,
             read = DeviceAccess(readState, "shell", reason = status, operations = readOperations),
-            write = DeviceAccess("unavailable", "saf", reason = "saf_not_connected"),
+            write = DeviceAccess(write.state, "saf", write.reason, write.operations),
         )
     }
 

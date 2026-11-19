@@ -104,7 +104,14 @@ class BuiltinHelperDeviceTest {
                 val importPrefs = context.getSharedPreferences("device-import-test-${android.os.Process.myPid()}", Context.MODE_PRIVATE)
                 importPrefs.edit().clear().commit()
                 val store = com.wangzan101.mika.task.DeviceImportStore(importPrefs)
-                val deviceFiles = com.wangzan101.mika.task.AndroidDeviceFiles(testHub, dirs, sandbox, hintStore, store)
+                val deviceFiles = com.wangzan101.mika.task.AndroidDeviceFiles(
+                    testHub,
+                    dirs,
+                    sandbox,
+                    hintStore,
+                    com.wangzan101.mika.settings.DeviceWriteGrantStore.get(context),
+                    store,
+                )
                 val hint = runBlocking { deviceFiles.listDirectoryHints().single { it.path == dir } }
                 assertEquals("ok", hint.status)
                 val updated = runBlocking { deviceFiles.updateDirectoryDescription(dir, "Reports") }

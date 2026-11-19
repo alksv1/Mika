@@ -65,6 +65,7 @@ import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFilesPort
 import com.wangzan101.mika.settings.DeviceDirectoryStore
+import com.wangzan101.mika.settings.DeviceWriteGrantStore
 import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.task.AndroidDeviceFiles
 import com.wangzan101.mika.task.DeviceImportRecord
@@ -129,6 +130,7 @@ internal fun DeviceFileBrowser(vm: ChatViewModel, conversationId: String, onClos
             SandboxDirs(context),
             AndroidSandbox(context, SandboxState.get(context)),
             directories,
+            DeviceWriteGrantStore.get(context),
             importStore,
         )
     }
