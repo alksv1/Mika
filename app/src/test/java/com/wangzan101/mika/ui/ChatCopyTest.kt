@@ -265,4 +265,30 @@ class ChatCopyTest {
         assertEquals("回答 Mika 的问题", ChatCopy.placeholder(ComposerMode.Answer, hasHistory = true))
         assertEquals("补充或改要求…", ChatCopy.placeholder(ComposerMode.Busy, hasHistory = true))
     }
+
+    @Test fun drawerSectionsGroupsProjectChatsAndIncludesThemInSelectableIds() {
+        val p1 = com.wangzan101.mika.chat.Project(id = "p1", name = "科研")
+        val p2 = com.wangzan101.mika.chat.Project(id = "p2", name = "空项目")
+        val all = listOf(
+            ConversationSummary("c-p1-recent", "普通成员", 10L, projectId = p1.id),
+            ConversationSummary("c-p1-pinned", "置顶成员", 5L, pinnedAt = 99L, projectId = p1.id),
+            ConversationSummary("c-solo", "独立对话", 20L),
+            ConversationSummary("c-orphan", "已删项目的对话", 15L, projectId = "missing"),
+        )
+        val s = drawerSections(
+            all,
+            CurrentConversation(null, false, "", ""),
+            emptyList(),
+            { null },
+            canSwitch = true,
+            now = 0L,
+            zone = zone,
+            projects = listOf(p1, p2),
+        )
+        assertEquals(2, s.projects.size)
+        assertEquals(listOf("c-p1-pinned", "c-p1-recent"), s.projects[0].rows.map { it.id })
+        assertEquals(emptyList<String>(), s.projects[1].rows.map { it.id })
+        assertEquals(listOf("c-solo", "c-orphan"), s.recent.map { it.id })
+        assertEquals(setOf("c-p1-pinned", "c-p1-recent", "c-solo", "c-orphan"), drawerSelectableIds(s, emptyList(), archivedView = false))
+    }
 }
