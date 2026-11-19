@@ -20,6 +20,9 @@ class DeviceFilesTest {
         var fail = false
         var query: DeviceFileSearchQuery? = null
         var hints = emptyList<DeviceDirectoryHint>()
+        var written: Quadruple? = null
+
+        data class Quadruple(val path: String, val content: ByteArray, val expectedSha256: String?, val append: Boolean)
         override suspend fun search(query: DeviceFileSearchQuery): DeviceFileSearchResult {
             this.query = query
             return DeviceFileSearchResult(listOf(DeviceFileEntry("a.txt", "/sdcard/a.txt", false)), 12, true, "max_entries")
@@ -34,6 +37,10 @@ class DeviceFilesTest {
             return DeviceFileImport("/workspace/inbox/a.txt", 3)
         }
         override suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = hints
+        override suspend fun writeFile(path: String, content: ByteArray, expectedSha256: String?, append: Boolean): DeviceFileWrite {
+            written = Quadruple(path, content, expectedSha256, append)
+            return DeviceFileWrite(path, content.size.toLong(), "hash")
+        }
     }
     private fun call(name: String, args: String) = Part.ToolCall("1", name, args)
     private fun spec(origin: RunOrigin = RunOrigin.Ui, attendance: Attendance = Attendance.Present, readOnly: Boolean = false) =
@@ -83,6 +90,20 @@ class DeviceFilesTest {
         assertEquals("shell", directory.getValue("read").jsonObject.getValue("source").jsonPrimitive.content)
         assertEquals("android_restricted", directory.getValue("write").jsonObject.getValue("state").jsonPrimitive.content)
         assertEquals("restricted_tree", directory.getValue("write").jsonObject.getValue("reason").jsonPrimitive.content)
+    }
+
+    @Test fun writeForwardsTextAndConcurrencyArguments() = runTest {
+        val port = Port()
+        val dispatcher = toolDispatcher(FakeScreen(), deviceFiles = port)
+        val response = dispatcher.execute(
+            call("write_device_file", """{"path":"/device-write/abc/note.txt","content":"hello","expected_sha256":"old","append":true}"""),
+            ActionPass(),
+        ).content
+        assertEquals("/device-write/abc/note.txt", port.written!!.path)
+        assertEquals("hello", port.written!!.content.toString(Charsets.UTF_8))
+        assertEquals("old", port.written!!.expectedSha256)
+        assertTrue(port.written!!.append)
+        assertEquals("hash", response.getValue("sha256").jsonPrimitive.content)
     }
 
     @Test fun listAndImportForwardArgumentsAndErrors() = runTest {

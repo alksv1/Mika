@@ -80,6 +80,35 @@ private object CopyDeviceFile : DeviceFileTool {
     }
 }
 
+private object WriteDeviceFile : DeviceFileTool {
+    override val verb = Verb.WriteDeviceFile
+    override val label = "写入设备文件"
+    override val risk = Risk.Write
+    override val logged = true
+    override val wideTarget = true
+    override val def = ToolDef("write_device_file", Prompts.tool("write_device_file"), mapOf(
+        "path" to str("Destination file identifier from the write target in list_device_directory_hints."),
+        "content" to str("UTF-8 text to write, at most 1 MiB."),
+        "expected_sha256" to str("SHA-256 of the current file when replacing or appending."),
+        "append" to bool("Append instead of replacing (default false)."),
+    ), listOf("path", "content"))
+    override fun logTarget(o: JsonObject, r: ToolExecution, ctx: ToolContext) = o.argStr("path")
+    override suspend fun execute(a: Args, ctx: ToolContext): ToolExecution = guarded {
+        val cap = ctx[DeviceFilesCapability.KEY]!!
+        val path = a.str("path", max = 4096)!!
+        val content = a.str("content", min = 0)!!.toByteArray(Charsets.UTF_8)
+        val expected = a.str("expected_sha256", max = 64)
+        val append = a.bool("append", false)
+        val result = cap.port.writeFile(path, content, expected, append)
+        ToolExecution(buildJsonObject {
+            put("ok", true)
+            put("path", result.path)
+            put("bytesWritten", result.size)
+            put("sha256", result.sha256)
+        })
+    }
+}
+
 private object SearchDeviceFiles : DeviceFileTool {
     override val verb = Verb.SearchDeviceFiles
     override val label = "搜索设备文件"
@@ -135,4 +164,4 @@ private object UpdateDirectoryDescription : DeviceFileTool {
     }
 }
 
-internal object DeviceFilesGroup { val tools: List<AgentTool> = listOf(ListDeviceFiles, SearchDeviceFiles, CopyDeviceFile, ListDirectoryHints, UpdateDirectoryDescription) }
+internal object DeviceFilesGroup { val tools: List<AgentTool> = listOf(ListDeviceFiles, SearchDeviceFiles, CopyDeviceFile, WriteDeviceFile, ListDirectoryHints, UpdateDirectoryDescription) }

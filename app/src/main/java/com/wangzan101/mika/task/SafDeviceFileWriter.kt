@@ -88,7 +88,11 @@ internal class SafDeviceFileWriter(
         return current
     }
 
-    private fun find(tree: Uri, parent: String, name: String): Doc? = children(tree, parent, 2001).filter { it.name == name }.singleOrNull()
+    private fun find(tree: Uri, parent: String, name: String): Doc? {
+        val matches = children(tree, parent, 2001).filter { it.name == name }
+        if (matches.size > 1) fail("ambiguous_file", "Several device files have this name.")
+        return matches.singleOrNull()
+    }
 
     private fun children(tree: Uri, parent: String, limit: Int): List<Doc> {
         val result = mutableListOf<Doc>()

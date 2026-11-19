@@ -1,0 +1,1 @@
+Write UTF-8 text to a user-authorized device folder. First use list_device_directory_hints and use the write target it returns. Existing files require expected_sha256 from the current file; nothing is written when the hash does not match. Device text files are limited to 1 MiB. Use append only when the current file was read and its hash is supplied.

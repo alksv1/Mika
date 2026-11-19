@@ -71,7 +71,7 @@ class ToolRiskTest {
                 "mika_open_screen", "mika_open_file", "mika_notify", "mika_copy",
                 "mika_open_in_browser", "mika_search_in_browser", "mika_login_site", "mika_confirm_login", "mika_favorites",
                 "phone_call_state", "phone_call_dial", "phone_call_answer", "phone_call_hangup", "phone_call_takeover",
-                "list_device_files", "copy_device_file", "search_device_files", "list_device_directory_hints", "update_device_directory_description",
+                "list_device_files", "copy_device_file", "search_device_files", "write_device_file", "list_device_directory_hints", "update_device_directory_description",
                 "audio_generate", "audio_save", "audio_transcribe", "speak")
         assertEquals(refused, allTools().filter { !it.readOnly }.map { it.name }.toSet())
         // root 命令、通话工具都只在给了端口时登记:各给一个,所有工具都在

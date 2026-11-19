@@ -30,7 +30,7 @@ enum class Verb {
     SetAlarm, SetTimer, ShowAlarms, AddCalendarEvent, BulkAddCalendarEvents, SetWheel,
     Navigate, ReadPage, EvaluateJs, SiteCommand, Tabs, Downloads, Upload, SiteMode, Script, Interact, Capture, WaitFor, KeepOpen,
     RunCommand, RunBundledScript, PluginScript, ReadFile, WriteFile, SearchFiles, ShareFile, ViewImage,
-    ListDeviceFiles, CopyDeviceFile, SearchDeviceFiles, ListDeviceDirectoryHints, UpdateDeviceDirectoryDescription,
+    ListDeviceFiles, CopyDeviceFile, SearchDeviceFiles, WriteDeviceFile, ListDeviceDirectoryHints, UpdateDeviceDirectoryDescription,
     AudioGenerate, AudioSave, AudioTranscribe, Speak,
     RootCommand,
     CallState, CallDial, CallAnswer, CallHangup, CallTakeover,
