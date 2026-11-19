@@ -22,7 +22,7 @@ class SandboxUsageReaderTest {
     private val outside = File(tmp, "outside").apply { mkdirs() }
     private val big = File(outside, "big.bin").apply { writeBytes(ByteArray(50_000)) }
 
-    private fun workspace(id: String, bytes: Int): File = dirs.workspace(id).apply {
+    private fun workspace(id: String, bytes: Int): File = dirs.workspace(WorkspaceKey.Conversation(id)).apply {
         mkdirs()
         File(this, "inbox").mkdirs()
         File(this, "inbox/a.txt").writeBytes(ByteArray(bytes))

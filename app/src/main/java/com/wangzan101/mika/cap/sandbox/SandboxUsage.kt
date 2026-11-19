@@ -29,8 +29,8 @@ class SandboxUsageReader(
 ) {
     /** 读一遍磁盘;工作区可能有很多文件,要在后台线程调。 */
     fun read(): SandboxUsage {
-        val byDir = conversations().associateBy { dirs.workspace(it.id).name }
-        val busy = active().map { dirs.workspace(it).name }.toSet()
+        val byDir = conversations().associateBy { dirs.workspace(WorkspaceKey.Conversation(it.id)).name }
+        val busy = busyDirs()
         val workspaces = dirs.work.listFiles().orEmpty().filter { !Files.isSymbolicLink(it.toPath()) && it.isDirectory }.map { dir ->
             val c = byDir[dir.name]
             WorkspaceUsage(dir.name, c?.id, c?.title, AndroidSandbox.treeBytes(dir.toPath()), dir.name in busy)
@@ -58,5 +58,5 @@ class SandboxUsageReader(
         busy
     }
 
-    private fun busyDirs(): Set<String> = active().map { dirs.workspace(it).name }.toSet()
+    private fun busyDirs(): Set<String> = active().map { dirs.workspace(WorkspaceKey.Conversation(it)).name }.toSet()
 }

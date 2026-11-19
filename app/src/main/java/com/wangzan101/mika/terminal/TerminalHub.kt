@@ -4,6 +4,7 @@ import android.content.Context
 import com.wangzan101.mika.cap.sandbox.AndroidSandbox
 import com.wangzan101.mika.cap.sandbox.SandboxState
 import com.wangzan101.mika.chat.ConversationStore
+import com.wangzan101.mika.chat.WorkspaceResolver
 import com.wangzan101.mika.core.cap.sandbox.SandboxStatus
 import com.wangzan101.mika.core.workspace.SandboxError
 import kotlinx.coroutines.CoroutineScope
@@ -68,7 +69,7 @@ class TerminalHub(context: Context, private val conversations: ConversationStore
                     recoverable = true,
                 )
             }
-            val shell = sandbox.openShell(conversationId, cols, rows)
+            val shell = sandbox.openShell(WorkspaceResolver.resolveFor(app, conversationId), cols, rows)
             val session = TerminalSession(conversationId, title, readyNetwork, shell, scope)
             _sessions.update { it + (conversationId to session) }
             session

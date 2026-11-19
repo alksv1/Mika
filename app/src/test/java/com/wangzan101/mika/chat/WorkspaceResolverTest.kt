@@ -59,4 +59,19 @@ class WorkspaceResolverTest {
         val malicious = WorkspaceKey.parse("p:../escape")
         assertEquals(WorkspaceKey.Conversation("p:../escape"), malicious)
     }
+
+    @Test fun setDraftProjectTracksAndClearsPendingDraft() {
+        val conversations = ConversationStore(tmp.newFolder("chats2"))
+        val projects = ProjectStore(tmp.newFolder("projects2"))
+        val project = projects.create("工程").getOrThrow()
+        val resolver = WorkspaceResolver(conversations, projects)
+
+        resolver.setDraftProject("draft-1", project.id)
+        assertEquals(WorkspaceKey.Project(project.id), resolver.resolve("draft-1"))
+        assertTrue(resolver.isShared("draft-1"))
+
+        resolver.setDraftProject("draft-1", null)
+        assertEquals(WorkspaceKey.Conversation("draft-1"), resolver.resolve("draft-1"))
+        assertFalse(resolver.isShared("draft-1"))
+    }
 }
