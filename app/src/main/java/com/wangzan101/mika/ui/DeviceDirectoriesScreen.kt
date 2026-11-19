@@ -1,5 +1,7 @@
 package com.wangzan101.mika.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedTextField
@@ -12,6 +14,8 @@ import com.wangzan101.mika.R
 import com.wangzan101.mika.cap.phone.shell.HelperHub
 import com.wangzan101.mika.settings.DeviceDirectory
 import com.wangzan101.mika.settings.DeviceDirectoryStore
+import com.wangzan101.mika.settings.DeviceWriteGrantStatus
+import com.wangzan101.mika.settings.DeviceWriteGrantStore
 import com.wangzan101.mika.ui.components.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +23,12 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun DeviceDirectoriesScreen(store: DeviceDirectoryStore, hub: HelperHub, onBack: () -> Unit) {
+fun DeviceDirectoriesScreen(
+    store: DeviceDirectoryStore,
+    hub: HelperHub,
+    writeGrants: DeviceWriteGrantStore,
+    onBack: () -> Unit,
+) {
     val initialDirectories = remember(store) { try { store.directories() } catch (_: IllegalStateException) { null } }
     var writeError by remember(store) { mutableStateOf(initialDirectories == null) }
     var authorizationInvalid by remember(store) { mutableStateOf(false) }
@@ -44,6 +53,22 @@ fun DeviceDirectoriesScreen(store: DeviceDirectoryStore, hub: HelperHub, onBack:
     var editing by remember { mutableStateOf<DeviceDirectory?>(null) }
     var adding by remember { mutableStateOf(false) }
     var statuses by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var writeStatuses by remember { mutableStateOf<Map<String, DeviceWriteGrantStatus>>(emptyMap()) }
+    var pendingWritePath by remember { mutableStateOf<String?>(null) }
+    val chooseWriteFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        val path = pendingWritePath
+        pendingWritePath = null
+        if (uri == null || path == null) return@rememberLauncherForActivityResult
+        try {
+            writeGrants.authorize(path, uri)
+            writeError = false
+            authorizationInvalid = false
+        } catch (_: IllegalArgumentException) {
+            authorizationInvalid = true
+        } catch (_: IllegalStateException) {
+            writeError = true
+        }
+    }
     LaunchedEffect(hub, shell, currentRevision, syncAttempt) {
         if (currentRevision != null) withContext(Dispatchers.IO) {
             try { hub.syncDeviceFiles() }
@@ -51,11 +76,12 @@ fun DeviceDirectoriesScreen(store: DeviceDirectoryStore, hub: HelperHub, onBack:
             catch (_: Exception) { /* The status remains unsynced. */ }
         }
     }
-    LaunchedEffect(hub, shell, directories, syncedRevision) {
-        statuses = withContext(Dispatchers.IO) {
-            directories.associate { d -> d.path to try {
+    LaunchedEffect(hub, shell, directories, syncedRevision, pendingWritePath) {
+        withContext(Dispatchers.IO) {
+            statuses = directories.associate { d -> d.path to try {
                 hub.listFiles(d.path, null, 1).getString("status").orEmpty()
             } catch (_: Exception) { "helper_unavailable" } }
+            writeStatuses = directories.associate { d -> d.path to writeGrants.status(d.path) }
         }
     }
     PageScaffold(stringResource(R.string.device_dirs_title), onBack) {
@@ -76,13 +102,33 @@ fun DeviceDirectoriesScreen(store: DeviceDirectoryStore, hub: HelperHub, onBack:
                     "mika" -> stringResource(R.string.device_dirs_source_mika)
                     else -> stringResource(R.string.device_dirs_source_user)
                 }
-                ListRow(null, directory.name, "${directory.path}\n${directory.description}\n$status · $source", first = index == 0 && synced,
+                val write = writeStatuses[directory.path] ?: DeviceWriteGrantStatus("unknown")
+                val writeStatus = when (write.state) {
+                    "available" -> stringResource(R.string.device_dirs_write_available)
+                    "not_granted" -> stringResource(R.string.device_dirs_write_not_granted)
+                    "android_restricted" -> stringResource(R.string.device_dirs_write_restricted)
+                    "revoked" -> stringResource(R.string.device_dirs_write_revoked)
+                    "provider_read_only" -> stringResource(R.string.device_dirs_write_read_only)
+                    else -> stringResource(R.string.device_dirs_write_unknown)
+                }
+                ListRow(null, directory.name, "${directory.path}\n${directory.description}\n读取: $status · $source\n写入: $writeStatus", first = index == 0 && synced,
                     onClick = { editing = directory }) { RowChevron() }
                 ListRow(null, stringResource(R.string.device_dirs_authorize),
                     stringResource(if (synced) R.string.device_dirs_synced else R.string.device_dirs_not_synced)) {
                     MikaSwitch(directory.allowed, { allowed ->
                         updateAuthorization(directory, allowed, directory.includeSubdirectories)
                     })
+                }
+                ListRow(null, stringResource(R.string.device_dirs_write_authorize), writeStatus) {
+                    TextButton(
+                        enabled = write.state != "android_restricted",
+                        onClick = {
+                            pendingWritePath = directory.path
+                            chooseWriteFolder.launch(null)
+                        },
+                    ) {
+                        Text(stringResource(if (write.state == "available") R.string.device_dirs_write_reselect else R.string.device_dirs_write_select))
+                    }
                 }
                 if (directory.allowed) {
                     ListRow(null, stringResource(R.string.device_dirs_recursive)) {

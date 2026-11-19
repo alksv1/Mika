@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="device_dirs_title">Device folders</string>
-    <string name="device_dirs_explanation">Folder hints help Mika find files. Adding a hint does not grant access; authorize each saved folder separately.</string>
+    <string name="device_dirs_explanation">Shell helper reads files and the Android file picker grants write access. These permissions are independent.</string>
     <string name="device_dirs_authorize">Authorize folder access</string>
     <string name="device_dirs_recursive">Include subfolders</string>
     <string name="device_dirs_not_synced">Authorization not synced</string>
@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">Folder not found</string>
     <string name="device_dirs_denied">Access denied</string>
     <string name="device_dirs_unknown">Status unavailable</string>
+    <string name="device_dirs_write_authorize">Write access</string>
+    <string name="device_dirs_write_select">Choose folder</string>
+    <string name="device_dirs_write_reselect">Choose again</string>
+    <string name="device_dirs_write_available">Available</string>
+    <string name="device_dirs_write_not_granted">Not granted</string>
+    <string name="device_dirs_write_restricted">Restricted by Android</string>
+    <string name="device_dirs_write_revoked">Permission revoked</string>
+    <string name="device_dirs_write_read_only">Provider is read-only</string>
+    <string name="device_dirs_write_unknown">Status unavailable</string>
     <string name="device_dirs_entry">Folder hints</string>
     <string name="device_dirs_entry_sub">Help Mika find downloaded files</string>
     <string name="device_dirs_source_preset">Preset</string>

@@ -311,6 +311,7 @@ fun SettingsScreen(
         SettingsPage.DeviceDirectories -> DeviceDirectoriesScreen(
             remember { com.wangzan101.mika.settings.DeviceDirectoryStore.get(context) },
             remember { com.wangzan101.mika.cap.phone.PhoneServices.of(context).hub },
+            remember { com.wangzan101.mika.settings.DeviceWriteGrantStore.get(context) },
             onBack = { page = SettingsPage.Developer },
         )
         SettingsPage.RunStats -> RunStatsScreen(remember { RunStore(context).metrics }, onBack = back)
