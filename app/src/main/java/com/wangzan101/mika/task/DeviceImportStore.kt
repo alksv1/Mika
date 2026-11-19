@@ -39,6 +39,13 @@ class DeviceImportStore(private val prefs: SharedPreferences) {
         if (remaining.size != current.size) write(remaining)
     }
 
+    /** Removes all import records belonging to a workspace (e.g., deleted project workspace). */
+    fun removeWorkspace(workspaceId: String) = synchronized(lock) {
+        val current = read()
+        val remaining = current.filterNot { it.workspaceId == workspaceId }
+        if (remaining.size != current.size) write(remaining)
+    }
+
     internal fun add(record: DeviceImportRecord) = synchronized(lock) { write(read() + record) }
 
     private fun write(records: List<DeviceImportRecord>) {

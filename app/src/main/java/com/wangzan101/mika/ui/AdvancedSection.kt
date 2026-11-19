@@ -42,7 +42,9 @@ import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.cap.sandbox.SandboxUsage
 import com.wangzan101.mika.cap.sandbox.SandboxUsageReader
+import com.wangzan101.mika.cap.sandbox.WorkspaceKey
 import com.wangzan101.mika.cap.sandbox.WorkspaceUsage
+import com.wangzan101.mika.chat.WorkspaceResolver
 import com.wangzan101.mika.ui.terminal.TerminalLauncher
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -109,7 +111,13 @@ fun AdvancedSettings() {
     var network by remember { mutableStateOf(state.networkAllowed) }
     val app = context.applicationContext as MikaApp
     val usageReader = remember {
-        SandboxUsageReader(SandboxDirs(context), { app.conversations.list(includeArchived = true) }, { app.taskState.activeConversations.value })
+        SandboxUsageReader(
+            SandboxDirs(context),
+            { app.conversations.list(includeArchived = true) },
+            { app.taskState.activeConversations.value },
+            { app.projects.projects.value },
+            WorkspaceResolver.resolver(context),
+        )
     }
     var usage by remember { mutableStateOf<SandboxUsage?>(null) }
     var reload by remember { mutableIntStateOf(0) }
@@ -127,7 +135,12 @@ fun AdvancedSettings() {
         status = status, networkAllowed = network, isolationIssue = state.isolationIssue != null,
         onNetworkChange = { state.networkAllowed = it; network = it },
         usage = usage,
-        onOpenTerminal = { w -> w.conversationId?.let { TerminalLauncher.open(context, it, w.title) } },
+        onOpenTerminal = { w ->
+            val pid = w.projectId
+            val cid = w.conversationId
+            if (pid != null) TerminalLauncher.openWorkspace(context, WorkspaceKey.Project(pid), w.title)
+            else if (cid != null) TerminalLauncher.open(context, cid, w.title)
+        },
         onClearWorkspace = { w -> clearing { usageReader.clear(w.dirName) } },
         onClearAll = { clearing { usageReader.clearAll() } },
         onReset = {
@@ -231,7 +244,7 @@ private fun UsageGroup(
                     null, SandboxCopy.workspaceTitle(w), if (w.busy) tr(R.string.sandbox_usage_busy) else null, first = i == 0,
                     onClick = if (w.busy) null else ({ onClear(w) }),
                 ) {
-                    if (w.conversationId != null) {
+                    if (w.conversationId != null || w.projectId != null) {
                         Text(
                             tr(R.string.terminal_open_action),
                             Modifier

@@ -3,7 +3,9 @@ package com.wangzan101.mika.terminal
 import android.content.Context
 import com.wangzan101.mika.cap.sandbox.AndroidSandbox
 import com.wangzan101.mika.cap.sandbox.SandboxState
+import com.wangzan101.mika.cap.sandbox.WorkspaceKey
 import com.wangzan101.mika.chat.ConversationStore
+import com.wangzan101.mika.chat.ProjectStore
 import com.wangzan101.mika.chat.WorkspaceResolver
 import com.wangzan101.mika.core.cap.sandbox.SandboxStatus
 import com.wangzan101.mika.core.workspace.SandboxError
@@ -19,10 +21,15 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * 用户终端:进程里一份,按对话管理会话。终端不属于任何任务,不经过模型,也不写运行记录;
- * 同一个对话只开一个,全局最多 [MAX_SESSIONS] 个。对话删除、树锁收回、用户关闭都会结束会话。
+ * 用户终端:进程里一份,按沙箱工作区([WorkspaceKey])管理会话(同项目对话共用同一个项目终端)。
+ * 终端不属于任何任务,不经过模型,也不写运行记录;同一工作区只开一个,全局最多 [MAX_SESSIONS] 个。
+ * 对话或项目删除、树锁收回、用户关闭都会结束对应会话。
  */
-class TerminalHub(context: Context, private val conversations: ConversationStore) {
+class TerminalHub(
+    context: Context,
+    private val conversations: ConversationStore,
+    private val projects: ProjectStore? = null,
+) {
     private val app = context.applicationContext
     private val state = SandboxState.get(app)
     private val sandbox = AndroidSandbox(app, state)
@@ -33,22 +40,38 @@ class TerminalHub(context: Context, private val conversations: ConversationStore
 
     init {
         scope.launch {
-            conversations.deletions.collect { id -> close(id) }
+            conversations.deletions.collect { id -> closeWorkspace(WorkspaceKey.Conversation(id)) }
+        }
+        projects?.let { store ->
+            scope.launch {
+                store.deletions.collect { projectId -> closeWorkspace(WorkspaceKey.Project(projectId)) }
+            }
         }
     }
 
-    fun session(conversationId: String): TerminalSession? = _sessions.value[conversationId]
+    fun session(conversationId: String): TerminalSession? =
+        sessionForWorkspace(WorkspaceResolver.resolveFor(app, conversationId))
 
-    /** 打开或附着这个对话的终端;运行环境没准备好时先等它(最多两分钟)。 */
+    fun sessionForWorkspace(key: WorkspaceKey): TerminalSession? = _sessions.value[key.wire]
+
+    /** 打开或附着这个对话所属工作区的终端;运行环境没准备好时先等它(最多两分钟)。 */
     suspend fun open(conversationId: String, title: String?, cols: Int = 80, rows: Int = 24): TerminalSession {
-        _sessions.value[conversationId]?.let {
+        val key = WorkspaceResolver.resolveFor(app, conversationId)
+        val displayTitle = if (key is WorkspaceKey.Project) projects?.get(key.id)?.name ?: title else title
+        return openWorkspace(key, displayTitle, cols, rows)
+    }
+
+    /** 打开或附着指定工作区 [key] 的终端;运行环境没准备好时先等它(最多两分钟)。 */
+    suspend fun openWorkspace(key: WorkspaceKey, title: String?, cols: Int = 80, rows: Int = 24): TerminalSession {
+        val sessionKey = key.wire
+        _sessions.value[sessionKey]?.let {
             if (it.phase.value == TerminalSession.Phase.Running) return it
-            close(conversationId)
+            closeWorkspace(key)
         }
         return mutex.withLock {
-            _sessions.value[conversationId]?.let {
+            _sessions.value[sessionKey]?.let {
                 if (it.phase.value == TerminalSession.Phase.Running) return@withLock it
-                close(conversationId)
+                closeWorkspace(key)
             }
             // 退出、被收回、被关掉的会话不再占名额。
             _sessions.update { map -> map.filterValues { it.phase.value == TerminalSession.Phase.Running } }
@@ -69,18 +92,21 @@ class TerminalHub(context: Context, private val conversations: ConversationStore
                     recoverable = true,
                 )
             }
-            val shell = sandbox.openShell(WorkspaceResolver.resolveFor(app, conversationId), cols, rows)
-            val session = TerminalSession(conversationId, title, readyNetwork, shell, scope)
-            _sessions.update { it + (conversationId to session) }
+            val shell = sandbox.openShell(key, cols, rows)
+            val session = TerminalSession(sessionKey, title, readyNetwork, shell, scope)
+            _sessions.update { it + (sessionKey to session) }
             session
         }
     }
 
-    fun close(conversationId: String) {
+    fun close(conversationId: String) = closeWorkspace(WorkspaceResolver.resolveFor(app, conversationId))
+
+    fun closeWorkspace(key: WorkspaceKey) {
+        val sessionKey = key.wire
         var session: TerminalSession? = null
         _sessions.update { current ->
-            session = current[conversationId]
-            current - conversationId
+            session = current[sessionKey]
+            current - sessionKey
         }
         session?.close()
     }

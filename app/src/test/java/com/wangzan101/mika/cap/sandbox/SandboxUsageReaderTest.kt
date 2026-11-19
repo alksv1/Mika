@@ -1,6 +1,7 @@
 package com.wangzan101.mika.cap.sandbox
 
 import com.wangzan101.mika.chat.ConversationSummary
+import com.wangzan101.mika.chat.Project
 import com.wangzan101.mika.core.workspace.SandboxTree
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -63,5 +64,42 @@ class SandboxUsageReaderTest {
         assertTrue(a.exists())
         assertFalse(b.exists())
         assertTrue(big.isFile)
+    }
+
+    @Test fun projectWorkspacesShowProjectNameAndBusyAcrossMemberChats() = runBlocking {
+        val proj = Project(id = "proj-1", name = "科研项目")
+        val projDir = dirs.workspace(WorkspaceKey.Project(proj.id)).apply {
+            mkdirs()
+            File(this, "data.bin").writeBytes(ByteArray(400))
+        }
+        val soloDir = dirs.workspace(WorkspaceKey.Conversation("solo")).apply {
+            mkdirs()
+            File(this, "note.txt").writeBytes(ByteArray(120))
+        }
+        val activeMembers = mutableListOf("c1")
+        val readerWithProjects = SandboxUsageReader(
+            dirs,
+            conversations = {
+                listOf(
+                    ConversationSummary("c1", "检索", 0, projectId = proj.id),
+                    ConversationSummary("c2", "总结", 0, projectId = proj.id),
+                    ConversationSummary("solo", "独立对话", 0),
+                )
+            },
+            active = { activeMembers },
+            projects = { listOf(proj) },
+        )
+
+        val u = readerWithProjects.read()
+        assertEquals(listOf("科研项目", "独立对话"), u.workspaces.map { it.title })
+        assertEquals(listOf(proj.id, null), u.workspaces.map { it.projectId })
+        assertEquals(listOf(null, "solo"), u.workspaces.map { it.conversationId })
+        assertEquals(listOf(true, false), u.workspaces.map { it.busy })
+        assertFalse(readerWithProjects.clear(projDir.name))
+
+        activeMembers.clear()
+        assertTrue(readerWithProjects.clear(projDir.name))
+        assertFalse(projDir.exists())
+        assertTrue(soloDir.exists())
     }
 }

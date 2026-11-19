@@ -38,6 +38,9 @@ class DeviceImportStoreTest {
         assertEquals(listOf(c1, c2), reloaded.listByWorkspace("p:proj-1"))
         assertEquals(listOf(solo), reloaded.listByWorkspace("c3"))
         assertEquals("c3", reloaded.list("c3").single().workspaceId)
+
+        reloaded.removeWorkspace("p:proj-1")
+        assertEquals(listOf(solo), DeviceImportStore(prefs).allRecords())
     }
 
     @Test fun flowEmitsInitialAndCommittedRecords() = runBlocking {

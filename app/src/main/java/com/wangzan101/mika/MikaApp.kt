@@ -15,6 +15,7 @@ import com.wangzan101.mika.chat.AutoArchive
 import com.wangzan101.mika.chat.ConversationDeleter
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.CurrentChat
+import com.wangzan101.mika.chat.ProjectDeleter
 import com.wangzan101.mika.chat.ProjectStore
 import com.wangzan101.mika.chat.SharedDraftStore
 import com.wangzan101.mika.chat.WorkspaceResolver
@@ -267,9 +268,28 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
     /** 最近一次系统分享尚未发送的草稿和它的私有图片副本。 */
     val sharedDrafts: SharedDraftStore by lazy { SharedDraftStore(java.io.File(filesDir, "shared-drafts")) }
 
-    /** 用户自己打开的终端(按对话):只从界面进,不交给任何任务,也不写运行记录。 */
+    /** 用户自己打开的终端(按工作区):只从界面进,不交给任何任务,也不写运行记录。 */
     val terminals: com.wangzan101.mika.terminal.TerminalHub by lazy {
-        com.wangzan101.mika.terminal.TerminalHub(this, conversations)
+        com.wangzan101.mika.terminal.TerminalHub(this, conversations, projects)
+    }
+
+    /** 删项目:停掉旗下对话的当前任务、删除项目内对话与项目定义,并清掉共享工作区 `p-<id>`。 */
+    val projectDeleter: ProjectDeleter by lazy {
+        val app = this
+        ProjectDeleter(
+            projects, conversations, taskState.activeConversations,
+            cancelTasks = { id -> taskState.runs.value.filter { it.conversationId == id }.forEach { TaskService.cancel(app, it.key) } },
+            schedulesOf = { id -> TriggerRuntime.list(app).filter { it.threadId == id }.map { it.id } },
+            deleteProjectWorkspace = { pid -> SandboxDirs(app).deleteWorkspace(WorkspaceKey.Project(pid)) },
+            forgetRemoteTasks = { id ->
+                if (com.wangzan101.mika.core.remote.RemoteTaskService.isConversation(id)) remoteTasks.forget(id)
+            },
+            onDeleted = { pid, ids ->
+                val imports = com.wangzan101.mika.task.DeviceImportStore.get(app)
+                imports.removeWorkspace(WorkspaceKey.Project(pid).wire)
+                ids.forEach(imports::removeConversation)
+            },
+        )
     }
 
     /** 删对话(侧栏长按):停掉它的当前任务并删工作区(同项目对话保留共享工作区),保留定时任务。 */

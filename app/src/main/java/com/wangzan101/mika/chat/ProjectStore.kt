@@ -1,8 +1,11 @@
 package com.wangzan101.mika.chat
 
 import android.content.Context
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -41,6 +44,8 @@ class ProjectStore(
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
     private val _projects = MutableStateFlow(load())
     val projects: StateFlow<List<Project>> = _projects.asStateFlow()
+    private val _deletions = MutableSharedFlow<String>(extraBufferCapacity = 32)
+    val deletions: SharedFlow<String> = _deletions.asSharedFlow()
 
     fun get(id: String?): Project? = id?.takeIf(Companion::isValidId)?.let { key -> _projects.value.firstOrNull { it.id == key } }
 
@@ -74,7 +79,7 @@ class ProjectStore(
     fun delete(id: String): Boolean {
         val existing = get(id) ?: return false
         val next = _projects.value.filterNot { it.id == existing.id }
-        return runCatching { save(next); true }.getOrDefault(false)
+        return runCatching { save(next); _deletions.tryEmit(existing.id); true }.getOrDefault(false)
     }
 
     private fun normalizeName(raw: String): String = raw.trim().also {
