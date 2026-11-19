@@ -2499,6 +2499,7 @@ class ToolLabels(private val tools: ToolIndex, private val legacy: LegacyNames =
             "查看设备文件" to R.string.tool_list_device_files,
             "搜索设备文件" to R.string.tool_search_device_files,
             "复制设备文件" to R.string.tool_copy_device_file,
+            "写入设备文件" to R.string.tool_write_device_file,
             "处理文件" to R.string.tool_process_files,
             "运行自带脚本" to R.string.tool_run_script,
             "读文件" to R.string.tool_read_file,
