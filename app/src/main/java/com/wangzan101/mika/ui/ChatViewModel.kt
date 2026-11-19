@@ -1908,7 +1908,10 @@ class ChatViewModel(
     fun deleteProject(projectId: String) {
         val members = store.list(includeArchived = true).filter { it.projectId == projectId }.map { it.id }
         val draftMembers = drafts.value.filterValues { it.projectId == projectId }.keys
-        val targets = (members + draftMembers).distinct().filter { deleting.add(it) }
+        val openMember = _ui.value.conversationId?.takeIf {
+            _ui.value.projectId == projectId || store.projectId(it) == projectId
+        }
+        val targets = (members + draftMembers + listOfNotNull(openMember)).distinct().filter { deleting.add(it) }
         targets.forEach { id ->
             drafts.update { it - id }
             sharedDrafts?.clear(id)

@@ -171,7 +171,7 @@ class TerminalHubTest {
 
             h.projects.delete(project.id)
             withTimeout(2_000) {
-                while (h.hub.sessionForWorkspace(WorkspaceKey.Project(project.id)) != null) delay(10)
+                while (h.hub.sessionForWorkspace(WorkspaceKey.Project(project.id)) != null || !h.shells.single().closed) delay(10)
             }
             assertNull(h.hub.sessionForWorkspace(WorkspaceKey.Project(project.id)))
             assertEquals(TerminalSession.Phase.Closed, session.phase.value)
@@ -193,6 +193,9 @@ class TerminalHubTest {
 
             h.hub.closeAll()
 
+            withTimeout(2_000) {
+                while (!h.shells.all { it.closed }) delay(10)
+            }
             assertTrue(h.hub.sessions.value.isEmpty())
             assertEquals(TerminalSession.Phase.Closed, pSession.phase.value)
             assertEquals(TerminalSession.Phase.Closed, cSession.phase.value)
