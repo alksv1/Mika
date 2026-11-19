@@ -38,8 +38,9 @@ class DeviceFilesTest {
         }
         override suspend fun listDirectoryHints(): List<DeviceDirectoryHint> = hints
         override suspend fun writeFile(path: String, content: ByteArray?, expectedSha256: String?, append: Boolean, source: String?, workspace: String?): DeviceFileWrite {
-            written = Quadruple(path, content ?: source!!.toByteArray(), expectedSha256, append)
-            return DeviceFileWrite(path, content.size.toLong(), "hash")
+            val bytes = content ?: source!!.toByteArray()
+            written = Quadruple(path, bytes, expectedSha256, append)
+            return DeviceFileWrite(path, bytes.size.toLong(), "hash")
         }
     }
     private fun call(name: String, args: String) = Part.ToolCall("1", name, args)
