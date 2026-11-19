@@ -43,6 +43,8 @@ import com.wangzan101.mika.ui.components.RowValue
 import com.wangzan101.mika.ui.components.ValueTone
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 
 /** 「添加模型」里「用账号登录」那一组的三家。ChatGPT 的登录另有一套,xAI、OpenRouter 对应 [AccountProvider]。 */
 enum class SignInKind(val account: AccountProvider?, val label: String, val tag: String) {
@@ -126,7 +128,7 @@ internal fun SignInSheet(ui: ModelSetupUi, kind: SignInKind, actions: SignInShee
         onDismissRequest = actions.dismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.surface,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shape = MikaShapes.SheetTop,
     ) {
         SignInSheetBody(ui, kind, actions)
     }
@@ -150,26 +152,26 @@ internal fun SignInSheetBody(ui: ModelSetupUi, kind: SignInKind, actions: SignIn
 private fun IntroBody(kind: SignInKind, running: Boolean, failure: String?, busy: Boolean, actions: SignInSheetActions) {
     val c = MikaTheme.colors
     Text(ModelsCopy.signInTitle(kind), Modifier.fillMaxWidth(), style = MikaType.Title, color = c.ink, textAlign = TextAlign.Center)
-    Text(ModelsCopy.signInBody(kind), Modifier.padding(top = 10.dp), fontSize = 13.5.sp, lineHeight = 21.sp, color = c.ink2)
+    Text(ModelsCopy.signInBody(kind), Modifier.padding(top = 10.dp), style = MikaType.Caption, color = c.ink2)
     ModelsCopy.signInRisk(kind)?.let { Note(it, c.warnSoft, c.warn, Modifier.testTag("signin-risk")) }
     ModelsCopy.signInInfo(kind)?.let { Note(it, c.fill, c.ink2) }
     MikaButton(
         ModelsCopy.signInStart(kind), { actions.start(kind) },
         Modifier.fillMaxWidth().padding(top = 16.dp).testTag("signin-start"), enabled = !running && !busy,
     )
-    if (busy) Text(ModelsCopy.SIGN_IN_BUSY, Modifier.padding(top = 10.dp).testTag("signin-busy"), fontSize = 13.sp, lineHeight = 18.sp, color = c.ink2)
+    if (busy) Text(ModelsCopy.SIGN_IN_BUSY, Modifier.padding(top = 10.dp).testTag("signin-busy"), style = MikaType.Caption, color = c.ink2)
     if (running) {
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(ModelsCopy.signInWaiting(kind), Modifier.weight(1f), fontSize = 13.sp, lineHeight = 18.sp, color = c.ink2)
+            Text(ModelsCopy.signInWaiting(kind), Modifier.weight(1f), style = MikaType.Caption, color = c.ink2)
             Text(
                 ModelSetupCopy.CANCEL,
                 Modifier.clickable { actions.cancel(kind) }.padding(start = 12.dp, top = 4.dp, bottom = 4.dp).testTag("signin-cancel"),
-                fontSize = 13.sp, color = c.accent,
+                style = MikaType.Caption, color = c.accent,
             )
         }
     }
     failure?.let {
-        Text(it, Modifier.padding(top = 10.dp).testTag("signin-failed"), fontSize = 13.sp, lineHeight = 18.sp, color = c.bad)
+        Text(it, Modifier.padding(top = 10.dp).testTag("signin-failed"), style = MikaType.Caption, color = c.bad)
     }
     if (kind.keyPreset != null && !running) {
         MikaButton(
@@ -187,11 +189,11 @@ private fun DeviceCodeBody(s: AccountSignInUi, code: String, cancel: () -> Unit)
     Text(ModelsCopy.XAI_CODE_TITLE, Modifier.fillMaxWidth(), style = MikaType.Title, color = c.ink, textAlign = TextAlign.Center)
     Text(
         ModelsCopy.XAI_CODE_BODY, Modifier.fillMaxWidth().padding(top = 10.dp),
-        fontSize = 13.5.sp, lineHeight = 21.sp, color = c.ink2, textAlign = TextAlign.Center,
+        style = MikaType.Caption, color = c.ink2, textAlign = TextAlign.Center,
     )
     Text(
         code, Modifier.fillMaxWidth().padding(top = 16.dp).testTag("signin-code"),
-        fontFamily = FontFamily.Monospace, fontSize = 30.sp, lineHeight = 36.sp, letterSpacing = 4.sp,
+        fontFamily = FontFamily.Monospace, style = MikaType.Display, letterSpacing = 4.sp,
         fontWeight = FontWeight.SemiBold, color = c.ink, textAlign = TextAlign.Center,
     )
     if (s.expiresAtMs > 0) {
@@ -204,7 +206,7 @@ private fun DeviceCodeBody(s: AccountSignInUi, code: String, cancel: () -> Unit)
     )
     Text(
         ModelsCopy.XAI_CODE_WAITING, Modifier.fillMaxWidth().padding(top = 14.dp),
-        fontSize = 13.sp, color = c.ink2, textAlign = TextAlign.Center,
+        style = MikaType.Caption, color = c.ink2, textAlign = TextAlign.Center,
     )
     MikaButton(
         ModelSetupCopy.CANCEL, cancel, Modifier.fillMaxWidth().padding(top = 4.dp).testTag("signin-cancel"),
@@ -215,8 +217,8 @@ private fun DeviceCodeBody(s: AccountSignInUi, code: String, cancel: () -> Unit)
 @Composable
 private fun Note(text: String, bg: Color, fg: Color, modifier: Modifier = Modifier) {
     Text(
-        text, modifier.fillMaxWidth().padding(top = 12.dp).background(bg, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
-        fontSize = 12.5.sp, lineHeight = 19.sp, color = fg,
+        text, modifier.fillMaxWidth().padding(top = 12.dp).background(bg, MikaShapes.Chip).padding(horizontal = 12.dp, vertical = 10.dp),
+        style = MikaType.Hint, color = fg,
     )
 }
 

@@ -63,6 +63,8 @@
     <string name="settings_notif_master">همهٔ اعلان‌ها</string>
     <string name="settings_allowed">مجاز</string>
     <string name="settings_task_notifs">اعلان‌های کار</string>
+    <string name="settings_live_task_updates">اعلان زندهٔ کارها</string>
+    <string name="settings_live_task_updates_detail">انتخاب کنید که کارهای در حال اجرا در نوار وضعیت نمایش داده شوند یا نه</string>
     <string name="settings_keep_on">روشن نگه داشتن صفحه</string>
     <string name="settings_keep_on_sub">هنگام اجرای کار صفحه روشن می‌ماند (در صورت عدم استفاده ممکن است کم‌نور شود) و سپس به حالت عادی برمی‌گردد</string>
     <string name="settings_mute">بی‌صدا کردن برنامهٔ در حال استفاده</string>
@@ -122,6 +124,8 @@
     <string name="net_proxy">پروکسی شبکه</string>
     <string name="net_proxy_row_sub">برای درخواست‌های مدل، به‌روزرسانی‌ها، مرورگر داخلی و دستورها</string>
     <string name="net_proxy_hint">برای درخواست‌های مدل میکا (گفتگو، فهرست مدل‌ها و ورود به حساب)، دانلود به‌روزرسانی، مرورگر داخلی و دستورهای محیط فایل‌ها و پردازش، هنگامی که دسترسی شبکهٔ آن روشن است، استفاده می‌شود. نشانی‌های همین گوشی یا شبکهٔ محلی شما (localhost، ‎192.168.x.x، ‎10.x.x.x و نام‌های پایان‌یافته به ‎.local) همیشه مستقیم متصل می‌شوند تا مدل‌های محلی کار کنند. می‌تواند شامل user:password@ باشد که به‌صورت رمزگذاری‌شده در این گوشی ذخیره می‌شود. برای اتصال مستقیم خالی بگذارید.</string>
+    <string name="net_proxy_summary">درخواست‌های مدل، به‌روزرسانی‌ها، مرورگر داخلی و دستورهای محیط فایل از این پروکسی می‌گذرند.</string>
+    <string name="details">جزئیات</string>
     <string name="net_proxy_invalid">به شکل http://host:port وارد کنید (socks5، socks5h و https نیز پشتیبانی می‌شوند). در صورت نیاز می‌توانید user:password@ را پیش از نام میزبان قرار دهید.</string>
     <string name="net_proxy_container_only">پروکسی‌های https:// فقط برای دستورهای محیط فایل‌ها و پردازش استفاده می‌شوند و اتصال‌های خود میکا مستقیم می‌مانند. برای پوشش همهٔ اتصال‌ها از http:// یا socks5:// استفاده کنید.</string>
     <string name="net_proxy_browser_unsupported">WebView این گوشی نمی‌تواند از پروکسی جداگانه استفاده کند، بنابراین مرورگر داخلی مستقیم متصل می‌شود.</string>
@@ -224,7 +228,7 @@
     <string name="settings_token_budget_unlimited">بدون محدودیت</string>
     <string name="settings_auto_archive">بایگانی خودکار گفتگوها</string>
     <string name="settings_auto_archive_sub">گفتگوهایی که مدتی پیام جدید ندارند به بایگانی منتقل می‌شوند</string>
-    <string name="settings_auto_archive_hint">گفتگوهایی که در مدت انتخاب‌شده پیام جدیدی ندارند به بایگانی منتقل می‌شوند. گفتگوهای سنجاق‌شده و گفتگوهایی که وظیفه‌ای در آن‌ها در حال اجراست دست‌نخورده می‌مانند. هر زمان می‌توانید آن‌ها را از بایگانی در فهرست گفتگوها بازیابی کنید.</string>
+    <string name="settings_auto_archive_hint">گفتگوهایی که در مدت انتخاب‌شده پیام جدیدی ندارند به بایگانی منتقل می‌شوند.</string>
     <plurals name="settings_auto_archive_days">
         <item quantity="one">%1$d روز</item>
         <item quantity="other">%1$d روز</item>

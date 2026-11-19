@@ -53,6 +53,7 @@ import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
 import androidx.compose.runtime.getValue
 
 // ---------- 开关 ----------
@@ -115,7 +116,7 @@ fun StatusPill(text: String, tone: PillTone = PillTone.Neutral, modifier: Modifi
     )
 }
 
-private val PillText = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold)
+private val PillText = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold)
 
 // ---------- 按钮 ----------
 
@@ -124,9 +125,9 @@ enum class ButtonKind { Primary, Secondary, Tonal, Text }
 
 /** 大:页面底部 52;中:卡片里并排 42;小:行内 32 的胶囊。 */
 enum class ButtonSize(val height: Dp, val shape: RoundedCornerShape, val text: TextStyle, val padding: Dp) {
-    Large(MikaSize.Button, MikaShapes.Button, TextStyle(fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold), 20.dp),
-    Medium(42.dp, RoundedCornerShape(12.dp), TextStyle(fontSize = 14.5.sp, lineHeight = 19.sp, fontWeight = FontWeight.SemiBold), 14.dp),
-    Small(32.dp, RoundedCornerShape(16.dp), TextStyle(fontSize = 13.5.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold), 14.dp),
+    Large(MikaSize.Button, MikaShapes.Button, MikaType.BodyStrong, 20.dp),
+    Medium(42.dp, MikaShapes.Chip, MikaType.Body.copy(fontWeight = FontWeight.SemiBold), 14.dp),
+    Small(32.dp, MikaShapes.Card, MikaType.Caption.copy(fontWeight = FontWeight.SemiBold), 14.dp),
 }
 
 /** 按钮。宽度由 [modifier] 定(铺满、按权重分或包住文字)。 */
@@ -194,9 +195,9 @@ fun SegmentedControl(
     }
 }
 
-private val SegmentOuter = RoundedCornerShape(10.dp)
-private val SegmentInner = RoundedCornerShape(8.dp)
-private val SegmentText = TextStyle(fontSize = 13.5.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium)
+private val SegmentOuter = MikaShapes.Tile
+private val SegmentInner = MikaShapes.Tile
+private val SegmentText = MikaType.Caption.copy(fontWeight = FontWeight.Medium)
 
 /** Mirrors horizontal navigation symbols in RTL while leaving non-directional artwork unchanged. */
 @Composable
@@ -283,34 +284,46 @@ fun TopBar(
 
 /** 可选的胶囊(服务商、接口类型):34 高,白卡底;选中时深色实底、反色字。[small] 是行内的小号。 */
 @Composable
-fun SelectChip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, small: Boolean = false) {
+fun SelectChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    small: Boolean = false,
+    enabled: Boolean = true,
+) {
     val c = MikaTheme.colors
     val shape = if (small) SmallChipShape else MikaShapes.Pill
     Box(
         modifier
             .then(
                 when {
+                    selected && !enabled -> Modifier.background(c.ink.copy(alpha = 0.38f), shape)
                     selected -> Modifier.background(c.ink, shape)
                     small -> Modifier.background(c.fill, shape)
                     else -> Modifier.cardSurface(c, shape)
                 },
             )
             .clip(shape)
-            .selectable(selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .height(if (small) 28.dp else 34.dp)
             .padding(horizontal = if (small) 10.dp else 14.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text, style = if (small) SmallChipText else ChipText, maxLines = 1, softWrap = false,
-            color = if (selected) c.bg else c.ink,
+            color = when {
+                selected -> c.bg
+                !enabled -> c.ink.copy(alpha = 0.38f)
+                else -> c.ink
+            },
         )
     }
 }
 
-private val SmallChipShape = RoundedCornerShape(8.dp)
-private val ChipText = TextStyle(fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium)
-private val SmallChipText = TextStyle(fontSize = 12.5.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium)
+private val SmallChipShape = MikaShapes.Tile
+private val ChipText = MikaType.Body.copy(fontWeight = FontWeight.Medium)
+private val SmallChipText = MikaType.Hint.copy(fontWeight = FontWeight.Medium)
 
 // ---------- 小标签 ----------
 
@@ -324,8 +337,8 @@ fun CapabilityTag(text: String, tone: TagTone = TagTone.Neutral) {
     Text(text, Modifier.background(bg, TagShape).padding(horizontal = 7.dp, vertical = 2.dp), style = TagText, color = fg, maxLines = 1)
 }
 
-private val TagShape = RoundedCornerShape(7.dp)
-private val TagText = TextStyle(fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold)
+private val TagShape = MikaShapes.Tile
+private val TagText = MikaType.Micro.copy(fontWeight = FontWeight.SemiBold)
 
 // ---------- 分页点 ----------
 

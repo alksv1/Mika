@@ -90,14 +90,15 @@ import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 val BROWSER_DESKTOP_TAG: String get() = tr(R.string.browser_desktop)
 val BROWSER_LOGIN_DONE: String get() = tr(R.string.browser_login_done)
 
-internal val MiniShape = RoundedCornerShape(8.dp)
-internal val InitialSmall = TextStyle(fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
+internal val MiniShape = MikaShapes.Tile
+internal val InitialSmall = MikaType.Caption.copy(fontWeight = FontWeight.Bold)
 
 /**
  * 网站的方块:有存下的网站图标就画在白底上;没有时是按主机名定的底色加名字的第一个字。
@@ -203,14 +204,14 @@ private fun AddressPill(page: BrowserPage, face: SiteFace?, engines: List<Search
         Text(shown, Modifier.weight(1f, fill = false), style = MikaType.Body, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (page.desktop) {
             Text(
-                BROWSER_DESKTOP_TAG, Modifier.background(c.warnSoft, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+                BROWSER_DESKTOP_TAG, Modifier.background(c.warnSoft, RoundedCornerShape(MikaRadius.BubbleTail)).padding(horizontal = 6.dp, vertical = 1.dp),
                 style = TagText, color = c.warn, maxLines = 1,
             )
         }
     }
 }
 
-private val TagText = TextStyle(fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold)
+private val TagText = MikaType.Micro.copy(fontWeight = FontWeight.SemiBold)
 
 /** 展开的地址栏:完整网址全选着,键盘上是「前往」。 */
 @Composable
@@ -229,7 +230,7 @@ private fun AddressEditor(url: String, modifier: Modifier, onGo: (String) -> Uni
             text, { text = it },
             Modifier.weight(1f).focusRequester(focus).testTag("browser-address"),
             singleLine = true,
-            textStyle = MikaType.Body.copy(fontSize = 14.5.sp, color = c.ink, textDirection = androidx.compose.ui.text.style.TextDirection.Content),
+            textStyle = MikaType.Body.copy(color = c.ink, textDirection = androidx.compose.ui.text.style.TextDirection.Content),
             cursorBrush = SolidColor(c.accent),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
             keyboardActions = KeyboardActions(onGo = { onGo(text.text) }),
@@ -274,7 +275,7 @@ fun LoginBanner(desktop: Boolean, onDone: () -> Unit) {
     }
     Row(
         Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)
-            .background(c.accentSoft, RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 10.dp)
+            .background(c.accentSoft, MikaShapes.Button).padding(horizontal = 12.dp, vertical = 10.dp)
             .testTag("browser-login-banner"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -311,7 +312,7 @@ fun BrowserMoreSheet(
     onClearData: () -> Unit = {},
 ) {
     val c = MikaTheme.colors
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = c.surface, shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = c.surface, shape = MikaShapes.SheetTop) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 8.dp).testTag("browser-more")) {
             if (face != null && host != null) {
                 Row(
@@ -379,7 +380,7 @@ fun BookmarksSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.surface,
-        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        shape = MikaShapes.SheetTop,
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 8.dp).testTag("browser-bookmarks")) {
             Row(

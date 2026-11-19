@@ -54,6 +54,9 @@ import com.wangzan101.mika.about.ReleaseInfo
 import com.wangzan101.mika.ui.components.GlassBackdrop
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 import kotlinx.coroutines.delay
 
 @Composable
@@ -116,9 +119,9 @@ internal fun BoxScope.UpdateReadyCapsule(
                 }
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.about_auto_update_ready, release.version), color = UpdateGlassInk,
-                        fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        style = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(stringResource(R.string.about_update_install), color = UpdateGlassSecondaryInk,
-                        fontSize = 10.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        style = MikaType.Micro, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             UpdateGlassClose(
@@ -142,11 +145,10 @@ internal fun BoxScope.UpdateReadyCapsule(
                 Modifier.size(dialog.width.dp, dialog.height.dp).semantics { paneTitle = title },
             ) {
                 Column(Modifier.fillMaxSize().padding(start = 14.dp, end = 14.dp, top = 15.dp, bottom = 12.dp)) {
-                    Text(title, Modifier.padding(end = 21.dp), color = UpdateGlassInk, fontSize = 17.sp, lineHeight = 22.sp,
-                        fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(title, Modifier.padding(end = 21.dp), color = UpdateGlassInk, style = MikaType.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(stringResource(R.string.about_auto_update_confirm_detail, release.version),
                         Modifier.weight(1f).padding(top = 7.dp), color = UpdateGlassSecondaryInk,
-                        fontSize = 11.sp, lineHeight = 16.sp, overflow = TextOverflow.Ellipsis)
+                        style = MikaType.Micro, overflow = TextOverflow.Ellipsis)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                         UpdateGlassAction(stringResource(R.string.about_auto_update_now), primary = true,
                             onClick = { close(); onInstall() }, modifier = Modifier.weight(1f))
@@ -179,12 +181,12 @@ private fun UpdateGlassAction(label: String, primary: Boolean, onClick: () -> Un
         dark -> Color.White.copy(alpha = 0.13f)
         else -> Color.White.copy(alpha = 0.48f)
     }
-    Box(modifier.height(36.dp).clip(RoundedCornerShape(12.dp))
+    Box(modifier.height(36.dp).clip(MikaShapes.Chip)
         .background(fill)
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 5.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(label, color = if (primary) (if (dark) Color(0xFF172E21) else Color.White) else UpdateGlassInk,
-            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            style = MikaType.Micro.copy(fontWeight = FontWeight.SemiBold), maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }

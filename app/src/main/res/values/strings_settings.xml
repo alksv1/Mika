@@ -63,6 +63,8 @@
     <string name="settings_notif_master">All notifications</string>
     <string name="settings_allowed">Allowed</string>
     <string name="settings_task_notifs">Task notifications</string>
+    <string name="settings_live_task_updates">Live task updates</string>
+    <string name="settings_live_task_updates_detail">Choose whether to show your running tasks in the status bar</string>
     <string name="settings_keep_on">Keep screen on</string>
     <string name="settings_keep_on_sub">The screen stays on while a task runs (it can still dim when you’re not using it), then goes back to normal</string>
     <string name="settings_mute">Mute the app being used</string>
@@ -122,6 +124,8 @@
     <string name="net_proxy">Network proxy</string>
     <string name="net_proxy_row_sub">For model requests, updates, the in-app browser and commands</string>
     <string name="net_proxy_hint">Used for Mika’s model requests (chat, model lists, account sign-in), in-app update downloads, the in-app browser, and commands in Files &amp; computing environment while network access is on there. Addresses on this phone or your local network (localhost, 192.168.x.x, 10.x.x.x, names ending in .local) always connect directly, so local models keep working. It may include user:password@, stored encrypted on this phone. Leave empty for a direct connection.</string>
+    <string name="net_proxy_summary">Model requests, updates, the in-app browser and file-environment commands go through this proxy.</string>
+    <string name="details">Details</string>
     <string name="net_proxy_invalid">Write it as http://host:port (socks5, socks5h and https work too), optionally with user:password@ before the host.</string>
     <string name="net_proxy_container_only">https:// proxies are only used by commands in Files &amp; computing environment; Mika’s own connections stay direct. Use http:// or socks5:// to cover everything.</string>
     <string name="net_proxy_browser_unsupported">This phone’s WebView can’t use a separate proxy, so the in-app browser connects directly.</string>
@@ -226,7 +230,7 @@
     <string name="settings_token_budget_invalid">Enter a whole number from %1$s to %2$s.</string>
     <string name="settings_auto_archive">Auto-archive chats</string>
     <string name="settings_auto_archive_sub">Chats without new messages for a while move to the archive</string>
-    <string name="settings_auto_archive_hint">Chats without new messages for the chosen time are moved to the archive. Pinned chats and chats with a task running stay put. You can restore them from the archive in the chat list at any time.</string>
+    <string name="settings_auto_archive_hint">Chats without new messages for the chosen time are moved to the archive.</string>
     <plurals name="settings_auto_archive_days">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>

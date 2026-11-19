@@ -58,6 +58,9 @@ import com.wangzan101.mika.ui.components.TileTone
 import com.wangzan101.mika.ui.components.ValueTone
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -221,10 +224,10 @@ fun SelfCheckContent(
             val c = MikaTheme.colors
             Box(
                 Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 360.dp).testTag("selfcheck-report")
-                    .background(c.fill, RoundedCornerShape(12.dp)).verticalScroll(rememberScrollState())
+                    .background(c.fill, MikaShapes.Chip).verticalScroll(rememberScrollState())
                     .horizontalScroll(rememberScrollState()).padding(12.dp),
             ) {
-                Text(text, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp, color = c.ink2)
+                Text(text, fontFamily = FontFamily.Monospace, style = MikaType.Hint, color = c.ink2)
             }
             Row(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MikaButton(stringResource(R.string.selfcheck_copy), onCopy, Modifier.weight(1f).testTag("selfcheck-copy"))

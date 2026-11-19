@@ -101,7 +101,17 @@ internal class TaskProgressTracker(private val now: () -> Long, private val emit
 
     fun accept(raw: String, step: Int): String {
         val parsed = CompletionPlanBlock.extract(raw)
-        fun invalid(reason: String) = emit(RunEvent.State(now(), "task_progress_invalid", RunEvent.clip(reason)))
+        acceptParsed(parsed, step)
+        return parsed.text
+    }
+
+    /** 处理已解析好的进度块(可能来自文字块,也可能来自被误写成工具调用的 `task_progress` 调用)。返回是否有效。 */
+    fun acceptParsed(parsed: CompletionPlanBlock.Extracted, step: Int): Boolean {
+        var valid = parsed.errors.isEmpty()
+        fun invalid(reason: String) {
+            valid = false
+            emit(RunEvent.State(now(), "task_progress_invalid", RunEvent.clip(reason)))
+        }
         parsed.errors.forEach(::invalid)
         for (update in parsed.updates) {
             val next = try { plan.apply(update) } catch (e: IllegalArgumentException) {
@@ -113,7 +123,7 @@ internal class TaskProgressTracker(private val now: () -> Long, private val emit
             plan = next
             emit(next.event(now()))
         }
-        return parsed.text
+        return valid
     }
 
     private companion object { const val REMINDER_INTERVAL = 3 }
@@ -129,7 +139,7 @@ internal object CompletionPlanBlock {
     private val ROOT_KEYS = setOf("criteria", "metric", "complete", "confirmed")
     private val METRIC_KEYS = setOf("name", "done", "total", "boundary", "scope")
 
-    class Extracted(val text: String, val updates: List<CompletionUpdate>, val errors: List<String>)
+    class Extracted(val text: String, val updates: List<CompletionUpdate>, val errors: List<String>, val stage: Int?)
 
     /** 流式文字也可能只到半个开始标记；完整块和末尾未写完的块都不显示。 */
     fun visible(text: String): String {
@@ -147,27 +157,37 @@ internal object CompletionPlanBlock {
         return if (suffix.length >= 2 && OPEN.startsWith(suffix)) last else -1
     }
 
-    fun extract(text: String): Extracted {
+    fun extract(text: String): Extracted = decode(text, BLOCK.findAll(text).map { it.groupValues[1].trim() })
+
+    fun fromCall(body: String): Extracted = decode("", sequenceOf(body))
+
+    private fun decode(text: String, bodies: Sequence<String>): Extracted {
         val updates = mutableListOf<CompletionUpdate>()
         val errors = mutableListOf<String>()
-        BLOCK.findAll(text).forEach { match ->
-            val body = match.groupValues[1].trim()
+        val stages = mutableSetOf<Int>()
+        bodies.forEach { body ->
             if (body.length > MAX_BLOCK) {
                 errors += "task_progress block is too long"
                 return@forEach
             }
             try {
-                updates += parse(body)
+                val root = Json.parseToJsonElement(body) as? JsonObject ?: throw IllegalArgumentException("task_progress must be a JSON object")
+                val progress = root - "stage"
+                if (progress.isNotEmpty() || "stage" !in root) updates += parse(JsonObject(progress))
+                if ("stage" in root) {
+                    val ordinal = (root["stage"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
+                    require(ordinal != null && ordinal > 0) { "invalid stage ordinal" }
+                    stages += ordinal
+                }
             } catch (e: Exception) {
                 errors += e.message ?: "invalid task_progress block"
             }
         }
         if (incompleteStart(BLOCK.replace(text, "")) >= 0) errors += "unclosed task_progress block"
-        return Extracted(visible(text).trim(), updates, errors)
+        return Extracted(visible(text).trim(), updates, errors, stages.singleOrNull())
     }
 
-    private fun parse(body: String): CompletionUpdate {
-        val root = Json.parseToJsonElement(body) as? JsonObject ?: throw IllegalArgumentException("task_progress must be a JSON object")
+    private fun parse(root: JsonObject): CompletionUpdate {
         require(root.keys.all { it in ROOT_KEYS }) { "unknown task_progress field" }
         val criteria = root["criteria"]?.let { value ->
             val items = value as? JsonArray ?: throw IllegalArgumentException("criteria must be an array")

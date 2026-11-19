@@ -133,6 +133,8 @@ import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 import java.time.DayOfWeek
@@ -884,7 +886,7 @@ internal fun ConversationRowContent(
             Text(title, Modifier.weight(1f, fill = item.site == null), style = ConversationTitle, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (item.site != null) {
                 Text(
-                    PageAskCopy.WEB, Modifier.background(c.accentSoft, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp).testTag("conversation-web"),
+                    PageAskCopy.WEB, Modifier.background(c.accentSoft, RoundedCornerShape(MikaRadius.BubbleTail)).padding(horizontal = 6.dp).testTag("conversation-web"),
                     style = ConversationTag, color = c.accent, maxLines = 1,
                 )
                 Box(Modifier.weight(1f))
@@ -999,11 +1001,11 @@ private class DrawerCardShape(private val progress: Float) : Shape {
         ))
     }
 }
-internal val NavShape = RoundedCornerShape(12.dp)
-private val SectionText = TextStyle(fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium)
-private val ConversationTitle = TextStyle(fontSize = 14.5.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium)
-private val ConversationTime = TextStyle(fontSize = 12.5.sp, lineHeight = 17.sp)
-private val ConversationTag = TextStyle(fontSize = 10.5.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium)
+internal val NavShape = MikaShapes.Chip
+private val SectionText = MikaType.Hint.copy(fontWeight = FontWeight.Medium)
+private val ConversationTitle = MikaType.Body.copy(fontWeight = FontWeight.Medium)
+private val ConversationTime = MikaType.Hint
+private val ConversationTag = MikaType.Micro.copy(fontWeight = FontWeight.Medium)
 
 /**
  * 对话页和它的侧栏:左上角菜单从左边滑出侧栏,外面一层遮罩;点遮罩、往左滑、按返回都关上。
