@@ -181,4 +181,24 @@ class ProjectDrawerUiTest {
         assertEquals(0, compose.onAllNodesWithText("成员聊天").fetchSemanticsNodes().size)
         compose.onNode(hasTestTag("conversation-row") and hasText("独立对话")).assertExists()
     }
+
+    @Test fun archivedListShowsProjectNameForProjectChats() {
+        val project = projects.create("科研项目").getOrThrow()
+        store.append("c-arch", Turn("归档成员", "好", "succeeded"))
+        store.setTitle("c-arch", "归档成员")
+        store.setProject("c-arch", project.id)
+        store.setArchived("c-arch", true)
+        store.append("c-solo", Turn("归档独立", "好", "succeeded"))
+        store.setTitle("c-solo", "归档独立")
+        store.setArchived("c-solo", true)
+
+        val vm = vm()
+        show(vm, drawerOpen = true)
+
+        compose.onNodeWithTag("drawer-archive").performClick()
+        compose.waitForIdle()
+
+        compose.onNode(hasTestTag("conversation-row") and hasText("归档成员") and hasText("科研项目")).assertExists()
+        compose.onNode(hasTestTag("conversation-row") and hasText("归档独立")).assertExists()
+    }
 }

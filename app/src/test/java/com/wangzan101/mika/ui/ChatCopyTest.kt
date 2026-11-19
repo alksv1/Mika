@@ -287,6 +287,7 @@ class ChatCopyTest {
         )
         assertEquals(2, s.projects.size)
         assertEquals(listOf("c-p1-pinned", "c-p1-recent"), s.projects[0].rows.map { it.id })
+        assertEquals(listOf("科研", "科研"), s.projects[0].rows.map { it.projectName })
         assertEquals(emptyList<String>(), s.projects[1].rows.map { it.id })
         assertEquals(listOf("c-solo", "c-orphan"), s.recent.map { it.id })
         assertEquals(setOf("c-p1-pinned", "c-p1-recent", "c-solo", "c-orphan"), drawerSelectableIds(s, emptyList(), archivedView = false))

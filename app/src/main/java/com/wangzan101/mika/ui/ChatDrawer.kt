@@ -176,6 +176,8 @@ data class DrawerConversation(
     val target: ChatTarget? = null,
     /** 所属项目分组 id;未归属项目时为 null。 */
     val projectId: String? = null,
+    /** 所属项目分组名称(用于在已归档、搜索和进行中列表里直接标明归属)。 */
+    val projectName: String? = null,
 )
 
 /** 一次批量归档的结果:归档了几个、几个因为在跑任务或是当前对话没动。 */
@@ -256,32 +258,36 @@ fun drawerSections(
     projects: List<Project> = emptyList(),
 ): DrawerSections {
     val byId = all.associateBy { it.id }
-    val validProjectIds = projects.map { it.id }.toSet()
+    val projectNames = projects.associate { it.id to it.name }
     fun timeOf(id: String?) = byId[id]?.takeIf { it.updatedAt != 0L }?.let { conversationTime(it.updatedAt, now, zone) }.orEmpty()
     fun pinned(id: String?) = byId[id]?.pinnedAt != null
     fun archived(id: String?) = byId[id]?.archivedAt != null
     fun saved(id: String?) = byId[id]?.updatedAt?.let { it != 0L } ?: false
-    fun projectOf(id: String?) = byId[id]?.projectId?.takeIf { it in validProjectIds }
+    fun projectOf(id: String?) = byId[id]?.projectId?.takeIf { it in projectNames }
     val running = buildList {
-        if (current.running) add(DrawerConversation(current.id, current.title.ifBlank { tr(R.string.chat_new) }, current.subtitle, true, true, true, time = timeOf(current.id), pinned = pinned(current.id), site = byId[current.id]?.page?.host, branch = byId[current.id]?.branchOf != null, archived = archived(current.id), saved = saved(current.id), projectId = projectOf(current.id)))
+        if (current.running) {
+            val pid = projectOf(current.id)
+            add(DrawerConversation(current.id, current.title.ifBlank { tr(R.string.chat_new) }, current.subtitle, true, true, true, time = timeOf(current.id), pinned = pinned(current.id), site = byId[current.id]?.page?.host, branch = byId[current.id]?.branchOf != null, archived = archived(current.id), saved = saved(current.id), projectId = pid, projectName = pid?.let(projectNames::get)))
+        }
         others.filter { it != current.id }.distinct().forEach { id ->
             val title = (byId[id]?.title ?: otherTitle(id))?.let(ChatCopy::plainTitle)?.ifBlank { null } ?: tr(R.string.drawer_running_task)
-            add(DrawerConversation(id, title, tr(R.string.drawer_running), running = true, current = false, enabled = canSwitch, time = timeOf(id), pinned = pinned(id), site = byId[id]?.page?.host, branch = byId[id]?.branchOf != null, archived = archived(id), saved = saved(id), projectId = projectOf(id)))
+            val pid = projectOf(id)
+            add(DrawerConversation(id, title, tr(R.string.drawer_running), running = true, current = false, enabled = canSwitch, time = timeOf(id), pinned = pinned(id), site = byId[id]?.page?.host, branch = byId[id]?.branchOf != null, archived = archived(id), saved = saved(id), projectId = pid, projectName = pid?.let(projectNames::get)))
         }
     }
     val runningIds = running.mapNotNull { it.id }.toSet()
     fun entry(s: ConversationSummary): DrawerConversation =
-        drawerEntry(s, current.id, canSwitch, running = s.id in runningIds, time = timeOf(s.id))
+        drawerEntry(s, current.id, canSwitch, running = s.id in runningIds, time = timeOf(s.id), projectName = s.projectId?.let(projectNames::get))
     // 归档的对话不在主列表里;当前正在看的那个例外,不然打开归档对话后不知道自己在哪
     val rest = all.filter { it.id !in runningIds && (it.archivedAt == null || it.id == current.id) }
-    val grouped = rest.filter { it.projectId != null && it.projectId in validProjectIds }.groupBy { it.projectId!! }
+    val grouped = rest.filter { it.projectId != null && it.projectId in projectNames }.groupBy { it.projectId!! }
     val projectGroups = projects.map { project ->
         val rows = grouped[project.id].orEmpty()
             .sortedWith(compareByDescending<ConversationSummary> { it.pinnedAt != null }.thenByDescending { it.pinnedAt ?: 0L }.thenByDescending { it.updatedAt })
             .map(::entry)
         DrawerProjectGroup(project, rows)
     }
-    val standalone = rest.filter { it.projectId == null || it.projectId !in validProjectIds }
+    val standalone = rest.filter { it.projectId == null || it.projectId !in projectNames }
     val pinnedRows = standalone.filter { it.pinnedAt != null }.sortedByDescending { it.pinnedAt }.map(::entry)
     val recent = standalone.asSequence().filter { it.pinnedAt == null }.take(MAX_RECENT).map(::entry).toList()
     return DrawerSections(running, recent, pinnedRows, projectGroups)
@@ -296,13 +302,14 @@ internal fun drawerEntry(
     time: String,
     subtitle: String = "",
     target: ChatTarget? = null,
+    projectName: String? = null,
 ): DrawerConversation {
     val isCurrent = s.id == currentId
     return DrawerConversation(
         s.id, ChatCopy.plainTitle(s.title), subtitle, running, isCurrent, canSwitch || isCurrent, time,
         pinned = s.pinnedAt != null, site = s.page?.host, branch = s.branchOf != null,
         archived = s.archivedAt != null, saved = s.updatedAt != 0L, archivedAt = s.archivedAt, target = target,
-        projectId = s.projectId,
+        projectId = s.projectId, projectName = projectName,
     )
 }
 
@@ -944,11 +951,12 @@ internal fun ConversationRowContent(
 ) {
     val c = MikaTheme.colors
     val title = remember(item.title, terms, c.accent) { highlighted(item.title, terms, c.accent) }
+    val showProjectName = showProjectMark && !item.projectName.isNullOrBlank()
     Column {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             if (item.running) Box(Modifier.size(7.dp).background(c.accent, CircleShape))
             if (item.pinned) Icon(MikaIcons.Pin, stringResource(R.string.drawer_pinned_mark), Modifier.size(14.dp).testTag("conversation-pin"), tint = c.ink3)
-            if (showProjectMark && item.projectId != null) Icon(MikaIcons.Folder, stringResource(R.string.chat_project_shared), Modifier.size(14.dp).testTag("conversation-project"), tint = c.ink3)
+            if (showProjectMark && item.projectId != null && !showProjectName) Icon(MikaIcons.Folder, stringResource(R.string.chat_project_shared), Modifier.size(14.dp).testTag("conversation-project"), tint = c.ink3)
             if (item.branch) Icon(MikaIcons.Route, stringResource(R.string.chat_branch_origin), Modifier.size(14.dp).testTag("conversation-branch"), tint = c.ink3)
             if (item.archived && showArchivedMark) Icon(MikaIcons.Archive, stringResource(R.string.drawer_archived), Modifier.size(14.dp).testTag("conversation-archived"), tint = c.ink3)
             Text(title, Modifier.weight(1f, fill = item.site == null), style = ConversationTitle, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -964,9 +972,26 @@ internal fun ConversationRowContent(
             }
         }
         val sub = item.subtitle.ifEmpty { item.site.orEmpty() }
-        if (sub.isNotEmpty()) {
-            val styled = remember(sub, terms, c.accent) { highlighted(sub, terms, c.accent) }
-            Text(styled, Modifier.padding(top = 2.dp), style = ConversationTime, color = c.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (showProjectName || sub.isNotEmpty()) {
+            Row(
+                Modifier.padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (showProjectName) {
+                    Icon(MikaIcons.Folder, stringResource(R.string.chat_project_shared), Modifier.size(12.dp).testTag("conversation-project"), tint = c.ink2)
+                    Text(
+                        item.projectName!!,
+                        Modifier.weight(1f, fill = false),
+                        style = ConversationTime, color = c.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    if (sub.isNotEmpty()) Text("·", style = ConversationTime, color = c.ink3)
+                }
+                if (sub.isNotEmpty()) {
+                    val styled = remember(sub, terms, c.accent) { highlighted(sub, terms, c.accent) }
+                    Text(styled, Modifier.weight(1f, fill = !showProjectName), style = ConversationTime, color = c.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
         }
     }
 }
@@ -1479,6 +1504,7 @@ fun ChatWithDrawer(
                 val runningIds = remember(others, ui.conversationId, running) {
                     (others + listOfNotNull(ui.conversationId?.takeIf { running })).toSet()
                 }
+                val projectNames = remember(projects) { projects.associate { it.id to it.name } }
                 val searchView = searchOutcome?.takeIf { it.query == query.trim() }?.let { outcome ->
                     DrawerSearch(
                         outcome.hits.mapNotNull { hit ->
@@ -1487,6 +1513,7 @@ fun ChatWithDrawer(
                             drawerEntry(
                                 s, ui.conversationId, canSwitch, running = hit.id in runningIds,
                                 time = time, subtitle = hit.snippet.orEmpty(), target = hit.target,
+                                projectName = s.projectId?.let(projectNames::get),
                             )
                         },
                         outcome.searching,
@@ -1497,8 +1524,8 @@ fun ChatWithDrawer(
                 val sections = remember(all, current, others, canSwitch, deleted, projects) {
                     drawerSections(all.filter { it.id !in deleted }, current, others.filter { it !in deleted }, vm::runningGoal, canSwitch, System.currentTimeMillis(), projects = projects)
                 }
-                // 归档视图里的行:按归档时间倒序,最近收起来的在前;副标题写清归档了多久
-                val archivedRows = remember(all, current, canSwitch, deleted, runningIds) {
+                // 归档视图里的行:按归档时间倒序,最近收起来的在前;副标题写清所属项目和归档了多久
+                val archivedRows = remember(all, current, canSwitch, deleted, runningIds, projectNames) {
                     val now = System.currentTimeMillis()
                     all.filter { it.id !in deleted && it.archivedAt != null }
                         .sortedByDescending { it.archivedAt }
@@ -1507,6 +1534,7 @@ fun ChatWithDrawer(
                                 s, current.id, canSwitch, running = s.id in runningIds,
                                 time = if (s.updatedAt != 0L) conversationTime(s.updatedAt, now) else "",
                                 subtitle = s.archivedAt?.let { archivedAgo(it, now) }.orEmpty(),
+                                projectName = s.projectId?.let(projectNames::get),
                             )
                         }
                 }
