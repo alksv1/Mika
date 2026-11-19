@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 
 internal data class ReadingSection(val title: MdBlock.Heading?, val blocks: List<MdBlock>)
 
@@ -38,7 +40,7 @@ internal fun readingSections(blocks: List<MdBlock>): List<ReadingSection> = buil
 @Composable
 internal fun SkillReadingView(markdown: String) {
     val c = MikaTheme.colors
-    val body = MikaType.Body.copy(color = c.ink2, fontSize = 14.sp, lineHeight = 21.sp)
+    val body = MikaType.Body.copy(color = c.ink2)
     MarkdownDocument(markdown) { blocks ->
         Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Spacer(Modifier.fillMaxWidth().height(1.dp).background(c.hair))
@@ -53,7 +55,7 @@ internal fun SkillReadingView(markdown: String) {
                     label.startsWith("什么时候停下交给用户") -> MikaIcons.Hand
                     else -> null
                 }
-                val panel = if (caution) Modifier.background(c.warnSoft, RoundedCornerShape(10.dp)).padding(12.dp) else Modifier
+                val panel = if (caution) Modifier.background(c.warnSoft, MikaShapes.Tile).padding(12.dp) else Modifier
                 Column(Modifier.fillMaxWidth().then(panel), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (title != null) Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(7.dp)) {

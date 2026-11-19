@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -46,6 +45,9 @@ import com.wangzan101.mika.R
 import com.wangzan101.mika.about.MikaLinks
 import com.wangzan101.mika.ui.theme.LightColors
 import com.wangzan101.mika.ui.theme.LocalMikaColors
+import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -59,29 +61,29 @@ data class ShareRequest(val goal: String, val answer: String)
  */
 @Composable
 fun ShareCardContent(goal: String, answer: String, logo: ImageBitmap, modifier: Modifier = Modifier) {
-    val ink = Color(0xFF1C1C1E)
-    val ink2 = Color(0xFF5F6068)
-    val ink3 = Color(0xFF9A9BA3)
-    Column(modifier.background(Color.White).padding(24.dp)) {
+    val ink = LightColors.ink
+    val ink2 = LightColors.ink2
+    val ink3 = LightColors.ink3
+    Column(modifier.background(LightColors.surface).padding(24.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(logo, null, Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)), contentScale = ContentScale.Crop)
+            Image(logo, null, Modifier.size(40.dp).clip(MikaShapes.Chip), contentScale = ContentScale.Crop)
             Spacer(Modifier.width(10.dp))
-            Text("Mika", fontSize = 18.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold, color = ink)
+            Text("Mika", style = MikaType.Title.copy(fontWeight = FontWeight.Bold), color = ink)
         }
         Spacer(Modifier.height(20.dp))
-        Text(stringResource(R.string.share_card_question), fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0A7CFF))
+        Text(stringResource(R.string.share_card_question), style = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold), color = LightColors.accent)
         Spacer(Modifier.height(3.dp))
-        Text(goal, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold, color = ink)
+        Text(goal, style = MikaType.BodyStrong, color = ink)
         Spacer(Modifier.height(16.dp))
-        Text(stringResource(R.string.share_card_answer), fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.SemiBold, color = ink3)
+        Text(stringResource(R.string.share_card_answer), style = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold), color = ink3)
         Spacer(Modifier.height(6.dp))
-        MarkdownText(answer, TextStyle(fontSize = 14.sp, lineHeight = 21.sp, color = ink2))
+        MarkdownText(answer, MikaType.Body.copy(color = ink2))
         Spacer(Modifier.height(20.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0x12000000)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(LightColors.hair))
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.share_card_made_by), fontSize = 12.sp, lineHeight = 17.sp, color = ink3, modifier = Modifier.weight(1f))
-            Text(MikaLinks.REPO_LABEL, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.SemiBold, color = ink2)
+            Text(stringResource(R.string.share_card_made_by), style = MikaType.Hint, color = ink3, modifier = Modifier.weight(1f))
+            Text(MikaLinks.REPO_LABEL, style = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold), color = ink2)
         }
     }
 }

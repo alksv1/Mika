@@ -72,6 +72,7 @@ import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSpace
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
 import com.wangzan101.mika.voice.HoldToTalk
 import com.wangzan101.mika.voice.VoiceSource
 import kotlinx.coroutines.launch
@@ -205,11 +206,11 @@ fun PersonalAgentScreen(
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = if (user) Alignment.End else Alignment.Start) {
                         if (date != priorDate) {
                             Text(dayFormat.format(date), Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp),
-                                color = c.ink3, fontSize = 11.sp)
+                                color = c.ink3, style = MikaType.Micro)
                             Spacer(Modifier.height(12.dp))
                         }
                         if (task != null) Text(task.title + " · " + personalStatus(task),
-                            Modifier.padding(start = 4.dp, bottom = 6.dp), fontSize = 10.sp, color = c.ink2)
+                            Modifier.padding(start = 4.dp, bottom = 6.dp), style = MikaType.Micro, color = c.ink2)
                         val bubble = Modifier.fillMaxWidth(if (user) 0.8f else 1f)
                             .wrapContentWidth(if (user) Alignment.End else Alignment.Start)
                             .background(if (user) c.accent else c.answer, if (user) MikaShapes.UserBubble else MikaShapes.AnswerBubble)
@@ -219,8 +220,8 @@ fun PersonalAgentScreen(
                         } else {
                             PersonalReply(message.displayText(context), message.error, bubble)
                         }
-                        if (!message.handled) Text(stringResource(R.string.personal_received), Modifier.padding(top = 4.dp, end = 5.dp), fontSize = 10.sp, color = c.ink3)
-                        if (task != null) TextButton(onClick = { selectedTask = task.id }) { Text(stringResource(R.string.personal_view_task), fontSize = 12.sp) }
+                        if (!message.handled) Text(stringResource(R.string.personal_received), Modifier.padding(top = 4.dp, end = 5.dp), style = MikaType.Micro, color = c.ink3)
+                        if (task != null) TextButton(onClick = { selectedTask = task.id }) { Text(stringResource(R.string.personal_view_task), style = MikaType.Hint) }
                     }
                 }
                 item("bottom") { Spacer(Modifier.height(4.dp)) }
@@ -436,7 +437,7 @@ internal fun PersonalProfileTabs(selected: PersonalProfileTab, showIcons: Boolea
         }
         if (stacked) {
             Column(
-                Modifier.fillMaxWidth().selectableGroup().clip(RoundedCornerShape(24.dp)).background(c.fill).padding(3.dp),
+                Modifier.fillMaxWidth().selectableGroup().clip(MikaShapes.Sheet).background(c.fill).padding(3.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 PersonalProfileTab.entries.forEachIndexed { i, tab -> item(tab, labels[i], Modifier.fillMaxWidth()) }
@@ -546,7 +547,7 @@ private fun personalTaskTone(task: PersonalTask): PersonalTaskTone {
 
 @Composable
 private fun PersonalTaskIcon(tone: PersonalTaskTone, label: String?) {
-    Box(Modifier.size(40.dp).background(tone.fill, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(40.dp).background(tone.fill, MikaShapes.Chip), contentAlignment = Alignment.Center) {
         Icon(tone.icon, label, Modifier.size(19.dp), tint = tone.ink)
     }
 }

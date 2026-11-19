@@ -33,6 +33,7 @@ import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.RadioRow
 import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.voice.VoicePlayback
 import com.wangzan101.mika.voice.VoicePlayer
 import kotlinx.coroutines.launch
@@ -58,7 +59,6 @@ fun VoiceModelScreen(store: ProviderStore, onBack: () -> Unit) {
     DisposableEffect(Unit) { onDispose { player.stop() } }
 
     Page(tr(R.string.role_voice), onBack) {
-        Text(tr(R.string.voice_hint), Modifier.padding(top = 4.dp, bottom = 12.dp), fontSize = 14.5.sp, lineHeight = 22.sp, color = c.ink2)
         GroupCard {
             ListRow(
                 null, tr(R.string.voice_enable), tr(R.string.voice_enable_note), first = true,
@@ -77,8 +77,15 @@ fun VoiceModelScreen(store: ProviderStore, onBack: () -> Unit) {
                         subtitle = p.baseUrl,
                         onClick = {
                             val protocol = if (p.kind == ProviderConfig.Kind.Gemini) TtsProtocol.GeminiTts else TtsProtocol.OpenAiSpeech
-                            val speedValue = speed.toFloatOrNull()?.coerceIn(0.25f, 4.0f) ?: 1.0f
-                            settings.setChoice(VoiceChoice(p.id, model, protocol, voice, speedValue))
+                            val switchingProvider = state.choice?.providerId != null && state.choice?.providerId != p.id
+                            val nextModel = if (switchingProvider) "" else model
+                            val nextVoice = if (switchingProvider) "" else voice
+                            val nextSpeed = if (switchingProvider) "1.0" else speed
+                            val speedValue = nextSpeed.toFloatOrNull()?.coerceIn(0.25f, 4.0f) ?: 1.0f
+                            model = nextModel
+                            voice = nextVoice
+                            speed = nextSpeed
+                            settings.setChoice(VoiceChoice(p.id, nextModel, protocol, nextVoice, speedValue))
                             test = null
                         },
                     )

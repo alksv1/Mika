@@ -84,6 +84,8 @@ import com.wangzan101.mika.ui.theme.MikaColors
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
 import kotlinx.coroutines.launch
 
 /** 对话页附件的说法。 */
@@ -284,7 +286,7 @@ private fun RowScope.Tile(icon: ImageVector, label: String, onClick: () -> Unit)
 @Composable
 private fun PanelLink(text: String, onClick: () -> Unit) {
     Text(
-        text, Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 6.dp, vertical = 4.dp),
+        text, Modifier.clip(MikaShapes.Tile).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 6.dp, vertical = 4.dp),
         style = LinkText, color = MikaTheme.colors.accent,
     )
 }
@@ -455,7 +457,7 @@ private fun SentFileCard(f: AttachmentMessage.Item, maxWidth: Dp, onClick: () ->
 /** 文件类型角标:按扩展名配色,上面写扩展名。 */
 @Composable
 private fun TypeBadge(name: String, modifier: Modifier, small: Boolean) {
-    val shape = RoundedCornerShape(if (small) 5.dp else 7.dp)
+    val shape = RoundedCornerShape(if (small) MikaRadius.Micro else MikaRadius.Tile)
     Box(modifier.background(badgeColor(FileBadge.kind(name), MikaTheme.colors), shape), contentAlignment = Alignment.Center) {
         Text(FileBadge.text(name), style = if (small) BadgeSmall else BadgeLarge, color = Color.White, maxLines = 1)
     }
@@ -476,18 +478,18 @@ private const val SINGLE_PX = 640
 
 private val SingleWidth = 200.dp
 private val NeutralBadge = Color(0xFF8E8E93)
-private val TileShape = RoundedCornerShape(16.dp)
-private val GridShape = RoundedCornerShape(12.dp)
-private val CellShape = RoundedCornerShape(6.dp)
-private val ChipShape = RoundedCornerShape(12.dp)
-private val GridPhotoShape = RoundedCornerShape(14.dp)
-private val FileCardShape = RoundedCornerShape(14.dp)
-private val PanelText = TextStyle(fontSize = 13.5.sp, lineHeight = 21.sp)
-private val TileText = TextStyle(fontSize = 12.5.sp, lineHeight = 16.sp)
-private val LinkText = TextStyle(fontSize = 12.5.sp, lineHeight = 16.sp)
-private val BadgeText = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.SemiBold)
-private val BadgeSmall = TextStyle(fontSize = 8.5.sp, lineHeight = 10.sp, fontWeight = FontWeight.Bold)
-private val BadgeLarge = TextStyle(fontSize = 10.5.sp, lineHeight = 12.sp, fontWeight = FontWeight.Bold)
-private val ChipName = TextStyle(fontSize = 12.5.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium)
-private val ChipMeta = TextStyle(fontSize = 11.5.sp, lineHeight = 15.sp)
-private val FileCardName = TextStyle(fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.Medium)
+private val TileShape = MikaShapes.Card
+private val GridShape = MikaShapes.Chip
+private val CellShape = RoundedCornerShape(MikaRadius.BubbleTail)
+private val ChipShape = MikaShapes.Chip
+private val GridPhotoShape = MikaShapes.Button
+private val FileCardShape = MikaShapes.Button
+private val PanelText = MikaType.Caption
+private val TileText = MikaType.Hint
+private val LinkText = MikaType.Hint
+private val BadgeText = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold)
+private val BadgeSmall = MikaType.Micro.copy(fontWeight = FontWeight.Bold)
+private val BadgeLarge = MikaType.Micro.copy(fontWeight = FontWeight.Bold)
+private val ChipName = MikaType.Hint.copy(fontWeight = FontWeight.Medium)
+private val ChipMeta = MikaType.Micro
+private val FileCardName = MikaType.Body.copy(fontWeight = FontWeight.Medium)

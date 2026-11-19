@@ -175,7 +175,7 @@ private fun LocalFunAsr(savedUrl: String?, savedLanguage: AsrLanguage, probe: Li
     var address by remember { mutableStateOf(savedUrl.orEmpty()) }
     var language by remember { mutableStateOf(savedLanguage) }
     val url = FunAsrProtocol.normalize(address)
-    Text(tr(R.string.speech_funasr_setup_hint), Modifier.padding(top = 4.dp, bottom = 4.dp), fontSize = 14.5.sp, lineHeight = 22.sp, color = c.ink2)
+    Text(tr(R.string.speech_funasr_setup_hint), Modifier.padding(top = 4.dp, bottom = 4.dp), style = MikaType.Body, color = c.ink2)
     // 两种模型各怎么部署写在仓库文档里;没有能打开网页的应用时 openUri 会抛错,这时什么都不做
     val uri = LocalUriHandler.current
     Text(
@@ -216,7 +216,7 @@ private fun BailianFunAsr(
     var language by remember { mutableStateOf(savedLanguage) }
     val workspace = BailianProtocol.workspace(workspaceText)
     val modelOk = BailianProtocol.validModel(model)
-    Text(tr(R.string.speech_bailian_setup_hint), Modifier.padding(top = 4.dp, bottom = 4.dp), fontSize = 14.5.sp, lineHeight = 22.sp, color = c.ink2)
+    Text(tr(R.string.speech_bailian_setup_hint), Modifier.padding(top = 4.dp, bottom = 4.dp), style = MikaType.Body, color = c.ink2)
     GroupLabel(tr(R.string.speech_doubao_credentials))
     GroupCard {
         InputRow(
