@@ -22,6 +22,7 @@
     <string name="tool_phone_run">Birkaç telefon eylemi</string>
     <string name="tool_list_device_files">Cihaz dosyalarına göz at</string>
     <string name="tool_copy_device_file">Cihaz dosyasını kopyala</string>
+    <string name="tool_write_device_file">Cihaz dosyasına yaz</string>
     <string name="tool_process_files">Dosyalarla çalış</string>
     <string name="tool_run_script">Yerleşik betiği çalıştır</string>
     <string name="tool_read_file">Dosyayı oku</string>

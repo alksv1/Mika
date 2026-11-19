@@ -23,6 +23,15 @@
     <string name="device_dirs_missing">Klasör bulunamadı</string>
     <string name="device_dirs_denied">Erişim reddedildi</string>
     <string name="device_dirs_unknown">Durum kullanılamıyor</string>
+    <string name="device_dirs_write_authorize">Yazma erişimi</string>
+    <string name="device_dirs_write_select">Klasör seç</string>
+    <string name="device_dirs_write_reselect">Tekrar seç</string>
+    <string name="device_dirs_write_available">Kullanılabilir</string>
+    <string name="device_dirs_write_not_granted">İzin verilmedi</string>
+    <string name="device_dirs_write_restricted">Android tarafından kısıtlandı</string>
+    <string name="device_dirs_write_revoked">İzin iptal edildi</string>
+    <string name="device_dirs_write_read_only">Sağlayıcı salt okunur</string>
+    <string name="device_dirs_write_unknown">Durum kullanılamıyor</string>
     <string name="device_dirs_entry">Klasör ipuçları</string>
     <string name="device_dirs_entry_sub">Mika\'nın indirilen dosyaları bulmasına yardımcı olun</string>
     <string name="device_dirs_source_preset">Ön ayar</string>
