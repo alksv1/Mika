@@ -1,8 +1,8 @@
 package com.wangzan101.mika.core.cap.sandbox
 
 import com.wangzan101.mika.core.model.Part
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
+import com.wangzan101.mika.core.workspace.DeviceFileSearchQuery
+import com.wangzan101.mika.core.workspace.DeviceFileImport
 import com.wangzan101.mika.core.tool.SubActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -154,6 +154,7 @@ internal class SandboxTools(
             put("entries", JsonArray(page.entries.map { e -> buildJsonObject {
                 put("path", e.path); put("name", e.name); put("isDirectory", e.directory); put("writable", e.writable)
                 e.size?.let { put("size", it) }
+                e.displayLocation?.let { put("displayLocation", it) }
             } }))
             put("truncated", page.truncated)
             if (page.entries.isEmpty() && !page.truncated && (path == null || path == "/folders"))

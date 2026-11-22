@@ -57,6 +57,8 @@ import com.wangzan101.mika.core.child.ChildRunHost
 import com.wangzan101.mika.core.userscreen.UserScreenSource
 import java.io.File
 
+private val helperFileTools = DeviceFilesGroup.withSearchAndCopy(searchAndCopyTools(DEVICE_FILES))
+
 /**
  * 一个任务的工具:装上手机、网页、沙箱三种能力和核心工具。这是唯一同时认识几种能力的地方。
  * 没给端口的能力照样装上(工具都不提供),按名字查声明时它们的工具也查得到。root 命令例外:没给端口就整个不装。
@@ -206,7 +208,7 @@ fun toolDispatcher(
                 folderAccess = attendedUi && !spec.readOnly,
                 folderFileImporter = folderFileImporter,
                 // When both sources are available, the helper group already registers the shared tools.
-                folderTools = if (helper == null) DeviceFilesGroup.folderTools else emptyList(),
+                folderTools = if (helper == null) searchAndCopyTools(SANDBOX) else emptyList(),
                 budgetMs = sandboxBudgetMs)
         },
         // 端口为空时整个能力不进装配(任务没明确要发微信)
@@ -245,7 +247,7 @@ fun toolDispatcher(
     }, helper?.let { port ->
         object : CapabilityProvider {
             override val id = DEVICE_FILES
-            override fun open(spec: RunSpec) = DeviceFilesCapability(port, workspace)
+            override fun open(spec: RunSpec) = DeviceFilesCapability(port, workspace, helperFileTools)
         }
     }, pluginScriptRunner?.takeIf { pluginTools.isNotEmpty() }?.let { runner ->
         object : CapabilityProvider {
@@ -298,7 +300,7 @@ fun recordedTools(): ToolIndex = legacyNames().let { legacy -> ToolIndex(allTool
 
 /** Mika 所有可能提供的工具,按发给模型的顺序。 */
 internal fun allTools(): List<AgentTool> =
-    GeneralGroup.tools + PhoneCapability.tools() + WebGroup.tools + SandboxGroup.tools + com.wangzan101.mika.core.cap.audio.AudioGroup.tools + com.wangzan101.mika.core.cap.transcribe.TranscribeGroup.tools + com.wangzan101.mika.core.cap.image.ImageGroup.tools + RootGroup.tools + com.wangzan101.mika.core.calls.callAgentTools + com.wangzan101.mika.core.cap.devicefiles.DeviceFilesGroup.tools + com.wangzan101.mika.core.wechat.wechatOwnerAgentTools
+    GeneralGroup.tools + PhoneCapability.tools() + WebGroup.tools + SandboxGroup.tools + com.wangzan101.mika.core.cap.audio.AudioGroup.tools + com.wangzan101.mika.core.cap.transcribe.TranscribeGroup.tools + com.wangzan101.mika.core.cap.image.ImageGroup.tools + RootGroup.tools + com.wangzan101.mika.core.calls.callAgentTools + helperFileTools + com.wangzan101.mika.core.wechat.wechatOwnerAgentTools
 
 /** Mika 所有可能提供的工具的声明。 */
 fun knownTools(): ToolIndex = ToolIndex(allTools())

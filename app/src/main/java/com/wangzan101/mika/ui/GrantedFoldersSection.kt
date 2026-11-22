@@ -39,7 +39,7 @@ internal class FolderGrantPicker(write: Boolean) : ActivityResultContract<Unit, 
 @Composable
 internal fun GrantedFoldersSection() {
     val context = LocalContext.current
-    val folders = remember(context) { GrantedFolderFiles(context.applicationContext.contentResolver) }
+    val folders = remember(context) { GrantedFolderFiles(context.applicationContext) }
     val scope = rememberCoroutineScope()
     val refreshLock = remember { Mutex() }
     var grants by remember { mutableStateOf<List<GrantedFolderFiles.Grant>>(emptyList()) }
@@ -64,11 +64,12 @@ internal fun GrantedFoldersSection() {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh() }
     GroupCard {
         grants.forEachIndexed { index, grant ->
-            ListRow(null, grant.name, stringResource(when {
+            val access = stringResource(when {
                 !grant.available -> R.string.folder_grant_unavailable
                 grant.writable -> R.string.folder_grant_writable
                 else -> R.string.folder_grant_readonly
-            }), first = index == 0) {
+            })
+            ListRow(null, grant.name, access, detail = grant.displayLocation, first = index == 0) {
                 TextButton(enabled = !busy, onClick = { refresh { folders.revoke(grant.uri) } }) {
                     Text(stringResource(R.string.folder_grant_revoke))
                 }

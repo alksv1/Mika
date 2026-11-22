@@ -11,7 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.wangzan101.mika.ChineseUi
 import com.wangzan101.mika.core.assembly.toolDispatcher
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
+import com.wangzan101.mika.core.workspace.DeviceFileSearchQuery
 import com.wangzan101.mika.core.cap.sandbox.FolderFiles
 import com.wangzan101.mika.core.cap.sandbox.FolderFileImporter
 import com.wangzan101.mika.core.cap.sandbox.SandboxStatus
@@ -46,7 +46,7 @@ class GrantedFolderFilesDeviceTest {
     @get:Rule val compose = createComposeRule()
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
-    private val folders = GrantedFolderFiles(context.contentResolver)
+    private val folders = GrantedFolderFiles(context)
     private val testName = "MikaFolderTest645"
 
     @Test fun pickerIntersectsRequestedAndReturnedAccess() {
@@ -77,7 +77,7 @@ class GrantedFolderFilesDeviceTest {
         val grant = folders.grants().single { it.name == testName }
         try {
             assertTrue(grant.available && grant.writable)
-            assertEquals(grant.path, GrantedFolderFiles(context.contentResolver).grants().single { it.name == testName }.path)
+            assertEquals(grant.path, GrantedFolderFiles(context).grants().single { it.name == testName }.path)
             compose.waitUntil(10_000) { compose.onAllNodesWithText(testName).fetchSemanticsNodes().isNotEmpty() }
             snapshot("authorized")
             val screen = Proxy.newProxyInstance(ScreenPort::class.java.classLoader, arrayOf(ScreenPort::class.java)) { _, m, _ ->
@@ -156,7 +156,7 @@ class GrantedFolderFilesDeviceTest {
             }
             // Simulate choosing the same tree with the read-only picker; only the persisted read bit remains.
             folders.authorize(grant.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            assertFalse(GrantedFolderFiles(context.contentResolver).grants().single { it.uri == grant.uri }.writable)
+            assertFalse(GrantedFolderFiles(context).grants().single { it.uri == grant.uri }.writable)
             val copied = tool("copy_device_file", buildJsonObject { put("path", binaryPath) })
             assertEquals(copied.toString(), JsonPrimitive(true), copied["ok"])
             val target = copied.getValue("path").jsonPrimitive.content

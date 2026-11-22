@@ -1,17 +1,20 @@
 package com.wangzan101.mika.cap.sandbox
 
-import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.CancellationSignal
+import android.os.Environment
 import android.os.OperationCanceledException
 import android.os.SystemClock
+import android.os.storage.StorageManager
 import android.provider.DocumentsContract as Docs
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchResult
+import com.wangzan101.mika.core.workspace.DeviceFileEntry
+import com.wangzan101.mika.core.workspace.DeviceFileSearchQuery
+import com.wangzan101.mika.core.workspace.DeviceFileSearchResult
 import com.wangzan101.mika.core.cap.sandbox.FolderEntry
 import com.wangzan101.mika.core.cap.sandbox.FolderFiles
 import com.wangzan101.mika.core.cap.sandbox.FolderPage
@@ -26,9 +29,31 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
-/** SAF grants are the authority. No raw storage paths, helper privileges or Linux mounts. */
-class GrantedFolderFiles(private val resolver: ContentResolver) : FolderFiles {
-    data class Grant(val uri: Uri, val path: String, val name: String, val writable: Boolean, val available: Boolean, val canCreate: Boolean)
+/** A display label from a known system provider. File operations always use the SAF grant. */
+internal fun grantedFolderLocation(authority: String?, documentId: String, volumeRoot: (String) -> String?): String? {
+    val location = when (authority) {
+        "com.android.externalstorage.documents" -> {
+            val split = documentId.indexOf(':')
+            if (split < 1) return null
+            val root = volumeRoot(documentId.substring(0, split)) ?: return null
+            val relative = documentId.substring(split + 1)
+            if (relative.isEmpty()) root else "$root/$relative"
+        }
+        "com.android.providers.downloads.documents" -> {
+            if (!documentId.startsWith("raw:/")) return null
+            documentId.removePrefix("raw:")
+        }
+        else -> return null
+    }
+    if (!location.startsWith('/') || location.any { it.isISOControl() || it == '\\' }) return null
+    return location.takeUnless { it.drop(1).split('/').any { part -> part.isEmpty() || part == "." || part == ".." } }
+}
+
+/** SAF grants are the authority. Display locations are never used for access. */
+class GrantedFolderFiles(private val context: Context) : FolderFiles {
+    private val resolver get() = context.contentResolver
+    data class Grant(val uri: Uri, val path: String, val name: String, val writable: Boolean, val available: Boolean,
+                     val canCreate: Boolean, val displayLocation: String?)
     private data class Doc(val id: String, val name: String, val mime: String, val flags: Int, val size: Long?, val modified: Long?) {
         val directory get() = mime == Docs.Document.MIME_TYPE_DIR
         val writable get() = flags and (if (directory) Docs.Document.FLAG_DIR_SUPPORTS_CREATE else Docs.Document.FLAG_SUPPORTS_WRITE) != 0
@@ -40,8 +65,18 @@ class GrantedFolderFiles(private val resolver: ContentResolver) : FolderFiles {
             val doc = try { metadata(document(uri, Docs.getTreeDocumentId(uri))) } catch (_: Exception) { null }
             val available = doc?.directory == true
             Grant(uri, rootPath(uri), doc?.name ?: uri.lastPathSegment.orEmpty(), permission.isWritePermission, available,
-                available && permission.isWritePermission && doc?.writable == true)
+                available && permission.isWritePermission && doc?.writable == true,
+                doc?.takeIf { it.directory }?.let { grantedFolderLocation(uri.authority, it.id, ::volumeRoot) })
         }
+    }
+
+    private fun volumeRoot(id: String): String? {
+        if (id == "primary") return Environment.getExternalStorageDirectory().absolutePath
+        if (Build.VERSION.SDK_INT < 30) return null
+        return try {
+            context.getSystemService(StorageManager::class.java)?.storageVolumes
+                ?.firstOrNull { it.uuid?.equals(id, ignoreCase = true) == true }?.directory?.absolutePath
+        } catch (_: SecurityException) { null }
     }
 
     fun authorize(uri: Uri, flags: Int) = guarded {
@@ -64,7 +99,7 @@ class GrantedFolderFiles(private val resolver: ContentResolver) : FolderFiles {
 
     override fun list(path: String?): FolderPage = guarded {
         if (path == null || path == "/folders") return@guarded FolderPage(grants().map {
-            FolderEntry(it.path, it.name, true, it.canCreate)
+            FolderEntry(it.path, it.name, true, it.canCreate, displayLocation = it.displayLocation)
         })
         val (tree, parts) = resolveGrant(path)
         val parent = descend(tree, parts)

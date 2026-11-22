@@ -9,12 +9,12 @@ import com.wangzan101.mika.cap.sandbox.WorkspaceKey
 import com.wangzan101.mika.settings.DeviceDirectory
 import com.wangzan101.mika.settings.DeviceDirectoryStore
 import com.wangzan101.mika.core.cap.devicefiles.DeviceDirectoryHint
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileEntry
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
+import com.wangzan101.mika.core.workspace.DeviceFileEntry
+import com.wangzan101.mika.core.workspace.DeviceFileImport
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFilePage
 import com.wangzan101.mika.core.cap.devicefiles.DeviceFilesPort
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchResult
+import com.wangzan101.mika.core.workspace.DeviceFileSearchQuery
+import com.wangzan101.mika.core.workspace.DeviceFileSearchResult
 import com.wangzan101.mika.core.workspace.SandboxError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

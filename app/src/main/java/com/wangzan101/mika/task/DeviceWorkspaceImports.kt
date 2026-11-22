@@ -7,7 +7,7 @@ import com.wangzan101.mika.cap.sandbox.AndroidSandbox
 import com.wangzan101.mika.cap.sandbox.Attachments
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.cap.sandbox.WorkspaceKey
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
+import com.wangzan101.mika.core.workspace.DeviceFileImport
 import com.wangzan101.mika.core.workspace.SandboxError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex

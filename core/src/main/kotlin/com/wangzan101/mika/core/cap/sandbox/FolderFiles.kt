@@ -1,13 +1,14 @@
 package com.wangzan101.mika.core.cap.sandbox
 
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileImport
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchQuery
-import com.wangzan101.mika.core.cap.devicefiles.DeviceFileSearchResult
+import com.wangzan101.mika.core.workspace.DeviceFileImport
+import com.wangzan101.mika.core.workspace.DeviceFileSearchQuery
+import com.wangzan101.mika.core.workspace.DeviceFileSearchResult
 import com.wangzan101.mika.core.workspace.SandboxError
 import java.security.MessageDigest
 
 /** Opaque /folders paths are tool identifiers, never Linux mount points or host paths. */
-data class FolderEntry(val path: String, val name: String, val directory: Boolean, val writable: Boolean, val size: Long? = null)
+data class FolderEntry(val path: String, val name: String, val directory: Boolean, val writable: Boolean,
+                       val size: Long? = null, val displayLocation: String? = null)
 data class FolderPage(val entries: List<FolderEntry>, val truncated: Boolean = false)
 
 fun interface FolderFileImporter {
