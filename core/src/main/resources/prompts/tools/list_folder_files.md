@@ -1,1 +1,1 @@
-List folders explicitly granted by the user, or up to 200 immediate children of a returned /folders directory. Returns paths, names, read/write status and truncation. These identifiers are not Linux paths.
+List folders granted through the system picker, or up to 200 immediate children of a returned /folders directory. Returns paths, names, writability and truncation. Use the returned paths with file tools.

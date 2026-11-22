@@ -1,5 +1,8 @@
 package com.wangzan101.mika.core.cap.devicefiles
 
+import com.wangzan101.mika.core.cap.sandbox.FolderFiles
+import com.wangzan101.mika.core.cap.sandbox.SANDBOX
+import com.wangzan101.mika.core.cap.sandbox.sandboxRunner
 import com.wangzan101.mika.core.capability.Capability
 import com.wangzan101.mika.core.capability.CapabilityKey
 import com.wangzan101.mika.core.capability.CapabilityStatus
@@ -62,25 +65,36 @@ private object ListDeviceFiles : DeviceFileTool {
     }
 }
 
-private object CopyDeviceFile : DeviceFileTool {
+private fun unavailable(source: String): Nothing =
+    throw SandboxError("device_access_denied", "$source access is unavailable for this task.", true)
+
+private class CopyDeviceFile(override val capability: String) : DeviceFileTool {
+    override fun available(ctx: ToolContext) = super.available(ctx) || ctx.sandboxRunner?.folderImportAvailable == true
     override val verb = Verb.CopyDeviceFile
     override val label = "复制设备文件"
     override val risk = Risk.Write
     override val logged = true
     override val wideTarget = true
     override val def = ToolDef("copy_device_file", Prompts.tool("copy_device_file"), mapOf(
-        "path" to str("Source file identifier from list_device_files."),
+        "path" to str("File path returned by a device folder listing or search."),
     ), listOf("path"))
     override fun logTarget(o: JsonObject, r: ToolExecution, ctx: ToolContext) = o.argStr("path")
     override suspend fun execute(a: Args, ctx: ToolContext): ToolExecution = guarded {
         val source = a.str("path", max = 4096)!!
-        val cap = ctx[DeviceFilesCapability.KEY]!!
-        val imported = cap.port.importFile(source, cap.workspace())
-        ToolExecution(buildJsonObject { put("ok", true); put("path", imported.path); put("bytesCopied", imported.size) })
+        val imported = if (FolderFiles.owns(source)) {
+            ctx.sandboxRunner?.importFolderFile(source) ?: unavailable("System folder")
+        } else {
+            val helper = ctx[DeviceFilesCapability.KEY] ?: unavailable("Phone helper")
+            helper.port.importFile(source, helper.workspace())
+        }
+        ToolExecution(buildJsonObject {
+            put("ok", true); put("path", imported.path); put("bytesCopied", imported.size)
+        }, followUpTools = listOf(Verb.ReadFile))
     }
 }
 
-private object SearchDeviceFiles : DeviceFileTool {
+private class SearchDeviceFiles(override val capability: String) : DeviceFileTool {
+    override fun available(ctx: ToolContext) = super.available(ctx) || ctx.sandboxRunner?.foldersAvailable == true
     override val verb = Verb.SearchDeviceFiles
     override val label = "搜索设备文件"
     override val risk = Risk.Read
@@ -95,7 +109,12 @@ private object SearchDeviceFiles : DeviceFileTool {
     override suspend fun execute(a: Args, ctx: ToolContext): ToolExecution = guarded {
         fun timestamp(key: String): Long? = a.str(key, max = 19)?.let { it.toLongOrNull()?.takeIf { n -> n >= 0 } ?: throw SandboxError("invalid", "Invalid timestamp.", true) }
         val query = DeviceFileSearchQuery(a.str("path", max = 4096)!!, a.str("name", max = 255), a.str("extension", max = 255), timestamp("modified_after"), timestamp("modified_before"), a.int("max_depth", 0, 10) ?: 3, a.int("max_entries", 1, 5000) ?: 1000, a.int("timeout_ms", 1, 5000) ?: 2000)
-        val result = ctx[DeviceFilesCapability.KEY]!!.port.search(query)
+        val result = if (FolderFiles.owns(query.path)) {
+            ctx.sandboxRunner?.searchFolders(query) ?: unavailable("System folder")
+        } else {
+            val helper = ctx[DeviceFilesCapability.KEY] ?: unavailable("Phone helper")
+            helper.port.search(query)
+        }
         ToolExecution(buildJsonObject {
             put("ok", true); put("visited", result.visited); put("truncated", result.truncated)
             result.reason?.let { put("reason", it) }
@@ -125,4 +144,8 @@ private object UpdateDirectoryDescription : DeviceFileTool {
     }
 }
 
-internal object DeviceFilesGroup { val tools: List<AgentTool> = listOf(ListDeviceFiles, SearchDeviceFiles, CopyDeviceFile, ListDirectoryHints, UpdateDirectoryDescription) }
+internal object DeviceFilesGroup {
+    private fun searchAndCopy(owner: String) = listOf(SearchDeviceFiles(owner), CopyDeviceFile(owner))
+    val folderTools: List<AgentTool> = searchAndCopy(SANDBOX)
+    val tools: List<AgentTool> = listOf(ListDeviceFiles) + searchAndCopy(DEVICE_FILES) + listOf(ListDirectoryHints, UpdateDirectoryDescription)
+}

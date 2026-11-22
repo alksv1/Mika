@@ -70,7 +70,7 @@ class FolderFilesTest {
         val r = dispatcher().execute(call("share_file", buildJsonObject {
             put("path", "/workspace/summary.md"); put("folderPath", "/folders/test/summary.md")
         }), ActionPass()).content
-        assertEquals(JsonPrimitive(true), r["ok"])
+        assertEquals(r.toString(), JsonPrimitive(true), r["ok"])
         assertEquals(JsonPrimitive("/folders/test/summary.md"), r["savedAs"])
         assertTrue(fake.shared.isEmpty())
         assertEquals(1, port.writes)
