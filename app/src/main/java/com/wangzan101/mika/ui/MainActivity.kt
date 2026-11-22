@@ -19,6 +19,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
+import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -48,7 +50,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.platform.LocalContext
@@ -101,6 +102,7 @@ class MainActivity : ComponentActivity() {
     private var shareSerial = 0L
     private var shareInCurrent = false
     private var shareHandled = false
+    private var verifiedShareUri: String? = null
 
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         // 用户选过「不再询问」时系统不再弹窗,只能去设置里打开
@@ -126,6 +128,7 @@ class MainActivity : ComponentActivity() {
         takeTeach(intent)
         shareInCurrent = savedInstanceState?.getBoolean(STATE_SHARE_IN_CURRENT, false) ?: false
         shareHandled = savedInstanceState?.getBoolean(STATE_SHARE_HANDLED, false) ?: false
+        verifiedShareUri = savedInstanceState?.getString(STATE_VERIFIED_SHARE_URI)
         // 已处理完的分享在旋转/重建时不重复触发;真正的冷启动分享或尚未完成的后台分享继续收下。
         if (!shareHandled && (savedInstanceState == null || intent.action == Intent.ACTION_SEND)) {
             receiveShare(intent, inCurrentConversation = shareInCurrent)
@@ -150,7 +153,7 @@ class MainActivity : ComponentActivity() {
                             // 处理完后换掉 intent,避免后续旋转屏幕再次把这次分享当成新分享或重复弹失败提示。
                             setIntent(Intent(this@MainActivity, MainActivity::class.java))
                             if (!accepted) {
-                                (application as MikaApp).sharedDrafts.discard(draft.image)
+                                (application as MikaApp).sharedDrafts.discard(draft.attachment)
                                 Toast.makeText(this@MainActivity, R.string.share_draft_failed, Toast.LENGTH_SHORT).show()
                             }
                         },
@@ -164,7 +167,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
+        if (Build.VERSION.SDK_INT >= 35) {
+            setIntent(intent, runCatching { currentCaller }.getOrNull())
+        } else {
+            setIntent(intent)
+        }
         val app = application as MikaApp
         shareJob?.cancel()
         requestedConversation = intent.getStringExtra(EXTRA_OPEN_CONVERSATION)
@@ -175,11 +182,12 @@ class MainActivity : ComponentActivity() {
         }
         takeVoiceCall(intent)
         takeTeach(intent)
-        requestedSharedDraft?.let { app.sharedDrafts.discard(it.draft.image) }
+        requestedSharedDraft?.let { app.sharedDrafts.discard(it.draft.attachment) }
         requestedSharedDraft = null
         // 界面已在后台存活时收到分享:放入当前打开的会话,而不是新建会话。
         shareInCurrent = true
         shareHandled = false
+        verifiedShareUri = null
         receiveShare(intent, inCurrentConversation = true)
     }
 
@@ -187,6 +195,7 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_SHARE_IN_CURRENT, shareInCurrent)
         outState.putBoolean(STATE_SHARE_HANDLED, shareHandled)
+        if (!shareHandled) outState.putString(STATE_VERIFIED_SHARE_URI, verifiedShareUri)
     }
 
     private fun rejectShare() {
@@ -196,43 +205,51 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun receiveShare(intent: Intent, inCurrentConversation: Boolean) {
+        if (intent.action == Intent.ACTION_SEND_MULTIPLE) return rejectShare()
         if (intent.action != Intent.ACTION_SEND) return
         shareJob?.cancel()
-        val type = intent.type.orEmpty()
-        val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
+        val clip = intent.clipData
+        if ((clip?.itemCount ?: 0) > 1) return rejectShare()
+        val item = clip?.takeIf { it.itemCount == 1 }?.getItemAt(0)
+        val type = intent.type?.substringBefore(';')?.trim()?.lowercase()
+        val text = (intent.getCharSequenceExtra(Intent.EXTRA_TEXT) ?: item?.text)?.toString().orEmpty()
         if (text.length > SharedDraftStore.MAX_TEXT_CHARS) {
             rejectShare()
             return
         }
-        when {
-            type == "text/plain" -> {
-                if (text.isBlank()) {
-                    rejectShare()
-                    return
-                }
-                requestedSharedDraft = SharedDraftRequest(SharedDraft("", text), ++shareSerial, inCurrentConversation)
-            }
-            type.startsWith("image/") -> {
-                val uri = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                    else @Suppress("DEPRECATION") intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-                if (uri == null || (intent.clipData?.itemCount ?: 0) > 1) {
-                    rejectShare()
-                    return
-                }
-                shareJob = lifecycleScope.launch {
-                    val prepared = try {
-                        SharedDraftImporter(this@MainActivity, (application as MikaApp).sharedDrafts).image(text, uri, type)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        null
-                    }
-                    if (prepared == null) rejectShare()
-                    else requestedSharedDraft = SharedDraftRequest(prepared, ++shareSerial, inCurrentConversation)
-                }
-            }
-            else -> rejectShare()
+        val stream = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            else @Suppress("DEPRECATION") (intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri)
+        if (intent.hasExtra(Intent.EXTRA_STREAM) && stream == null) return rejectShare()
+        val clipUri = item?.uri
+        if (stream != null && clipUri != null && stream != clipUri) return rejectShare()
+        val uri = stream ?: clipUri
+        if (uri == null) {
+            if (type != "text/plain" || text.isBlank()) return rejectShare()
+            requestedSharedDraft = SharedDraftRequest(SharedDraft("", text), ++shareSerial, inCurrentConversation)
+            return
         }
+        if (verifiedShareUri != uri.toString() && !shareCanRead(intent, uri, clipUri)) return rejectShare()
+        verifiedShareUri = uri.toString()
+        shareJob = lifecycleScope.launch {
+            val prepared = SharedDraftImporter(this@MainActivity, (application as MikaApp).sharedDrafts)
+                .attachment(text, uri, type)
+            if (prepared == null) rejectShare()
+            else requestedSharedDraft = SharedDraftRequest(prepared, ++shareSerial, inCurrentConversation)
+        }
+    }
+
+    /** 检查分享方的读取权，避免用 Mika 的相册或文件夹权限代读任意 URI。 */
+    private fun shareCanRead(intent: Intent, uri: Uri, clipUri: Uri?): Boolean {
+        if (uri.scheme != "content") return false
+        val read = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= 35) {
+                caller?.let { return@runCatching it.checkContentUriPermission(uri, read) == PackageManager.PERMISSION_GRANTED }
+            }
+            // 旧系统无法查询启动方，只接受带有读取标志、并且 Mika 确实有 URI 授权的内容。
+            (intent.flags and read) != 0 && (clipUri == uri || intent.data == uri) &&
+                checkUriPermission(uri, Process.myPid(), Process.myUid(), read) == PackageManager.PERMISSION_GRANTED
+        }.getOrDefault(false)
     }
 
     private var updateWatch: Job? = null
@@ -271,7 +288,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         shareJob?.cancel()
         // 还没绑到对话的私有副本随这次接收结束清掉;已接受的草稿由 CurrentChat 恢复,不在这里删除。
-        requestedSharedDraft?.let { (application as MikaApp).sharedDrafts.discard(it.draft.image) }
+        requestedSharedDraft?.let { (application as MikaApp).sharedDrafts.discard(it.draft.attachment) }
         requestedSharedDraft = null
         if (isFinishing) {
             (application as MikaApp).chat.cancelPendingSharedDraft()
@@ -370,6 +387,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN_VOICE_CALL = "open_voice_call"
         private const val STATE_SHARE_IN_CURRENT = "share_in_current"
         private const val STATE_SHARE_HANDLED = "share_handled"
+        private const val STATE_VERIFIED_SHARE_URI = "verified_share_uri"
         private const val TAG = "MikaMain"
 
         /** 主界面(聊天)此刻是否在前台可见。任务完成时据此决定要不要弹完成通知(#731)。 */
