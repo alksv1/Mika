@@ -230,7 +230,7 @@ private fun TriggerRunLimitDialog(current: Int?, onPick: (Int?) -> Unit, onDismi
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = null,
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

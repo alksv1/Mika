@@ -175,6 +175,7 @@ fun RecommendedTasksScreen(store: RecommendedTaskStore, onBack: () -> Unit, onPi
                 }, Modifier.testTag("recommendations-delete")) { Text(stringResource(R.string.recommendations_delete)) }
             },
             dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
     if (resetting) {
@@ -192,6 +193,7 @@ fun RecommendedTasksScreen(store: RecommendedTaskStore, onBack: () -> Unit, onPi
                 }, Modifier.testTag("recommendations-reset")) { Text(stringResource(R.string.recommendations_reset)) }
             },
             dismissButton = { TextButton({ resetting = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

@@ -150,10 +150,10 @@ fun MikaButton(
     }
     Box(
         modifier
+            .alpha(if (enabled) 1f else 0.45f)
             .then(if (kind == ButtonKind.Secondary) Modifier.cardSurface(c, shape) else Modifier.background(bg, shape))
             .clip(shape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .alpha(if (enabled) 1f else 0.45f)
             .height(size.height)
             .padding(horizontal = size.padding),
         contentAlignment = Alignment.Center,

@@ -202,6 +202,7 @@ fun BackupScreen(onBack: () -> Unit) {
                     Text(stringResource(R.string.cancel))
                 }
             },
+            destructive = true,
         )
     }
 

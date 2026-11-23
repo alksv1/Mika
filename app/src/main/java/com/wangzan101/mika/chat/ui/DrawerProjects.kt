@@ -184,5 +184,6 @@ internal fun DeleteProjectDialog(
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        destructive = true,
     )
 }

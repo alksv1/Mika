@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -52,7 +56,8 @@ fun SubPage(
         Column(Modifier.fillMaxSize()) {
             TopBar(title, MikaIcons.Back, onBack, stringResource(R.string.back), right = right)
             Column(
-                modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()
+                modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                 content = content,
             )

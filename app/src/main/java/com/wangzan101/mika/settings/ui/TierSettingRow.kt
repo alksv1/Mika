@@ -49,7 +49,7 @@ internal fun TierSettingRow(
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = null,
         dismissButton = { TextButton(onClick = { editing = false }) { Text(stringResource(R.string.cancel)) } },
     )
 }

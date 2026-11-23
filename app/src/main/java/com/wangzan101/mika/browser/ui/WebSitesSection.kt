@@ -111,6 +111,7 @@ fun WebSitesSection(state: WebSitesState, labeled: Boolean = true) {
                 }
             },
             dismissButton = { TextButton({ confirmAll = false }) { Text(tr(R.string.cancel)) } },
+            destructive = true,
         )
     }
 

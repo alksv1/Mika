@@ -227,6 +227,7 @@ fun MemoryScreen(
             text = { Text(if (ui.clearStage == 1) stringResource(R.string.memory_clear_body) else stringResource(R.string.memory_clear_final)) },
             confirmButton = { TextButton(vm::confirmClear, Modifier.testTag("confirm-clear")) { Text(if (ui.clearStage == 1) stringResource(R.string.chat_continue) else stringResource(R.string.routes_clear_all)) } },
             dismissButton = { TextButton(vm::cancelClear) { Text(stringResource(R.string.cancel)) } },
+            destructive = ui.clearStage == 2,
         )
     }
 }

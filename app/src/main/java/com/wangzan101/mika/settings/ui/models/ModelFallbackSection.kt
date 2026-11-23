@@ -326,6 +326,7 @@ internal fun FallbackSection(
                     Text(stringResource(R.string.cancel))
                 }
             },
+            destructive = true,
         )
     }
 

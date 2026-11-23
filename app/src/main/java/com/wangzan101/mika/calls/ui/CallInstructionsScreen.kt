@@ -59,7 +59,7 @@ internal fun CallInstructionsScreen(runtime: CallRuntime, onBack: () -> Unit) {
     BackHandler { if (draft != null) draft = null else onBack() }
 
     PageScaffold(stringResource(R.string.call_instructions_title), onBack,
-        Modifier.testTag("call-instructions").imePadding()) {
+        Modifier.testTag("call-instructions")) {
         FooterNote(stringResource(R.string.call_instructions_intro))
         MikaButton(stringResource(R.string.call_instructions_add), {
             draft = CallInstruction("", "", "", "")

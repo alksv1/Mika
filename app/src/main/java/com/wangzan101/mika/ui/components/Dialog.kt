@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,8 +40,9 @@ fun MikaDialog(
     modifier: Modifier = Modifier,
     title: (@Composable () -> Unit)? = null,
     text: (@Composable () -> Unit)? = null,
-    confirmButton: @Composable () -> Unit = {},
+    confirmButton: (@Composable () -> Unit)? = null,
     dismissButton: (@Composable () -> Unit)? = null,
+    destructive: Boolean = false,
     properties: DialogProperties = DialogProperties(),
 ) {
     val c = MikaTheme.colors
@@ -64,11 +66,24 @@ fun MikaDialog(
             }
         },
         confirmButton = {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (dismissButton != null) {
-                    DialogAction(Modifier.weight(1f), c.fill) { dismissButton() }
+            if (dismissButton != null || confirmButton != null) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (dismissButton != null) {
+                        DialogAction(Modifier.weight(1f), c.fill) { dismissButton() }
+                    }
+                    if (confirmButton != null) {
+                        val confirmBg = if (destructive) c.badSoft else c.accentSoft
+                        DialogAction(Modifier.weight(1f), confirmBg) {
+                            if (destructive) {
+                                MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = c.bad)) {
+                                    confirmButton()
+                                }
+                            } else {
+                                confirmButton()
+                            }
+                        }
+                    }
                 }
-                DialogAction(Modifier.weight(1f), c.accentSoft) { confirmButton() }
             }
         },
         shape = MikaShapes.Sheet,

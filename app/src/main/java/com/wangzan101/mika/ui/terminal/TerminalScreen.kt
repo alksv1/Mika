@@ -245,6 +245,7 @@ private fun TerminalScreen(
             dismissButton = {
                 TextButton({ confirmClose = false }) { Text(tr(R.string.cancel)) }
             },
+            destructive = true,
         )
     }
 }

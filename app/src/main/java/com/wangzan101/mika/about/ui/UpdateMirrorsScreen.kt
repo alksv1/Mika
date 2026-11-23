@@ -190,6 +190,7 @@ fun UpdateMirrorsScreen(store: UpdateMirrorStore, onBack: () -> Unit) {
                 }, Modifier.testTag("mirror-delete")) { Text(stringResource(R.string.about_mirrors_delete)) }
             },
             dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
     if (resetting) {
@@ -206,6 +207,7 @@ fun UpdateMirrorsScreen(store: UpdateMirrorStore, onBack: () -> Unit) {
                 }, Modifier.testTag("mirrors-reset")) { Text(stringResource(R.string.about_mirrors_reset)) }
             },
             dismissButton = { TextButton({ resetting = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

@@ -307,6 +307,7 @@ fun WechatSettingsScreen(runtime: WechatRuntime, onBack: () -> Unit) {
                 }) { Text(stringResource(R.string.wechat_unbind), color = MikaTheme.colors.bad) }
             },
             dismissButton = { TextButton({ confirmUnbind = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

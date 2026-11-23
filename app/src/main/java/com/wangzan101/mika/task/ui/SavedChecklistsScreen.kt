@@ -131,6 +131,7 @@ internal fun SavedChecklistsScreen(
                 }
             }, enabled = !busy, modifier = Modifier.testTag("checklist-delete")) { Text(stringResource(R.string.recommendations_delete)) } },
             dismissButton = { TextButton({ deleting = null }, enabled = !busy) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }
@@ -175,14 +176,12 @@ private fun ChecklistActionDialog(current: ChecklistRevision, update: Boolean, o
         title = { Text(stringResource(if (update) R.string.checklist_update else R.string.checklist_reuse)) },
         text = { OutlinedTextField(text, { text = it }, label = { Text(stringResource(if (update) R.string.checklist_supplement else R.string.checklist_next)) },
             minLines = 3, maxLines = 6, modifier = Modifier.fillMaxWidth().testTag("checklist-action-input")) },
-        confirmButton = {
-            if (onUse != null) {
-                TextButton({
-                    onUse(if (update) context.getString(R.string.checklist_update_prompt, current.body, text.trim())
-                        else context.getString(R.string.checklist_reuse_prompt, text.trim(), current.title, current.body))
-                }, enabled = text.isNotBlank(), modifier = Modifier.testTag("checklist-action-apply")) { Text(stringResource(R.string.checklist_fill_input)) }
-            }
-        },
+        confirmButton = if (onUse != null) ({
+            TextButton({
+                onUse(if (update) context.getString(R.string.checklist_update_prompt, current.body, text.trim())
+                    else context.getString(R.string.checklist_reuse_prompt, text.trim(), current.title, current.body))
+            }, enabled = text.isNotBlank(), modifier = Modifier.testTag("checklist-action-apply")) { Text(stringResource(R.string.checklist_fill_input)) }
+        }) else null,
         dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

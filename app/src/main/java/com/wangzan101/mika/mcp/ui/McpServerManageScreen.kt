@@ -220,6 +220,7 @@ fun McpServerManageScreen(
             dismissButton = {
                 TextButton({ confirmingDelete = false }) { Text(stringResource(R.string.cancel)) }
             },
+            destructive = true,
         )
     }
 }

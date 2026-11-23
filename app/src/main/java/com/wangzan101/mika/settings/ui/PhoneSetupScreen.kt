@@ -679,6 +679,7 @@ fun PhoneHelperSection(status: BuiltinShellStatus, onRepair: () -> Unit, onUnpai
             text = { Text(PhoneSetupCopy.UNPAIR_BODY) },
             confirmButton = { TextButton({ confirming = false; onUnpair() }) { Text(PhoneSetupCopy.UNPAIR_CONFIRM, color = MikaTheme.colors.bad) } },
             dismissButton = { TextButton({ confirming = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

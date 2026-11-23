@@ -246,6 +246,7 @@ internal fun DeleteConversationDialog(title: String, impact: DeleteImpact, onCon
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        destructive = true,
     )
 }
 
@@ -277,5 +278,6 @@ internal fun DeleteManyConversationsDialog(
                 Text(stringResource(R.string.cancel))
             }
         },
+        destructive = true,
     )
 }

@@ -100,7 +100,7 @@ fun AppPaceScreen(global: OperatingPace, flags: FeatureFlags, onBack: () -> Unit
                     })
                 }
             },
-            confirmButton = {},
+            confirmButton = null,
             dismissButton = { TextButton(onClick = { editing = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
@@ -142,7 +142,7 @@ private fun AppPacePickerDialog(
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = null,
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

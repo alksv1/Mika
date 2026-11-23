@@ -194,7 +194,8 @@ fun PlansScreen(context: Context, onBack: () -> Unit, onOpenConversation: (Strin
             text = { Text(plan.goal) },
             confirmButton = { TextButton(onClick = { act { TriggerRuntime.remove(context, plan.id) }; deleting = null }) {
                 Text(tr(R.string.confirm_delete), color = MikaTheme.colors.bad)
-            } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text(tr(R.string.cancel)) } })
+            } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text(tr(R.string.cancel)) } },
+            destructive = true)
     }
 }
 

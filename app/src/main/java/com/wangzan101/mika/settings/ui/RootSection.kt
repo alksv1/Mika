@@ -94,6 +94,7 @@ fun RootSection(
                 TextButton({ warn = false; onCommands(true) }) { Text(PhoneSetupCopy.ROOT_COMMANDS_CONFIRM, color = MikaTheme.colors.bad) }
             },
             dismissButton = { TextButton({ warn = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

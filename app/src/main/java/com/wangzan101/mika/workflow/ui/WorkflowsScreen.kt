@@ -193,7 +193,8 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                 perform { if (record) runtime.store.deleteRun(id) else runtime.store.deleteTemplate(id, revision ?: 0) }
                 deleting = null
             }) { Text(stringResource(R.string.recommendations_delete)) } },
-            dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } })
+            dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true)
     }
 }
 

@@ -196,6 +196,7 @@ fun AdvancedSection(
             text = { Text(SandboxCopy.clearBody(w)) },
             confirmButton = { TextButton({ clearing = null; onClearWorkspace(w) }) { Text(SandboxCopy.CLEAR, color = MikaTheme.colors.bad) } },
             dismissButton = { TextButton({ clearing = null }) { Text(tr(R.string.cancel)) } },
+            destructive = true,
         )
     }
     if (clearingAll) {
@@ -205,6 +206,7 @@ fun AdvancedSection(
             text = { Text(SandboxCopy.CLEAR_ALL_BODY) },
             confirmButton = { TextButton({ clearingAll = false; onClearAll() }) { Text(SandboxCopy.CLEAR, color = MikaTheme.colors.bad) } },
             dismissButton = { TextButton({ clearingAll = false }) { Text(tr(R.string.cancel)) } },
+            destructive = true,
         )
     }
 
@@ -215,6 +217,7 @@ fun AdvancedSection(
             text = { Text(SandboxCopy.RESET_BODY) },
             confirmButton = { TextButton({ confirming = false; onReset() }) { Text(tr(R.string.reset), color = MikaTheme.colors.bad) } },
             dismissButton = { TextButton({ confirming = false }) { Text(tr(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

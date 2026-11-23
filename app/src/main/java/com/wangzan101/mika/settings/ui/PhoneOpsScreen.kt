@@ -222,6 +222,7 @@ fun PhoneOpsScreen(
                 TextButton({ confirmUnpair = false; onUnpair() }) { Text(PhoneSetupCopy.UNPAIR_CONFIRM, color = MikaTheme.colors.bad) }
             },
             dismissButton = { TextButton({ confirmUnpair = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }

@@ -214,6 +214,7 @@ private fun PersonaPage(store: PersonaStore, onBack: () -> Unit, onManage: () ->
                 }
             },
             dismissButton = { TextButton({ leaving = null }) { Text(stringResource(R.string.persona_keep_editing)) } },
+            destructive = true,
         )
     }
 }
@@ -330,6 +331,7 @@ private fun ManagePersonas(store: PersonaStore, onBack: () -> Unit) {
                 }
             },
             dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
 }
