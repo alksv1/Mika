@@ -225,6 +225,7 @@ internal object VoiceCopy {
         is SpeechEngineSpec.Bailian -> spec.model
         is SpeechEngineSpec.System -> tr(if (spec.onDevice) R.string.voice_engine_phone_offline else R.string.voice_engine_phone)
         is SpeechEngineSpec.Provider -> spec.model
+        is SpeechEngineSpec.Vendor -> spec.model
         is SpeechEngineSpec.Unavailable -> ""
     }
 
@@ -250,7 +251,6 @@ internal object VoiceCopy {
         SpeechEngineSpec.Why.SystemNoResponse -> tr(R.string.voice_unavailable_system_silent)
         SpeechEngineSpec.Why.SystemFailed -> tr(R.string.voice_unavailable_system_failed)
         SpeechEngineSpec.Why.ProviderGone -> tr(R.string.voice_unavailable_provider_gone)
-        SpeechEngineSpec.Why.TtsOnly -> tr(R.string.model_tts_only_not_supported)
         SpeechEngineSpec.Why.Off -> tr(R.string.voice_unavailable_off)
     }
 
