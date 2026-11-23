@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -412,7 +413,7 @@ fun ChatScreen(
 
         Column(Modifier.behindMenu(menuOpen) { lift.value }.onSizeChanged { topHeight = it.height }) {
             // 悬浮玻璃三件套:菜单 / 标题 / 新建,各自一小块磨砂玻璃,不铺一整条
-            Box(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars)) {
+            Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars)) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -433,6 +434,8 @@ fun ChatScreen(
                                 )
                             }
                         }
+                    } else {
+                        Spacer(Modifier.size(MikaSize.IconButton))
                     }
                     GlassSurface(backdrop = backdrop) {
                         Row(Modifier.clickable(role = Role.Button, onClickLabel = stringResource(R.string.chat_usage_title)) { showUsage = true }

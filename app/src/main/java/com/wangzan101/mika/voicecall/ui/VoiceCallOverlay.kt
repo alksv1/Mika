@@ -103,7 +103,7 @@ import kotlin.math.sin
  */
 @Composable
 fun VoiceCallOverlay(call: VoiceCallHolder, onCollapse: () -> Unit) {
-    CallDialog {
+    CallDialog(onCollapse) {
         val session = call.session
         val state by session.state.collectAsState()
         val turn by session.turn.collectAsState()
@@ -220,14 +220,14 @@ private fun rememberStartedAt(state: VoiceCallState): Long? {
     return kept.value
 }
 
-/** 全屏、不可点外部收起的 Dialog;状态栏/导航栏图标跟随深浅色。 */
+/** 全屏、可由返回键收起的 Dialog;状态栏/导航栏图标跟随深浅色。 */
 @Composable
-private fun CallDialog(content: @Composable () -> Unit) {
+private fun CallDialog(onCollapse: () -> Unit, content: @Composable () -> Unit) {
     Dialog(
-        onDismissRequest = {},
+        onDismissRequest = onCollapse,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnBackPress = false,
+            dismissOnBackPress = true,
             dismissOnClickOutside = false,
             decorFitsSystemWindows = false,
         ),
@@ -477,14 +477,13 @@ private fun CallDock(
             Row(
                 Modifier.height(48.dp).clip(CircleShape).background(c.bad)
                     .clickable(onClickLabel = stringResource(R.string.voicecall_hangup), onClick = onHangup)
-                    .padding(horizontal = 20.dp).testTag("voicecall-hangup"),
+                    .padding(horizontal = 18.dp).testTag("voicecall-hangup"),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(MikaIcons.HangUp, stringResource(R.string.voicecall_hangup), Modifier.size(22.dp), tint = Color.White)
                 Text(clock, Modifier.padding(start = 6.dp).testTag("voicecall-clock"), style = MikaType.BodyStrong, color = Color.White)
             }
             Spacer(Modifier.weight(1f))
-            Spacer(Modifier.size(48.dp + MikaSpace.S8))
             RoundToggle(MikaIcons.Sound, stringResource(R.string.voicecall_speaker), on = speakerOn, enabled = true, tag = "voicecall-speaker", onClick = onSpeaker)
         }
     }
@@ -609,7 +608,7 @@ fun VoiceCallGate(
     onGoConfigure: () -> Unit,
     onCollapse: () -> Unit,
 ) {
-    CallDialog {
+    CallDialog(onCollapse) {
         val c = MikaTheme.colors
         val ballColors = ballColors(c, failed = false)
         CallPage(

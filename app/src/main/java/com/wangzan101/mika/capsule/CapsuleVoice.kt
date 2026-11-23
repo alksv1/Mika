@@ -452,14 +452,15 @@ private fun Panel(talk: CapsuleTalk, state: HoldToTalk.State, below: Boolean) {
                 else -> c.accent
             }
             Box(Modifier.size(8.dp).drawBehind { drawCircle(dot) })
-            Text(talk.title, Modifier.weight(1f, fill = false), style = HeadText, color = c.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (talk.engine.isNotEmpty()) {
-                Text(
-                    talk.engine, Modifier.background(c.fill, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 2.dp),
-                    style = ChipText, color = c.ink2, maxLines = 1,
-                )
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(talk.title, Modifier.weight(1f, fill = false), style = HeadText, color = c.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (talk.engine.isNotEmpty()) {
+                    Text(
+                        talk.engine, Modifier.background(c.fill, RoundedCornerShape(7.dp)).padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = ChipText, color = c.ink2, maxLines = 1,
+                    )
+                }
             }
-            Spacer(Modifier.weight(1f))
             listening?.let { Text(ChatCopy.clock(it.elapsedMs), style = TimeText, color = c.ink3) }
         }
         val heard = listening?.let { it.stable + it.tail }.orEmpty()

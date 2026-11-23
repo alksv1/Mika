@@ -375,7 +375,7 @@ internal fun GeneratedPhotos(photos: List<GeneratedPhoto>, conversationId: Strin
     val c = MikaTheme.colors
     val cols = PhotoGrid.columns(photos.size)
     val gap = 4.dp
-    val cell = minOf(if (cols == 1) SingleWidth else if (cols == 2) 118.dp else 96.dp, maxWidth)
+    val cell = minOf(if (cols == 1) SingleWidth else if (cols == 2) 118.dp else 96.dp, (maxWidth - gap * (cols - 1)) / cols)
     val px = with(LocalDensity.current) { cell.roundToPx() }.coerceAtLeast(64)
     Column(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(gap)) {
         photos.chunked(cols).forEach { row ->

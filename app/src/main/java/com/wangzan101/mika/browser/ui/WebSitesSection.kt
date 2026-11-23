@@ -2,7 +2,8 @@ package com.wangzan101.mika.browser.ui
 
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
-import androidx.compose.foundation.layout.Column
+import com.wangzan101.mika.ui.components.ActionSheet
+import com.wangzan101.mika.ui.components.SheetAction
 import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.MikaNoticeDialog
 import androidx.compose.material3.Text
@@ -76,27 +77,26 @@ fun WebSitesSection(state: WebSitesState, labeled: Boolean = true) {
     FooterNote(WEB_DATA_NOTE)
 
     picked?.let { s ->
-        MikaDialog(
-            onDismissRequest = { picked = null },
-            title = { Text(s.host) },
-            text = {
-                val base = if (s.loggedInByUser) tr(R.string.web_you_signed_in) else tr(R.string.web_mika_visited)
-                Text(if (s.challenged(System.currentTimeMillis())) "$base\n\n$WEB_CHALLENGED_NOTE" else base)
-            },
-            confirmButton = {
-                Column {
-                    state.onOpenLogin?.let { open ->
-                        TextButton({ picked = null; open(s.host) }) { Text(tr(R.string.web_open_login)) }
-                    }
-                    val clearing = s.challenged(System.currentTimeMillis())
-                    TextButton({
-                        picked = null
-                        state.onLogout(s.host)
-                        notice = if (clearing) tr(R.string.web_cleared, s.host) else tr(R.string.web_signed_out, s.host, WEB_LOGOUT_PARTIAL)
-                    }) { Text(if (clearing) tr(R.string.web_clear_site) else tr(R.string.web_sign_out_site), color = MikaTheme.colors.bad) }
-                }
-            },
-            dismissButton = { TextButton({ picked = null }) { Text(tr(R.string.cancel)) } },
+        val clearing = s.challenged(System.currentTimeMillis())
+        val base = if (s.loggedInByUser) tr(R.string.web_you_signed_in) else tr(R.string.web_mika_visited)
+        val note = if (clearing) "$base\n\n$WEB_CHALLENGED_NOTE" else base
+        ActionSheet(
+            title = s.host,
+            subtitle = note,
+            actions = listOfNotNull(
+                state.onOpenLogin?.let { open ->
+                    SheetAction(tr(R.string.web_open_login), MikaIcons.Globe) { open(s.host) }
+                },
+                SheetAction(
+                    if (clearing) tr(R.string.web_clear_site) else tr(R.string.web_sign_out_site),
+                    MikaIcons.Close,
+                    destructive = true,
+                ) {
+                    state.onLogout(s.host)
+                    notice = if (clearing) tr(R.string.web_cleared, s.host) else tr(R.string.web_signed_out, s.host, WEB_LOGOUT_PARTIAL)
+                },
+            ),
+            onDismiss = { picked = null },
         )
     }
 

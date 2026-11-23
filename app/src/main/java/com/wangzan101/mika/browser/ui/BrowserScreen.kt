@@ -24,7 +24,11 @@ import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.rememberCoroutineScope
 import com.wangzan101.mika.browser.PageAskMode
 import androidx.compose.foundation.layout.fillMaxSize
@@ -205,7 +209,7 @@ fun BrowserScreen(browser: UserBrowser, onBack: () -> Unit) {
         } else {
             val host = WebUrlPolicy.host(p.url)
             val loginBanner = p.loginFor != null && !BrowserFavorites.loggedIn(registry, p.loginFor)
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))) {
                 BrowserPageBar(
                     p, host?.let(face),
                     onClose = browser::closeActiveTab,
@@ -237,7 +241,7 @@ fun BrowserScreen(browser: UserBrowser, onBack: () -> Unit) {
                     )
                     PageAskOverlay(chat, site = host?.let { face(it).name } ?: p.url, pageTitle = p.title)
                 }
-                if (mode == PageAskMode.Bar && p.loginFor == null) PageAskBar(chat, Modifier.imePadding())
+                if (mode == PageAskMode.Bar && p.loginFor == null) PageAskBar(chat)
                 BrowserToolbar(
                     p, onBackPage = browser::back, onForward = browser::forward, onHome = browser::closeActiveTab,
                     onShare = { share(context, p.url, p.title)?.let(toast) },

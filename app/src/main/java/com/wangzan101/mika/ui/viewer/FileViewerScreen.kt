@@ -279,7 +279,7 @@ private fun ViewerFindBar(find: FindState, onQuery: (String) -> Unit, onClose: (
             Icon(MikaIcons.Search, null, Modifier.size(16.dp), tint = c.ink3)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (text.isEmpty()) {
-                    Text(stringResource(R.string.viewer_find_hint), style = MikaType.Body, color = c.ink3, maxLines = 1)
+                    Text(stringResource(R.string.viewer_find_hint), Modifier.padding(horizontal = 8.dp), style = MikaType.Body, color = c.ink3, maxLines = 1)
                 }
                 BasicTextField(
                     text, { text = it },

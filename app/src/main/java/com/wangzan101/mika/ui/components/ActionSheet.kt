@@ -32,7 +32,12 @@ class SheetAction(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActionSheet(title: String?, actions: List<SheetAction>, onDismiss: () -> Unit) {
+fun ActionSheet(
+    title: String?,
+    actions: List<SheetAction>,
+    subtitle: String? = null,
+    onDismiss: () -> Unit,
+) {
     val c = MikaTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -41,11 +46,22 @@ fun ActionSheet(title: String?, actions: List<SheetAction>, onDismiss: () -> Uni
         shape = MikaShapes.SheetTop,
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 8.dp)) {
-            if (!title.isNullOrEmpty()) {
-                Text(
-                    title, Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    style = MikaType.Caption, color = c.ink3, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                )
+            if (!title.isNullOrEmpty() || !subtitle.isNullOrEmpty()) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    if (!title.isNullOrEmpty()) {
+                        Text(
+                            title,
+                            style = MikaType.Caption, color = c.ink3, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (!subtitle.isNullOrEmpty()) {
+                        Text(
+                            subtitle,
+                            Modifier.padding(top = if (title.isNullOrEmpty()) 0.dp else 4.dp),
+                            style = MikaType.Hint, color = c.ink3,
+                        )
+                    }
+                }
             }
             actions.forEachIndexed { i, a ->
                 ListRow(

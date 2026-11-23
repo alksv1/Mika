@@ -458,7 +458,7 @@ fun BoxScope.PageAskOverlay(chat: PageChat, site: String, pageTitle: String) {
         PausedBanner({ chat.card?.run?.key?.let(chat.actions::resume) }, Modifier.align(Alignment.TopCenter).padding(10.dp))
     }
     when (chat.mode) {
-        PageAskMode.Panel -> PagePanel(chat, site, pageTitle, Modifier.align(Alignment.BottomCenter).fillMaxHeight(PANEL_SHARE).imePadding())
+        PageAskMode.Panel -> PagePanel(chat, site, pageTitle, Modifier.align(Alignment.BottomCenter).imePadding().fillMaxHeight(PANEL_SHARE))
         PageAskMode.Card -> PageCard(chat, Modifier.align(Alignment.BottomCenter).padding(10.dp))
         PageAskMode.Bar -> Unit
     }

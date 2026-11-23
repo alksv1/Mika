@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -250,7 +249,7 @@ fun BrowserToolbar(
     onMore: () -> Unit,
 ) {
     val c = MikaTheme.colors
-    Column(Modifier.fillMaxWidth().background(c.bg).windowInsetsPadding(WindowInsets.navigationBars)) {
+    Column(Modifier.fillMaxWidth().background(c.bg)) {
         Box(Modifier.fillMaxWidth().height(0.5.dp).background(c.hair))
         Row(
             Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 8.dp),

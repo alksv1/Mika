@@ -197,26 +197,19 @@ internal fun StatusCard(
 /** 操作区里的「朗读/停止」图标;没有配置声音模型时不显示。 */
 @Composable
 private fun ReadAloudIcon(answer: String, vm: ChatViewModel) {
-    val ready by vm.canSpeak.collectAsState()
-    if (!ready) return
     val playback by vm.voice.collectAsState()
     val playing = playback is VoicePlayback.Playing || playback is VoicePlayback.Loading
     val c = MikaTheme.colors
-    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier.clip(MikaShapes.Pill).clickable(role = Role.Button) { if (playing) vm.stopSpeaking() else vm.speak(answer) }
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Icon(MikaIcons.Sound, null, Modifier.size(14.dp), tint = if (playing) c.accent else c.ink3)
-            Text(
-                stringResource(if (playing) R.string.chat_stop_speaking else R.string.chat_read_aloud),
-                style = MikaType.Caption, color = if (playing) c.accent else c.ink3,
-            )
-        }
-        (playback as? VoicePlayback.Error)?.let {
-            Text(it.message, Modifier.padding(start = 8.dp), style = MikaType.Caption, color = c.bad)
-        }
+    Row(
+        Modifier.clip(MikaShapes.Pill).clickable(role = Role.Button) { if (playing) vm.stopSpeaking() else vm.speak(answer) }
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Icon(MikaIcons.Sound, null, Modifier.size(14.dp), tint = if (playing) c.accent else c.ink3)
+        Text(
+            stringResource(if (playing) R.string.chat_stop_speaking else R.string.chat_read_aloud),
+            style = MikaType.Caption, color = if (playing) c.accent else c.ink3,
+        )
     }
 }
 
@@ -226,7 +219,7 @@ internal fun GeneratedAudioCards(audios: List<com.wangzan101.mika.core.chat.Gene
     val playback by vm.voice.collectAsState()
     val playing = playback is VoicePlayback.Playing || playback is VoicePlayback.Loading
     val c = MikaTheme.colors
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         audios.forEach { a ->
             Row(
                 Modifier.fillMaxWidth().cardSurface(c, MikaShapes.Card).clip(MikaShapes.Card)
@@ -290,13 +283,17 @@ private fun ReplyActions(
     val hasSource = evidence != null || !source?.items.isNullOrEmpty() || !source?.screenshots.isNullOrEmpty()
     val c = MikaTheme.colors
     val context = LocalContext.current
+    val canSpeak by vm.canSpeak.collectAsState()
+    val playback by vm.voice.collectAsState()
     Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.hair))
         Spacer(Modifier.height(11.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (answer != null) {
-                ReadAloudIcon(answer, vm)
-                Spacer(Modifier.width(4.dp))
+                if (canSpeak) {
+                    ReadAloudIcon(answer, vm)
+                    Spacer(Modifier.width(4.dp))
+                }
                 ReplyIcon(MikaIcons.Copy, stringResource(R.string.chat_copy)) { copyAnswer(context, answer) }
                 Spacer(Modifier.width(4.dp))
                 ReplyIcon(MikaIcons.Share, stringResource(R.string.share)) { onShare() }
@@ -314,6 +311,11 @@ private fun ReplyActions(
                 ReplyIcon(MikaIcons.Doc, stringResource(R.string.report_title)) { openReport(runId) }
                 Spacer(Modifier.width(4.dp))
                 ReplyIcon(MikaIcons.Play, stringResource(R.string.playback_title)) { openPlayback(runId) }
+            }
+        }
+        if (answer != null && canSpeak) {
+            (playback as? VoicePlayback.Error)?.let {
+                Text(it.message, Modifier.padding(top = 6.dp), style = MikaType.Caption, color = c.bad)
             }
         }
     }
