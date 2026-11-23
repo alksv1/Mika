@@ -423,7 +423,12 @@ private fun Target(icon: ImageVector, label: String, hot: Boolean, bad: Boolean,
                 .testTag(if (bad) "capsule-voice-cancel" else "capsule-voice-edit"),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, null, Modifier.size(24.dp), tint = if (hot) c.onAccent else c.ink)
+            val fg = when {
+                !hot -> c.ink
+                bad -> Color.White
+                else -> c.onAccent
+            }
+            Icon(icon, null, Modifier.size(24.dp), tint = fg)
         }
         Text(label, style = TargetText, color = Color.White, maxLines = 1)
     }

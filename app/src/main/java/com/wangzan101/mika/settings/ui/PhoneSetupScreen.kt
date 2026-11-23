@@ -1,6 +1,7 @@
 package com.wangzan101.mika.settings.ui
 
 import com.wangzan101.mika.R
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import com.wangzan101.mika.about.Diagnostics
@@ -417,8 +418,8 @@ private fun StepBadge(n: Int, mark: StepMark) {
     }
     Box(Modifier.size(28.dp).background(bg, CircleShape), contentAlignment = Alignment.Center) {
         when (mark) {
-            StepMark.Done -> Icon(MikaIcons.Check, null, Modifier.size(15.dp), tint = c.onAccent)
-            StepMark.Failed -> Icon(MikaIcons.Exclaim, null, Modifier.size(15.dp), tint = c.onAccent)
+            StepMark.Done -> Icon(MikaIcons.Check, null, Modifier.size(15.dp), tint = Color.White)
+            StepMark.Failed -> Icon(MikaIcons.Exclaim, null, Modifier.size(15.dp), tint = Color.White)
             else -> Text("$n", style = MikaType.Caption.copy(fontWeight = FontWeight.Bold), color = if (mark == StepMark.Todo || mark == StepMark.Skipped) c.ink3 else c.onAccent)
         }
     }

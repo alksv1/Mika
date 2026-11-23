@@ -420,9 +420,12 @@ private fun SentFileCard(f: AttachmentMessage.Item, maxWidth: Dp, onClick: () ->
 /** 文件类型角标:按扩展名配色,上面写扩展名。 */
 @Composable
 private fun TypeBadge(name: String, modifier: Modifier, small: Boolean) {
+    val kind = FileBadge.kind(name)
+    val c = MikaTheme.colors
+    val fg = if (kind == FileBadge.Kind.Doc) c.onAccent else Color.White
     val shape = RoundedCornerShape(if (small) MikaRadius.Micro else MikaRadius.Tile)
-    Box(modifier.background(badgeColor(FileBadge.kind(name), MikaTheme.colors), shape), contentAlignment = Alignment.Center) {
-        Text(FileBadge.text(name), style = if (small) BadgeSmall else BadgeLarge, color = Color.White, maxLines = 1)
+    Box(modifier.background(badgeColor(kind, c), shape), contentAlignment = Alignment.Center) {
+        Text(FileBadge.text(name), style = if (small) BadgeSmall else BadgeLarge, color = fg, maxLines = 1)
     }
 }
 

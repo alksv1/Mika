@@ -528,8 +528,9 @@ internal fun VoiceBarCover(vh: VoiceHold, state: HoldToTalk.State, reduceMotion:
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        VoiceWave(s.level, flat = s.cancelArmed, reduceMotion = reduceMotion, color = c.onAccent)
-        Text(label, style = BarLabel, color = c.onAccent, maxLines = 1)
+        val fg = if (s.cancelArmed || s.sendArmed) Color.White else c.onAccent
+        VoiceWave(s.level, flat = s.cancelArmed, reduceMotion = reduceMotion, color = fg)
+        Text(label, style = BarLabel, color = fg, maxLines = 1)
     }
 }
 
@@ -600,7 +601,7 @@ private fun CancelHint(armed: Boolean, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        val fg = if (armed) c.onAccent else c.ink2
+        val fg = if (armed) Color.White else c.ink2
         Icon(MikaIcons.Up, null, Modifier.size(15.dp), tint = fg)
         Text(stringResource(if (armed) R.string.voice_release_cancel else R.string.voice_slide_send_cancel), style = HintText, color = fg)
     }

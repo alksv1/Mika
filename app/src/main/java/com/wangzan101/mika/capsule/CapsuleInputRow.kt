@@ -127,7 +127,7 @@ private fun SendKey(enabled: Boolean, onSend: () -> Unit, start: Dp = 0.dp) {
             .semantics { contentDescription = CardCopy.SEND },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(MikaIcons.Up, null, Modifier.size(17.dp), tint = Color.White)
+        Icon(MikaIcons.Up, null, Modifier.size(17.dp), tint = if (enabled) c.onAccent else c.ink3)
     }
 }
 
