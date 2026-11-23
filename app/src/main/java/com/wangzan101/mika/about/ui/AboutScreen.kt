@@ -280,7 +280,7 @@ private fun AboutSheetFrame(title: String, sub: String?, tag: String, onDismiss:
         // 面板内容太高(矮屏、大字号)时整体能滚,底下的按钮总够得着
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp).testTag(tag),
+                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp).testTag(tag),
         ) {
             Text(title, style = MikaType.Title, color = c.ink)
             sub?.let { Text(it, Modifier.padding(top = 2.dp), style = MikaType.Caption, color = c.ink3) }
@@ -335,7 +335,7 @@ private fun ChangelogSheet(latest: ReleaseInfo?, onOpenAll: () -> Unit, onDismis
 @Composable
 private fun FeedbackSheet(onGitHub: () -> Unit, onDiagnostics: () -> Unit, onDismiss: () -> Unit) {
     AboutSheetFrame(AboutCopy.FEEDBACK, AboutCopy.FEEDBACK_SHEET_SUB, "feedback-sheet", onDismiss) {
-        Column(Modifier.padding(top = 6.dp)) {
+        Column(Modifier.padding(top = 8.dp, bottom = 4.dp)) {
             FeedbackOption(MikaIcons.Code, AboutCopy.FEEDBACK_GITHUB, AboutCopy.FEEDBACK_GITHUB_SUB, first = true, onGitHub)
             FeedbackOption(MikaIcons.Copy, AboutCopy.DIAGNOSTICS, AboutCopy.DIAGNOSTICS_SUB, first = false, onDiagnostics)
         }

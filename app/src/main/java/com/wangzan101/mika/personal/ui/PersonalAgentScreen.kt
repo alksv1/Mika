@@ -609,9 +609,11 @@ private fun PersonalTaskSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.surface,
+        shape = MikaShapes.SheetTop,
     ) {
         Column(
-            Modifier.fillMaxWidth().heightIn(max = 580.dp).padding(horizontal = MikaSpace.S20)
+            Modifier.fillMaxWidth().heightIn(max = 580.dp).navigationBarsPadding()
+                .padding(horizontal = MikaSpace.S20).padding(bottom = MikaSpace.S12)
                 .testTag("personal-task-detail"),
         ) {
             Column(

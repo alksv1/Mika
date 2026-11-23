@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -113,7 +114,7 @@ private fun TraceEntryRow(archive: TraceArchive, row: TraceRow, worst: Boolean) 
         body?.let { result ->
             Column(Modifier.padding(horizontal = 16.dp)) {
                 SelectionContainer { Text(result.text.ifEmpty { unknown }, style = MikaType.Hint) }
-                if (page > 0 || result.hasMore) Row {
+                if (page > 0 || result.hasMore) Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { page-- }, enabled = page > 0) { Text("‹") }
                     Text((page + 1).toString())
                     TextButton(onClick = { page++ }, enabled = result.hasMore) { Text("›") }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -115,7 +116,7 @@ internal fun InteractiveOperationScreen(run: ScreenControl, frame: Bitmap?, mode
         }),
         onViewport = { width, height -> viewport = IntSize(width, height) },
         controls = if (!manual) null else ({
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 BarIconButton(MikaIcons.Back, stringResource(R.string.back), { perform { run.screenBack(w, h) } }, enabled = !busy && !resizing)
                 OutlinedTextField(text, { text = it }, Modifier.weight(1f).keepsKeyboard().testTag("screen-control-text"),
                     enabled = !busy, textStyle = MikaType.Body,

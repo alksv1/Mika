@@ -146,7 +146,7 @@ fun McpCatalogScreen(
                 SearchField(query, { query = it }, stringResource(R.string.mcp_catalog_search_hint), Modifier.testTag("mcp-catalog-search"))
             }
             CategoryChips(category) { category = it }
-            GroupCard(Modifier.padding(top = 12.dp)) {
+            GroupCard(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
                 ListRow(
                     MikaIcons.Link, stringResource(R.string.mcp_catalog_custom), first = true,
                     titleColor = c.accent, tone = TileTone.Accent, onClick = onCustomServer,

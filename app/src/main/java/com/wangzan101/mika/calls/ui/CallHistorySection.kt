@@ -71,6 +71,7 @@ internal fun CallHistorySection(
     val failure = stringResource(R.string.calls_action_failed)
     val clearFailure = stringResource(R.string.calls_history_clear_failed)
     val summaryFailure = stringResource(R.string.calls_summary_failed)
+    val summaryUpdated = stringResource(R.string.calls_summary_done)
     val cleared = stringResource(R.string.calls_history_cleared)
     val deleted = stringResource(R.string.calls_history_deleted)
     val handled = stringResource(R.string.calls_history_done)
@@ -174,7 +175,7 @@ internal fun CallHistorySection(
                         },
                         onDelete = { pendingDelete = record.id },
                         onSaveDraft = onSaveDraft?.let { save -> { text -> save(record.id, text) } },
-                        onRetrySummary = { change("摘要已更新", summaryFailure) { onRetrySummary(record.id) } },
+                        onRetrySummary = { change(summaryUpdated, summaryFailure) { onRetrySummary(record.id) } },
                         onReuse = if (record.number != null && record.task != null && onReuseTask != null) {
                             { onReuseTask(record.number, record.task) }
                         } else null,

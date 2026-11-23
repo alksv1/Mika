@@ -122,7 +122,7 @@ fun UpdateMirrorsScreen(store: UpdateMirrorStore, onBack: () -> Unit) {
             FooterNote(stringResource(R.string.about_mirrors_unreadable), color = c.bad)
             MikaButton(
                 stringResource(R.string.about_mirrors_reset), { resetting = true },
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp), kind = ButtonKind.Tonal,
+                Modifier.fillMaxWidth().padding(top = 8.dp), kind = ButtonKind.Tonal,
             )
         } else {
             GroupCard {
@@ -168,7 +168,7 @@ fun UpdateMirrorsScreen(store: UpdateMirrorStore, onBack: () -> Unit) {
             if (mirrors.size > 1) FooterNote(stringResource(R.string.recommendations_drag_hint))
             MikaButton(
                 stringResource(R.string.about_mirrors_reset), { resetting = true },
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), kind = ButtonKind.Tonal,
+                Modifier.fillMaxWidth().padding(vertical = 4.dp), kind = ButtonKind.Tonal,
             )
         }
     }

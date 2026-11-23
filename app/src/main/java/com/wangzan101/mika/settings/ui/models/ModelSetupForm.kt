@@ -155,9 +155,9 @@ internal fun AddProviderForm(ui: ModelSetupUi, actions: ModelSetupActions, stand
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .padding(top = if (!f.urlEditable) 0.dp else 0.dp, bottom = 2.dp)
+                .padding(bottom = 2.dp)
         ) {
-            if (!f.urlEditable) Hairline(start = 0.dp)
+            if (f.urlEditable) Hairline(start = 0.dp)
             Row(
                 Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,

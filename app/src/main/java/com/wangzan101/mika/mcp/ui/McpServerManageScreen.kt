@@ -194,7 +194,7 @@ fun McpServerManageScreen(
                                 }
                                 replacing = false
                             },
-                            Modifier.fillMaxWidth(),
+                            Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                         )
                     }
                 }

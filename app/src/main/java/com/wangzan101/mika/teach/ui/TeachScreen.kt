@@ -6,10 +6,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
@@ -39,6 +44,7 @@ import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaCard
+import com.wangzan101.mika.ui.components.PageBackground
 import com.wangzan101.mika.ui.components.TopBar
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
@@ -60,7 +66,8 @@ internal data class TeachSummaryView(
 fun TeachScreen(runtime: TeachRuntime, onBack: () -> Unit) {
     val ui by runtime.ui.collectAsState()
     val session = ui.session
-    Column(Modifier.fillMaxSize()) {
+    PageBackground {
+        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))) {
         TopBar(stringResource(R.string.teach_title), MikaIcons.Back, onBack, stringResource(R.string.back))
         Notice(ui.notice)
         val draft = ui.draft
@@ -86,6 +93,7 @@ fun TeachScreen(runtime: TeachRuntime, onBack: () -> Unit) {
                 onBackToChat = onBack,
                 onTeachAgain = { teachAgain(runtime, session.goal) },
             ) else Intro(ui.hint.orEmpty(), runtime)
+        }
         }
     }
 }
@@ -147,7 +155,7 @@ internal fun TeachIntroPage(initial: String, onStart: (String) -> Unit) {
         MikaButton(
             stringResource(R.string.teach_start), { onStart(goal) },
             kind = ButtonKind.Primary, size = ButtonSize.Medium,
-            modifier = Modifier.testTag("teach-start"),
+            modifier = Modifier.fillMaxWidth().testTag("teach-start"),
         )
     }
 }
@@ -264,7 +272,7 @@ internal fun TeachSummaryPage(
             MikaButton(
                 stringResource(R.string.teach_accept), onAccept,
                 kind = ButtonKind.Primary, size = ButtonSize.Medium,
-                modifier = Modifier.testTag("teach-accept"),
+                modifier = Modifier.fillMaxWidth().testTag("teach-accept"),
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
@@ -309,12 +317,12 @@ internal fun TeachDonePage(
         MikaButton(
             stringResource(R.string.teach_back_chat), onBackToChat,
             kind = ButtonKind.Primary, size = ButtonSize.Medium,
-            modifier = Modifier.testTag("teach-back-chat"),
+            modifier = Modifier.fillMaxWidth().testTag("teach-back-chat"),
         )
         MikaButton(
             stringResource(R.string.teach_teach_again), onTeachAgain,
             kind = ButtonKind.Tonal, size = ButtonSize.Medium,
-            modifier = Modifier.testTag("teach-again"),
+            modifier = Modifier.fillMaxWidth().testTag("teach-again"),
         )
     }
 }

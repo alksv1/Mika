@@ -177,7 +177,7 @@ private fun HeaderGroup(h: TimelineHeader, stepCount: Int, onExport: () -> Unit)
     }
     // 3. 技术详情(折叠):模型来回、Token、步数上限这些细节收起来
     GroupCard {
-        ListRow(null, stringResource(R.string.timeline_more), onClick = { more = !more }) {
+        ListRow(null, stringResource(R.string.timeline_more), first = true, onClick = { more = !more }) {
             RowValue(if (more) stringResource(R.string.collapse) else stringResource(R.string.expand))
             RowChevron()
         }
@@ -301,7 +301,7 @@ private fun TimelineRow(s: TimelineStep, first: Boolean, last: Boolean, vm: RunT
                         style = MikaType.Hint, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1,
                     )
                 }
-                if (hasMore) Icon(MikaIcons.Chevron, null, Modifier.size(16.dp).padding(start = 2.dp), tint = c.ink3)
+                if (hasMore) Icon(MikaIcons.Chevron, null, Modifier.padding(start = 2.dp).size(16.dp), tint = c.ink3)
             }
             Text(RunTimelineViewModel.timingLabel(s.timing), Modifier.padding(top = 2.dp), style = MikaType.Hint, color = c.ink3)
             if (open && hasMore) {

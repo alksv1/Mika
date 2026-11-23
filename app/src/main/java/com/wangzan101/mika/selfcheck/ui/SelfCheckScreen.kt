@@ -208,7 +208,7 @@ fun SelfCheckScreen(status: SystemStatus, onBack: () -> Unit) {
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().testTag("selfcheck-screen-off-start"),
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp).testTag("selfcheck-screen-off-start"),
                     enabled = screenOffRunning || !taskBusy,
                     kind = ButtonKind.Tonal,
                 )

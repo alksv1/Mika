@@ -105,7 +105,6 @@ fun ModelGroupsScreen(
                             Text(roles, style = MikaType.Caption, color = c.ink3)
                         }
                     }
-                    if (i != ui.groups.lastIndex) Hairline()
                 }
             }
         }

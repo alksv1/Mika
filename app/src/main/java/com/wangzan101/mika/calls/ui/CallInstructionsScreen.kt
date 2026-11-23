@@ -63,7 +63,7 @@ internal fun CallInstructionsScreen(runtime: CallRuntime, onBack: () -> Unit) {
         FooterNote(stringResource(R.string.call_instructions_intro))
         MikaButton(stringResource(R.string.call_instructions_add), {
             draft = CallInstruction("", "", "", "")
-        }, Modifier.fillMaxWidth().testTag("call-instruction-add"))
+        }, Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp).testTag("call-instruction-add"))
         if (rules.isEmpty()) {
             FooterNote(stringResource(R.string.call_instructions_empty))
             GroupLabel(stringResource(R.string.call_instructions_presets))
@@ -73,7 +73,8 @@ internal fun CallInstructionsScreen(runtime: CallRuntime, onBack: () -> Unit) {
             }
         }
         rules.forEach { rule ->
-            MikaCard(Modifier.fillMaxWidth()) {
+            MikaCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(rule.title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                     Switch(rule.enabled, { value -> mutate { store.setEnabled(rule.id, value) } })
@@ -86,6 +87,7 @@ internal fun CallInstructionsScreen(runtime: CallRuntime, onBack: () -> Unit) {
                 Row {
                     TextButton(onClick = { draft = rule }) { Text(stringResource(R.string.call_instructions_edit)) }
                     TextButton(onClick = { deleting = rule }) { Text(stringResource(R.string.call_instructions_delete)) }
+                }
                 }
             }
         }

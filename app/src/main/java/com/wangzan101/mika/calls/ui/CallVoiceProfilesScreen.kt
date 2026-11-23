@@ -59,7 +59,7 @@ internal fun CallVoiceProfilesScreen(runtime: CallRuntime, onBack: () -> Unit) {
         profiles.forEach { profile ->
             val selected = profile.id == config.activeVoiceProfileId
             val audioVerified = runtime.voiceProfiles.isAudioVerified(profile.id, config.audioMode)
-            MikaCard(Modifier.fillMaxWidth().testTag("call-voice-profile-${profile.id}")) {
+            MikaCard(Modifier.fillMaxWidth().padding(top = 10.dp).testTag("call-voice-profile-${profile.id}")) {
                 ListRow(
                     MikaIcons.Mic,
                     profile.name,
@@ -81,7 +81,7 @@ internal fun CallVoiceProfilesScreen(runtime: CallRuntime, onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = if (profile.connectionTested) MikaTheme.colors.ok else MikaTheme.colors.ink3,
                 )
-                Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (!selected) TextButton(onClick = { perform { runtime.selectVoiceProfile(profile.id) } }, enabled = !busy,
                         modifier = Modifier.testTag("call-voice-select-${profile.id}")) {
                         Text(stringResource(R.string.calls_voice_select))
@@ -97,7 +97,7 @@ internal fun CallVoiceProfilesScreen(runtime: CallRuntime, onBack: () -> Unit) {
                 }
             }
         }
-        CallPrimaryButton(stringResource(R.string.calls_voice_add), !busy, { adding = true }, Modifier.testTag("call-voice-add"))
+        CallPrimaryButton(stringResource(R.string.calls_voice_add), !busy, { adding = true }, Modifier.padding(top = 12.dp).testTag("call-voice-add"))
         FooterNote(stringResource(R.string.calls_voice_test_note))
     }
 

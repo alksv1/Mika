@@ -140,7 +140,6 @@ internal fun CallTaskScreen(
     GroupCard {
         ListRow(MikaIcons.Mic, stringResource(R.string.calls_voice_title), voiceSummary, first = true,
             onClick = onVoiceProfiles.takeIf { editable }) { RowChevron() }
-        HorizontalDivider()
         val simSummary = when {
             sim != null && draft.simOverride == null && sim.id == config.defaultOutgoingSimId ->
                 stringResource(R.string.calls_sim_preferred, sim.label)
@@ -170,7 +169,7 @@ internal fun CallTaskScreen(
                 Text(stringResource(R.string.calls_task_questions_limit, CallTaskBrief.MAX_QUESTIONS, CallTaskBrief.MAX_QUESTION_CHARS))
             }) else null,
         )
-        HorizontalDivider()
+        Hairline()
         CallFoldRow(MikaIcons.Doc, stringResource(R.string.calls_task_context), contextOpen, "call-task-context-fold",
             subtitle = stringResource(if (draft.context.isBlank()) R.string.calls_task_optional else R.string.calls_task_filled)) {
             contextOpen = !contextOpen
@@ -179,7 +178,7 @@ internal fun CallTaskScreen(
             draft.context, { draft.context = it }, stringResource(R.string.calls_task_context),
             editable, contextLength, CallTaskBrief.MAX_CONTEXT_CHARS, "call-task-context",
         )
-        HorizontalDivider()
+        Hairline()
         CallFoldRow(MikaIcons.Key, stringResource(R.string.calls_task_constraints), constraintsOpen, "call-task-constraints-fold",
             subtitle = stringResource(if (draft.constraints.isBlank()) R.string.calls_task_optional else R.string.calls_task_filled)) {
             constraintsOpen = !constraintsOpen

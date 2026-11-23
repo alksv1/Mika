@@ -264,7 +264,7 @@ fun PlanEditorDialog(
                         Spacer(Modifier.height(10.dp))
                     }
                     if (draft.repeat == PlanRepeat.Weekly) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             (1..7).forEach { day ->
                                 MikaButton(
                                     DayOfWeek.of(day).getDisplayName(TextStyle.SHORT, uiLocale()),

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -128,10 +129,10 @@ internal fun ChatPlusSheet(
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             // 半屏→展开到整屏的 82%:把手加上内容正好这么高
             val body = (maxHeight * 0.82f - PlusHandleHeight).coerceAtLeast(0.dp)
-            Column(Modifier.fillMaxWidth().height(body)) {
+            Column(Modifier.fillMaxWidth().height(body).navigationBarsPadding()) {
                 when (view) {
                     PlusView.Main -> Column(
-                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = PlusInset, vertical = 4.dp),
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = PlusInset, end = PlusInset, top = 4.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         MikaCard {
