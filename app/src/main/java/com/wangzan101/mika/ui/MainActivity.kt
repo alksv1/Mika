@@ -19,8 +19,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Parcelable
-import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -68,7 +66,6 @@ import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.CurrentChat
 import com.wangzan101.mika.chat.SharedDraft
 import com.wangzan101.mika.chat.SharedDraftImporter
-import com.wangzan101.mika.chat.SharedDraftStore
 import com.wangzan101.mika.record.RunStore
 import com.wangzan101.mika.replay.FileRouteStore
 import com.wangzan101.mika.task.TaskService
@@ -205,51 +202,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun receiveShare(intent: Intent, inCurrentConversation: Boolean) {
-        if (intent.action == Intent.ACTION_SEND_MULTIPLE) return rejectShare()
-        if (intent.action != Intent.ACTION_SEND) return
+        val content = readShare(intent) ?: return
         shareJob?.cancel()
-        val clip = intent.clipData
-        if ((clip?.itemCount ?: 0) > 1) return rejectShare()
-        val item = clip?.takeIf { it.itemCount == 1 }?.getItemAt(0)
-        val type = intent.type?.substringBefore(';')?.trim()?.lowercase()
-        val text = (intent.getCharSequenceExtra(Intent.EXTRA_TEXT) ?: item?.text)?.toString().orEmpty()
-        if (text.length > SharedDraftStore.MAX_TEXT_CHARS) {
-            rejectShare()
-            return
-        }
-        val stream = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-            else @Suppress("DEPRECATION") (intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri)
-        if (intent.hasExtra(Intent.EXTRA_STREAM) && stream == null) return rejectShare()
-        val clipUri = item?.uri
-        if (stream != null && clipUri != null && stream != clipUri) return rejectShare()
-        val uri = stream ?: clipUri
-        if (uri == null) {
-            if (type != "text/plain" || text.isBlank()) return rejectShare()
-            requestedSharedDraft = SharedDraftRequest(SharedDraft("", text), ++shareSerial, inCurrentConversation)
-            return
-        }
-        if (verifiedShareUri != uri.toString() && !shareCanRead(intent, uri, clipUri)) return rejectShare()
-        verifiedShareUri = uri.toString()
-        shareJob = lifecycleScope.launch {
-            val prepared = SharedDraftImporter(this@MainActivity, (application as MikaApp).sharedDrafts)
-                .attachment(text, uri, type)
-            if (prepared == null) rejectShare()
-            else requestedSharedDraft = SharedDraftRequest(prepared, ++shareSerial, inCurrentConversation)
-        }
-    }
-
-    /** 检查分享方的读取权，避免用 Mika 的相册或文件夹权限代读任意 URI。 */
-    private fun shareCanRead(intent: Intent, uri: Uri, clipUri: Uri?): Boolean {
-        if (uri.scheme != "content") return false
-        val read = Intent.FLAG_GRANT_READ_URI_PERMISSION
-        return runCatching {
-            if (Build.VERSION.SDK_INT >= 35) {
-                caller?.let { return@runCatching it.checkContentUriPermission(uri, read) == PackageManager.PERMISSION_GRANTED }
+        when (content) {
+            ShareContent.Rejected -> rejectShare()
+            is ShareContent.Text -> requestedSharedDraft = SharedDraftRequest(SharedDraft("", content.text), ++shareSerial, inCurrentConversation)
+            is ShareContent.File -> {
+                val uri = content.uri
+                if (verifiedShareUri != uri.toString() && !shareCanRead(intent, uri, content.clipUri)) return rejectShare()
+                verifiedShareUri = uri.toString()
+                shareJob = lifecycleScope.launch {
+                    val prepared = SharedDraftImporter(this@MainActivity, (application as MikaApp).sharedDrafts)
+                        .attachment(content.text, uri, content.type)
+                    if (prepared == null) rejectShare()
+                    else requestedSharedDraft = SharedDraftRequest(prepared, ++shareSerial, inCurrentConversation)
+                }
             }
-            // 旧系统无法查询启动方，只接受带有读取标志、并且 Mika 确实有 URI 授权的内容。
-            (intent.flags and read) != 0 && (clipUri == uri || intent.data == uri) &&
-                checkUriPermission(uri, Process.myPid(), Process.myUid(), read) == PackageManager.PERMISSION_GRANTED
-        }.getOrDefault(false)
+        }
     }
 
     private var updateWatch: Job? = null
