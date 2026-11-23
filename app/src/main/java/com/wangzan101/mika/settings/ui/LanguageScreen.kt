@@ -178,7 +178,7 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(R.string.file_library_empty),
+                        stringResource(R.string.browser_find_no_matches),
                         style = MikaType.Caption,
                         color = c.ink3,
                     )

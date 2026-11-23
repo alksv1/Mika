@@ -73,7 +73,10 @@ internal fun VoiceModelContent(store: ProviderStore, settings: VoiceSettings, on
     val player = remember { VoicePlayer(context) }
     val playback by player.state.collectAsState()
     var speed by remember(choice?.providerId, choice?.model) { mutableStateOf((choice?.speed ?: 1.0f).toString()) }
+    var maxCharsText by remember(state.maxCharsPerSpeak) { mutableStateOf(state.maxCharsPerSpeak.toString()) }
+    var testing by remember(choice?.providerId, choice?.model) { mutableStateOf(false) }
     var test by remember { mutableStateOf<String?>(null) }
+    val sampleText = tr(R.string.voice_try_sample)
     DisposableEffect(player, choice?.providerId, choice?.model) { onDispose { player.stop() } }
 
     fun saveChoice(next: VoiceChoice) {
@@ -152,9 +155,15 @@ internal fun VoiceModelContent(store: ProviderStore, settings: VoiceSettings, on
                 trailing = { MikaSwitch(state.askBeforeSave, settings::setAskBeforeSave, enabled = state.saveEnabled) },
             )
             InputRow(
-                tr(R.string.voice_max_chars), state.maxCharsPerSpeak.toString(),
-                onChange = { it.toIntOrNull()?.let(settings::setMaxChars) }, placeholder = "2000",
+                tr(R.string.voice_max_chars), maxCharsText,
+                onChange = { input ->
+                    val digits = input.filter(Char::isDigit).take(6)
+                    maxCharsText = digits
+                    digits.toIntOrNull()?.takeIf { it > 0 }?.let(settings::setMaxChars)
+                },
+                placeholder = "2000",
                 keyboard = KeyboardType.Number,
+                modifier = Modifier.onFocusChanged { if (!it.hasFocus) maxCharsText = state.maxCharsPerSpeak.toString() },
             )
         }
 
@@ -164,13 +173,15 @@ internal fun VoiceModelContent(store: ProviderStore, settings: VoiceSettings, on
                 val choice = choice ?: return@MikaButton
                 val caps = settings.capabilities() ?: return@MikaButton
                 val tts = store.ttsModel(choice, caps) ?: return@MikaButton
+                if (testing) return@MikaButton
+                testing = true
                 previewScope.launch {
                     test = tr(R.string.voice_testing)
                     try {
                         player.play(
                             tts,
                             TtsRequest(
-                                "你好，我是 Mika。这是一段声音测试。",
+                                sampleText,
                                 choice.voice.ifBlank { null },
                                 choice.speed,
                                 "wav",
@@ -181,10 +192,12 @@ internal fun VoiceModelContent(store: ProviderStore, settings: VoiceSettings, on
                         throw e
                     } catch (e: Exception) {
                         test = tr(R.string.voice_test_failed, e.message ?: e.javaClass.simpleName)
+                    } finally {
+                        testing = false
                     }
                 }
             },
-            enabled = choice != null,
+            enabled = choice != null && !testing,
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         )
         playback.let { p ->
@@ -225,7 +238,10 @@ private fun MigratedVoiceModelContent(
     val player = remember { VoicePlayer(context) }
     val playback by player.state.collectAsState()
     var speed by remember(selection) { mutableStateOf(state.speed.toString()) }
+    var maxCharsText by remember(state.maxCharsPerSpeak) { mutableStateOf(state.maxCharsPerSpeak.toString()) }
+    var testing by remember(selection) { mutableStateOf(false) }
     var test by remember { mutableStateOf<String?>(null) }
+    val sampleText = tr(R.string.voice_try_sample)
     DisposableEffect(player, selection) { onDispose { player.stop() } }
 
     val previewScope = key(selection) { rememberCoroutineScope() }
@@ -313,9 +329,15 @@ private fun MigratedVoiceModelContent(
                 trailing = { MikaSwitch(state.askBeforeSave, settings::setAskBeforeSave, enabled = state.saveEnabled) },
             )
             InputRow(
-                tr(R.string.voice_max_chars), state.maxCharsPerSpeak.toString(),
-                onChange = { it.toIntOrNull()?.let(settings::setMaxChars) }, placeholder = "2000",
+                tr(R.string.voice_max_chars), maxCharsText,
+                onChange = { input ->
+                    val digits = input.filter(Char::isDigit).take(6)
+                    maxCharsText = digits
+                    digits.toIntOrNull()?.takeIf { it > 0 }?.let(settings::setMaxChars)
+                },
+                placeholder = "2000",
                 keyboard = KeyboardType.Number,
+                modifier = Modifier.onFocusChanged { if (!it.hasFocus) maxCharsText = state.maxCharsPerSpeak.toString() },
             )
         }
 
@@ -330,13 +352,15 @@ private fun MigratedVoiceModelContent(
                 } catch (_: VoiceModelError) {
                     return@MikaButton
                 }
+                if (testing) return@MikaButton
+                testing = true
                 previewScope.launch {
                     test = tr(R.string.voice_testing)
                     try {
                         player.play(
                             model,
                             TtsRequest(
-                                "你好，我是 Mika。这是一段声音测试。",
+                                sampleText,
                                 state.voice.ifBlank { null },
                                 state.speed,
                                 "wav",
@@ -347,10 +371,12 @@ private fun MigratedVoiceModelContent(
                         throw e
                     } catch (e: Exception) {
                         test = tr(R.string.voice_test_failed, e.message ?: e.javaClass.simpleName)
+                    } finally {
+                        testing = false
                     }
                 }
             },
-            enabled = selectedModel != null,
+            enabled = selectedModel != null && !testing,
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         )
         playback.let { p ->

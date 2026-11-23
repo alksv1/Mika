@@ -167,7 +167,7 @@ internal fun LanguagePromptDialog(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                stringResource(R.string.file_library_empty),
+                                stringResource(R.string.browser_find_no_matches),
                                 style = MikaType.Caption,
                                 color = colors.ink3,
                             )

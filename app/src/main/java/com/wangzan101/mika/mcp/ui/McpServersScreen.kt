@@ -1,5 +1,6 @@
 package com.wangzan101.mika.mcp.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,22 @@ fun McpServersScreen(store: McpServerStore, onBack: () -> Unit) {
     val connector = remember { McpConnectorState(store, store.catalog, scope) }
     var route by remember { mutableStateOf(McpRoute.List) }
     var editing by remember { mutableStateOf<McpServerConfig?>(null) }
+
+    BackHandler(enabled = route != McpRoute.List) {
+        route = when (route) {
+            McpRoute.Connect -> {
+                connector.cancel()
+                McpRoute.Catalog
+            }
+            McpRoute.Custom -> if (editing == null) McpRoute.List else McpRoute.Manage
+            McpRoute.Manage -> {
+                editing = null
+                McpRoute.List
+            }
+            McpRoute.Catalog -> McpRoute.List
+            McpRoute.List -> McpRoute.List
+        }
+    }
 
     when (route) {
         McpRoute.List -> McpServerList(

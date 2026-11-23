@@ -1,6 +1,8 @@
 package com.wangzan101.mika.voice.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -64,6 +68,7 @@ import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.FooterNote
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.GroupLabel
+import com.wangzan101.mika.ui.components.Hairline
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.MikaSwitch
@@ -71,6 +76,8 @@ import com.wangzan101.mika.ui.components.PillTone
 import com.wangzan101.mika.ui.components.SelectChip
 import com.wangzan101.mika.ui.components.StatusPill
 import com.wangzan101.mika.ui.components.SubPage
+import com.wangzan101.mika.ui.components.keepsKeyboard
+import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.launch
@@ -189,6 +196,7 @@ internal fun VoiceCatalogContent(viewModel: VoiceCatalogViewModel, onBack: () ->
                     modifier = Modifier.testTag("voice-catalog-delete-confirm"),
                 ) { Text(stringResource(R.string.voice_catalog_delete)) }
             },
+            destructive = true,
         )
     }
 
@@ -207,6 +215,7 @@ internal fun VoiceCatalogContent(viewModel: VoiceCatalogViewModel, onBack: () ->
                     modifier = Modifier.testTag("voice-catalog-repair-confirm"),
                 ) { Text(stringResource(R.string.voice_catalog_repair)) }
             },
+            destructive = true,
         )
     }
 }
@@ -273,23 +282,25 @@ private fun ModelRow(
 ) {
     val c = MikaTheme.colors
     val ttsSampleText = stringResource(R.string.voice_catalog_tts_sample)
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).testTag("voice-model-${model.id}"),
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(voiceModelDisplayName(model), style = MikaType.Body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
-                Text(model.id, style = MikaType.Hint, color = c.ink3)
-            }
-            if (!system) {
-                TextButton(onClick = onEdit, modifier = Modifier.testTag("voice-model-edit-${model.id}")) {
-                    Text(stringResource(R.string.voice_catalog_edit))
+    Column(Modifier.fillMaxWidth()) {
+        if (!first) Hairline(start = 16.dp)
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).testTag("voice-model-${model.id}"),
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(voiceModelDisplayName(model), style = MikaType.Body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
+                    Text(model.id, style = MikaType.Hint, color = c.ink3)
                 }
-                TextButton(onClick = onDelete, modifier = Modifier.testTag("voice-model-delete-${model.id}")) {
-                    Text(stringResource(R.string.voice_catalog_delete))
+                if (!system) {
+                    TextButton(onClick = onEdit, modifier = Modifier.testTag("voice-model-edit-${model.id}")) {
+                        Text(stringResource(R.string.voice_catalog_edit))
+                    }
+                    TextButton(onClick = onDelete, modifier = Modifier.testTag("voice-model-delete-${model.id}")) {
+                        Text(stringResource(R.string.voice_catalog_delete), color = c.bad)
+                    }
                 }
             }
-        }
 
         FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             model.stt?.let { binding ->
@@ -339,6 +350,7 @@ private fun ModelRow(
             if (allVerified) PillTone.Ok else PillTone.Warn,
             Modifier.testTag("voice-status-${model.id}"),
         )
+        }
     }
 }
 
@@ -459,9 +471,10 @@ private fun VoiceCatalogSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.surface,
+        shape = MikaShapes.SheetTop,
     ) {
         Column(
-            Modifier.fillMaxWidth().navigationBarsPadding().verticalScroll(rememberScrollState())
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().imePadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
                 .testTag("voice-catalog-sheet"),
         ) {
@@ -501,7 +514,11 @@ private fun VoiceCatalogSheet(
             }
 
             if (editing == null) {
-                SheetField(stringResource(R.string.voice_catalog_model_id), form.modelId, { form.modelId = it }, tag = "voice-catalog-model-id")
+                SheetField(
+                    stringResource(R.string.voice_catalog_model_id), form.modelId, { form.modelId = it },
+                    tag = "voice-catalog-model-id",
+                    placeholder = stringResource(R.string.voice_catalog_model_id_hint),
+                )
             }
             SheetField(stringResource(R.string.voice_catalog_display_name), form.displayName, { form.displayName = it }, tag = "voice-catalog-display-name")
 
@@ -688,24 +705,36 @@ private fun SheetField(
     value: String,
     onChange: (String) -> Unit,
     tag: String,
+    placeholder: String = "",
     secret: Boolean = false,
 ) {
     val c = MikaTheme.colors
-    Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
         Text(label, style = MikaType.Hint, color = c.ink3)
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp).testTag(tag),
-            singleLine = true,
-            textStyle = MikaType.Body.copy(color = c.ink),
-            cursorBrush = SolidColor(c.accent),
-            visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text(stringResource(R.string.voice_catalog_model_id_hint), style = MikaType.Body, color = c.ink3)
-                inner()
-            },
-        )
+        Box(
+            Modifier.fillMaxWidth().padding(top = 4.dp)
+                .clip(MikaShapes.Button)
+                .background(c.fill)
+                .keepsKeyboard()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                modifier = Modifier.fillMaxWidth().testTag(tag),
+                singleLine = true,
+                textStyle = MikaType.Body.copy(color = c.ink),
+                cursorBrush = SolidColor(c.accent),
+                visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+                decorationBox = { inner ->
+                    if (value.isEmpty() && placeholder.isNotEmpty()) {
+                        Text(placeholder, style = MikaType.Body, color = c.ink3)
+                    }
+                    inner()
+                },
+            )
+        }
     }
 }
 

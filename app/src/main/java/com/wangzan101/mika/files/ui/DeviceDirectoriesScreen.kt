@@ -2,17 +2,20 @@ package com.wangzan101.mika.files.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.cap.phone.shell.HelperHub
 import com.wangzan101.mika.settings.DeviceDirectory
 import com.wangzan101.mika.settings.DeviceDirectoryStore
 import com.wangzan101.mika.ui.components.*
+import com.wangzan101.mika.ui.theme.MikaTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
@@ -61,8 +64,8 @@ fun DeviceDirectoriesScreen(store: DeviceDirectoryStore, hub: HelperHub, onBack:
     PageScaffold(stringResource(R.string.device_dirs_title), onBack) {
         GrantedFoldersSection()
         FooterNote(stringResource(R.string.device_dirs_explanation))
-        if (writeError) FooterNote(stringResource(R.string.device_dirs_write_failed))
-        if (authorizationInvalid) FooterNote(stringResource(R.string.device_dirs_invalid) + " " + stringResource(R.string.device_dirs_edit_path))
+        if (writeError) FooterNote(stringResource(R.string.device_dirs_write_failed), color = MikaTheme.colors.bad)
+        if (authorizationInvalid) FooterNote(stringResource(R.string.device_dirs_invalid) + " " + stringResource(R.string.device_dirs_edit_path), color = MikaTheme.colors.bad)
         GroupCard {
             if (!synced) ListRow(null, stringResource(R.string.device_dirs_retry_sync), first = true, onClick = { syncAttempt++ }) { RowChevron() }
             directories.forEachIndexed { index, directory ->
@@ -106,14 +109,14 @@ fun DeviceDirectoriesScreen(store: DeviceDirectoryStore, hub: HelperHub, onBack:
         MikaDialog(onDismissRequest = ::close, title = { Text(stringResource(R.string.device_dirs_edit)) }, text = {
             Column {
                 OutlinedTextField(name, { name = it.take(100) }, label = { Text(stringResource(R.string.device_dirs_name)) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(path, { path = it.take(1024) }, label = { Text(stringResource(R.string.device_dirs_path)) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(description, { description = it.take(1000) }, label = { Text(stringResource(R.string.device_dirs_description)) }, modifier = Modifier.fillMaxWidth())
-                if (error) Text(stringResource(R.string.device_dirs_invalid))
-                if (writeError) Text(stringResource(R.string.device_dirs_write_failed))
+                OutlinedTextField(path, { path = it.take(1024) }, label = { Text(stringResource(R.string.device_dirs_path)) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(description, { description = it.take(1000) }, label = { Text(stringResource(R.string.device_dirs_description)) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                if (error) Text(stringResource(R.string.device_dirs_invalid), Modifier.padding(top = 6.dp), color = MikaTheme.colors.bad)
+                if (writeError) Text(stringResource(R.string.device_dirs_write_failed), Modifier.padding(top = 6.dp), color = MikaTheme.colors.bad)
                 if (original != null) TextButton(onClick = {
                     try { store.remove(original.path); writeError = false; close() }
                     catch (_: IllegalStateException) { writeError = true }
-                }) { Text(stringResource(R.string.device_dirs_delete)) }
+                }) { Text(stringResource(R.string.device_dirs_delete), color = MikaTheme.colors.bad) }
             }
         }, confirmButton = {
             TextButton(onClick = {

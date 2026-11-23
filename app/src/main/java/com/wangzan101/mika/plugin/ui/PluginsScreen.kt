@@ -3,7 +3,6 @@ package com.wangzan101.mika.plugin.ui
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import com.wangzan101.mika.ui.components.FooterNote
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RowChevron
@@ -105,7 +105,9 @@ fun PluginsScreen(registry: PluginRegistry, onBack: () -> Unit) {
                             first = i == 0,
                             onClick = { selectedId = record.id },
                         ) {
-                            MikaSwitch(record.enabled, null)
+                            MikaSwitch(record.enabled, { on ->
+                                scope.launch(Dispatchers.IO) { registry.setEnabled(record.id, on) }
+                            })
                             RowChevron()
                         }
                     }
@@ -115,7 +117,7 @@ fun PluginsScreen(registry: PluginRegistry, onBack: () -> Unit) {
     }
 
     failure?.let { e ->
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { failure = null },
             title = { Text(stringResource(R.string.plugins_title)) },
             text = { Text(installErrorText(e)) },
@@ -126,7 +128,7 @@ fun PluginsScreen(registry: PluginRegistry, onBack: () -> Unit) {
     pendingDisclosure?.let { d ->
         val promptLine = stringResource(R.string.plugins_disclosure_prompt)
         val readsLine = stringResource(R.string.plugins_disclosure_reads)
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { pendingDisclosure = null },
             title = { Text(stringResource(R.string.plugins_disclosure_title)) },
             text = {
@@ -200,7 +202,7 @@ private fun PluginDetail(record: PluginRecord, registry: PluginRegistry, onBack:
         }
     }
     if (confirmUninstall) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { confirmUninstall = false },
             title = { Text(stringResource(R.string.plugins_uninstall)) },
             text = { Text(stringResource(R.string.plugins_uninstall_body)) },
@@ -214,6 +216,7 @@ private fun PluginDetail(record: PluginRecord, registry: PluginRegistry, onBack:
                 }) { Text(stringResource(R.string.plugins_uninstall)) }
             },
             dismissButton = { TextButton({ confirmUninstall = false }) { Text(stringResource(R.string.cancel)) } },
+            destructive = true,
         )
     }
     if (viewingRules) {
@@ -221,7 +224,7 @@ private fun PluginDetail(record: PluginRecord, registry: PluginRegistry, onBack:
             val f = registry.pluginDir(record.id)?.let { File(it, "persona.conf") }
             if (f?.isFile == true) f.readText() else DEFAULT_PERSONA_CONF
         }
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { viewingRules = false },
             title = { Text(stringResource(R.string.plugins_rules)) },
             text = { Text(content) },

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ fun McpCustomServerScreen(
     var preview by remember { mutableStateOf((initial?.previewChars ?: 4000).toString()) }
     var budget by remember { mutableStateOf(initial?.maxCostUnits?.toString().orEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var okMessage by remember { mutableStateOf<String?>(null) }
     var testing by remember { mutableStateOf(false) }
     var signingIn by remember { mutableStateOf(false) }
     var savedId by remember { mutableStateOf(initial?.id) }
@@ -126,7 +129,7 @@ fun McpCustomServerScreen(
                 }
             }
         }
-        result.exceptionOrNull()?.let { error = it.message; return null }
+        result.exceptionOrNull()?.let { error = it.message; okMessage = null; return null }
         error = null
         return cfg
     }
@@ -134,7 +137,7 @@ fun McpCustomServerScreen(
     PageBackground {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars).windowInsetsPadding(WindowInsets.ime)) {
             TopBar(if (initial == null) stringResource(R.string.mcp_catalog_custom_server) else name.ifBlank { initial.name }, MikaIcons.Back, onBack, stringResource(R.string.back))
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
                 GroupCard(Modifier.padding(top = 8.dp)) {
                     OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.mcp_servers_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp))
                     SegmentedControl(
@@ -207,13 +210,17 @@ fun McpCustomServerScreen(
                 }
 
                 error?.let { Text(it, Modifier.padding(top = 6.dp), style = MikaType.Caption, color = c.bad) }
+                okMessage?.let { Text(it, Modifier.padding(top = 6.dp), style = MikaType.Caption, color = c.ok) }
                 if (testing) Text(stringResource(R.string.mcp_servers_testing), Modifier.padding(top = 6.dp), style = MikaType.Caption, color = c.ink3)
                 if (signingIn) Text(stringResource(R.string.mcp_servers_signing_in), Modifier.padding(top = 6.dp), style = MikaType.Caption, color = c.ink3)
 
+                val busy = testing || signingIn
                 if (oauth && transport != "stdio") {
                     TextButton({
                         val saved = save() ?: return@TextButton
                         signingIn = true
+                        error = null
+                        okMessage = null
                         scope.launch {
                             val result = store.authorize(saved) { link ->
                                 context.startActivity(
@@ -224,29 +231,31 @@ fun McpCustomServerScreen(
                             }
                             signingIn = false
                             result.fold(
-                                onSuccess = { error = signInOk },
+                                onSuccess = { okMessage = signInOk },
                                 onFailure = { error = context.getString(R.string.mcp_servers_sign_in_failed, it.message ?: it.javaClass.simpleName) },
                             )
                         }
-                    }) { Text(signInLabel) }
+                    }, enabled = !busy) { Text(signInLabel) }
                 }
 
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MikaButton(stringResource(R.string.mcp_servers_save_test), {
                         val saved = save() ?: return@MikaButton
                         testing = true
+                        error = null
+                        okMessage = null
                         scope.launch {
                             val result = store.test(saved)
                             testing = false
                             result.fold(
-                                onSuccess = { error = "OK: ${it.serverName ?: ""} · ${it.tools.size}" },
+                                onSuccess = { okMessage = "OK: ${it.serverName ?: ""} · ${it.tools.size}" },
                                 onFailure = { error = it.message ?: it.javaClass.simpleName },
                             )
                         }
-                    }, Modifier.weight(1f), kind = ButtonKind.Secondary)
+                    }, Modifier.weight(1f), kind = ButtonKind.Secondary, enabled = !busy)
                     MikaButton(stringResource(R.string.mcp_servers_save), {
                         if (save() != null) onSaved()
-                    }, Modifier.weight(1f))
+                    }, Modifier.weight(1f), enabled = !busy)
                 }
             }
         }
@@ -264,8 +273,13 @@ private fun NumberField(label: String, value: String, onChange: (String) -> Unit
 
 @Composable
 private fun ToggleRow(title: String, checked: Boolean, onChecked: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-        Checkbox(checked, onCheckedChange = onChecked)
+    Row(
+        Modifier.fillMaxWidth()
+            .toggleable(value = checked, onValueChange = onChecked, role = Role.Checkbox)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Checkbox(checked, onCheckedChange = null)
         Text(title, Modifier.padding(start = 4.dp))
     }
 }

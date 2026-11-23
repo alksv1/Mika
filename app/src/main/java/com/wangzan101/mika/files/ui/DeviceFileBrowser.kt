@@ -315,6 +315,7 @@ internal fun DeviceFileBrowserScreen(
                 DeviceBreadcrumbBar(
                     crumbs = crumbs,
                     enabled = !loading,
+                    hasActiveQuery = activeQuery != null,
                     onSelectRoot = { if (crumbs.isNotEmpty()) navigateTo(emptyList()) },
                     onSelectIndex = { index ->
                         if (index < crumbs.lastIndex || activeQuery != null) {
@@ -503,6 +504,7 @@ private fun DeviceBrowserTopBar(
 private fun DeviceBreadcrumbBar(
     crumbs: List<DeviceBreadcrumb>,
     enabled: Boolean,
+    hasActiveQuery: Boolean = false,
     onSelectRoot: () -> Unit,
     onSelectIndex: (Int) -> Unit,
 ) {
@@ -521,7 +523,7 @@ private fun DeviceBreadcrumbBar(
         BreadcrumbChip(
             label = stringResource(R.string.device_browser_roots),
             current = crumbs.isEmpty(),
-            enabled = enabled && crumbs.isNotEmpty(),
+            enabled = enabled && (crumbs.isNotEmpty() || hasActiveQuery),
             onClick = onSelectRoot,
         )
         crumbs.forEachIndexed { index, crumb ->
@@ -530,7 +532,7 @@ private fun DeviceBreadcrumbBar(
             BreadcrumbChip(
                 label = crumb.name,
                 current = isCurrent,
-                enabled = enabled && !isCurrent,
+                enabled = enabled && (!isCurrent || hasActiveQuery),
                 onClick = { onSelectIndex(index) },
             )
         }

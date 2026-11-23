@@ -40,7 +40,7 @@ internal fun SkillMarketScreen(onBack: () -> Unit, onImport: (String) -> String?
     var refresh by remember { mutableIntStateOf(0) }
     val entry = selected
     val back = { if (selected != null) selected = null else onBack() }
-    BackHandler(onBack = back)
+    BackHandler(enabled = selected != null, onBack = back)
 
     // Keep the list and filter while reading a skill. Changing source discards both requests and previews.
     val index = key(repo, refresh) { marketLoad { market.list(repo) } }
@@ -55,7 +55,7 @@ internal fun SkillMarketScreen(onBack: () -> Unit, onImport: (String) -> String?
             if (entry == null) {
                 GroupLabel(stringResource(R.string.memory_skills))
                 SearchField(query, { query = it }, stringResource(R.string.search))
-                GroupCard {
+                GroupCard(Modifier.padding(top = 10.dp)) {
                     MarketContent(index, { refresh++ }) { entries ->
                         val matches = entries.filter { it.display.contains(query.trim(), true) ||
                             it.description.contains(query.trim(), true) || it.name.contains(query.trim(), true) }

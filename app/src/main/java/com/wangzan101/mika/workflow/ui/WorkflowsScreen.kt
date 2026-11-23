@@ -65,7 +65,7 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
     val template = data.templates.find { it.id == selectedTemplate }
     val run = data.runs.find { it.id == selectedRun }
     val back = { if (selectedRun != null) selectedRun = null else if (selectedTemplate != null) selectedTemplate = null else onBack() }
-    BackHandler(onBack = back)
+    BackHandler(enabled = selectedRun != null || selectedTemplate != null, onBack = back)
     editor?.let { encoded ->
         val initial = remember(encoded) { Json.decodeFromString<WorkflowTemplate>(encoded) }
         WorkflowEditor(runtime.store, initial, onBack = { editor = null }, onSaved = { selectedTemplate = it; editor = null })

@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ fun ImageModelScreen(store: ProviderStore, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val c = MikaTheme.colors
     var model by remember { mutableStateOf(state.choice?.model.orEmpty()) }
+    var maxPerTaskText by remember(state.maxPerTask) { mutableStateOf(state.maxPerTask.toString()) }
     var test by remember { mutableStateOf<String?>(null) }
     val eligibleProviders = providers
     val choice = state.choice?.takeIf { selected -> eligibleProviders.any { it.id == selected.providerId } }
@@ -115,9 +117,15 @@ fun ImageModelScreen(store: ProviderStore, onBack: () -> Unit) {
         GroupLabel(tr(R.string.image_limits), Modifier.padding(top = 12.dp))
         GroupCard {
             InputRow(
-                tr(R.string.image_max_per_task), state.maxPerTask.toString(),
-                onChange = { it.toIntOrNull()?.let(settings::setMaxPerTask) }, placeholder = "8",
+                tr(R.string.image_max_per_task), maxPerTaskText,
+                onChange = { input ->
+                    val digits = input.filter(Char::isDigit).take(4)
+                    maxPerTaskText = digits
+                    digits.toIntOrNull()?.takeIf { it > 0 }?.let(settings::setMaxPerTask)
+                },
+                placeholder = "8",
                 keyboard = KeyboardType.Number, first = true,
+                modifier = Modifier.onFocusChanged { if (!it.hasFocus) maxPerTaskText = state.maxPerTask.toString() },
             )
             ListRow(
                 null, tr(R.string.image_save_enabled), tr(R.string.image_save_enabled_note),
