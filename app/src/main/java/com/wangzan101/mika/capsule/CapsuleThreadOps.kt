@@ -145,7 +145,7 @@ internal fun CapsuleController.wake() {
 internal fun CapsuleController.fade() {
     fadeJob?.cancel()
     val v = view ?: return
-    val idleFor = System.currentTimeMillis() - lastActive
+    val idleFor = if (lastActive == 0L) CapsuleFade.IDLE_MS else (System.currentTimeMillis() - lastActive).coerceAtLeast(0L)
     val before = edgeHidden
     edgeHidden = CapsuleEdge.hidden(last?.hideAtEdge == true, v.kind, v.pill, v.needCount,
         expanded || capturing, dragging, talk.active, note != null, idleFor)

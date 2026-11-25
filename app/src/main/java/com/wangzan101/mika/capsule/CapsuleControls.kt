@@ -1,11 +1,28 @@
 package com.wangzan101.mika.capsule
 
+internal data class CapsuleLook(val kind: CapsuleKind, val pill: Boolean, val count: Int, val needCount: Int) {
+    companion object {
+        fun of(view: CapsuleView.Shown): CapsuleLook = CapsuleLook(view.kind, view.pill, view.count, view.needCount)
+    }
+}
+
 /** A docked ball may tuck away; requests, speech and open cards stay fully visible. */
 object CapsuleEdge {
     fun hidden(enabled: Boolean, kind: CapsuleKind, pill: Boolean, needs: Int,
         expanded: Boolean, dragging: Boolean, talking: Boolean, note: Boolean, idleFor: Long): Boolean =
         enabled && !pill && !kind.needsYou && kind != CapsuleKind.HandedOver && needs == 0 &&
             !expanded && !dragging && !talking && !note && idleFor >= CapsuleFade.IDLE_MS
+
+    internal fun shouldWake(
+        hideAtEdge: Boolean,
+        visible: Boolean,
+        previous: CapsuleLook?,
+        current: CapsuleLook,
+    ): Boolean = when {
+        visible -> current != previous
+        !hideAtEdge -> true
+        else -> current.kind != CapsuleKind.Idle && current != previous
+    }
 
     /** The visible half touches the safe physical edge, with no invisible horizontal touch area. */
     fun offset(side: DockSide, area: DockArea, room: Int): Int =
