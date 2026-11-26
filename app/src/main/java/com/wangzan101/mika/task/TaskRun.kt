@@ -55,7 +55,6 @@ import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.RunApproval
 import com.wangzan101.mika.settings.imageModel
 import com.wangzan101.mika.settings.ttsModel
-import com.wangzan101.mika.settings.untestedMainProvider
 import com.wangzan101.mika.takeover.Takeover
 import com.wangzan101.mika.voice.model.settingsProtocol
 import java.util.UUID
@@ -239,6 +238,9 @@ class TaskRun(
     internal val env = TaskEnvironment.of(service)
     /** 这段对话对外的会话号:这次运行建的模型(主、轻量、看图,及核查、意图判断、停止交代等旁路)都用它。 */
     internal val session = ModelSession.of(conversationId)
+    /** execute 开局构造一次；主/轻量/视觉、备援与失败提示都只读这份。 */
+    @Volatile internal var modelSnapshot: TaskModelSnapshot? = null
+        private set
     /** App 给的手机服务(共用的 shell 连接、「去设置」提示)、记忆、经验路线、异常退出后的恢复。 */
     internal val phoneServices = PhoneServices.of(service)
     internal val memoryRuntime = MemoryRuntime.of(service)
@@ -270,7 +272,7 @@ class TaskRun(
     /** 收尾后的交代与学习。 */
     private val runTeardown = RunTeardown(
         service, conversationId, goal, runState,
-        kit = { kit }, env = env, session = session, memoryRuntime = memoryRuntime,
+        kit = { kit }, env = env, memoryRuntime = memoryRuntime, snapshot = { modelSnapshot },
         routeStore = routeStore,
         workflowAttemptId = { workflowAttemptId }, noticeTainted = { noticeTainted }, provenance = { provenance },
     )
@@ -568,7 +570,7 @@ class TaskRun(
     /** 因模型失败、主模型在它那家还没测试通过时,提示去那家「重新测试」(见 [RetestHint])。测试换了主模型时不看设置里的配置。 */
     private fun withRetestHint(end: TaskState): TaskState {
         if (end !is TaskState.Failed || env.modelFactory !== TaskEnvironment.defaultModelFactory) return end
-        return RetestHint.apply(end, ProviderStore.get(service).untestedMainProvider()) { tr(R.string.fail_model_untested, it) }
+        return RetestHint.apply(end, modelSnapshot?.retestProvider) { tr(R.string.fail_model_untested, it) }
     }
 
     /** execute 收尾;拆成独立函数以缩小 execute 的 suspend 状态机(超大 suspend 函数会被 ART 校验器拒绝)。 */
@@ -642,6 +644,11 @@ class TaskRun(
     }
 
     suspend fun execute(priorTurns: List<Turn>): TaskState {
+        // 每次启动（UI、定时、渠道都一样）重读所属对话；此后整次运行只用这一份不可变路由。
+        val choice = withContext(Dispatchers.IO) {
+            runCatching { ConversationStore.shared(service).settings(conversationId).main }.getOrNull()
+        }
+        val snapshot = env.modelSnapshot(service, session, choice).also { modelSnapshot = it }
         noticeTainted = NoticeTurn.tainted(priorTurns)
         phone = null
         val a = RunAssembly(
@@ -664,7 +671,7 @@ class TaskRun(
             // 前一个任务替这个拿着的那份,自己的拿上了就放开
             wakeHandoff?.release()
             wakeHandoff = null
-            val m = assembleModels() ?: return TaskState.Failed(tr(R.string.fail_no_main_model), FailKind.Environment)
+            val m = assembleModels(snapshot) ?: return TaskState.Failed(tr(R.string.fail_no_main_model), FailKind.Environment)
             val ph = assemblePhone(a)
             val taskGate = assembleGate(ph)
             val rec = assembleRecord(a)

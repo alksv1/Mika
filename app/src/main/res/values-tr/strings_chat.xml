@@ -194,6 +194,7 @@
     <string name="attach_recent">Son fotoğraflar</string>
     <string name="attach_recent_partial">Mika\'nın erişmesine izin verdiğiniz fotoğraflar</string>
     <string name="attach_all">Tüm fotoğraflar</string>
+    <string name="attach_more">Daha fazla</string>
     <string name="attach_change">Erişimi değiştir</string>
     <string name="attach_no_photos">Henüz fotoğraf yok</string>
     <string name="attach_need_access">Buradan fotoğraf seçmek için Mika\'nın fotoğraflarınıza erişmesine izin verin</string>

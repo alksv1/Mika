@@ -14,16 +14,12 @@ import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.core.agent.Turn
 import com.wangzan101.mika.core.cap.web.WEB
 import com.wangzan101.mika.core.learn.knowledge.ChannelFacts
-import com.wangzan101.mika.core.model.ChatModel
 import com.wangzan101.mika.core.run.record.RunEvent
 import com.wangzan101.mika.core.learn.replay.RouteMatcher
 import com.wangzan101.mika.core.run.RunInput
 import com.wangzan101.mika.core.run.RunOrigin
 import com.wangzan101.mika.core.tool.HandBack
 import com.wangzan101.mika.settings.FeatureFlags
-import com.wangzan101.mika.settings.ProviderStore
-import com.wangzan101.mika.settings.mainFallbackChain
-import com.wangzan101.mika.settings.mainProviderId
 import com.wangzan101.mika.takeover.HandoverActivity
 import com.wangzan101.mika.takeover.HandoverActivityCounter
 import com.wangzan101.mika.takeover.Takeover
@@ -83,11 +79,9 @@ internal suspend fun TaskRun.assembleAgent(a: RunAssembly, m: RunModels, ph: Run
         }
     } else null
 
-    // 主模型备援链(项目 3):评测换掉模型来源时不接设置里的备援,免得测到真服务商
-    val chainStore = ProviderStore.get(service)
-    val (chainModels, fallbackProviderIds) = if (env.modelFactory === TaskEnvironment.defaultModelFactory)
-        chainStore.mainFallbackChain(session) else (emptyList<ChatModel>() to emptyList<String?>())
-    val chainProviderIds = listOf(chainStore.mainProviderId()) + fallbackProviderIds
+    // 主模型及备援服务商都来自开局那一份快照；运行中改设置只影响下一次任务。
+    val chainModels = m.mainFallbacks
+    val chainProviderIds = m.mainProviderIds
     val agent = AgentLoop(
         model, tools,
         basePrompt,

@@ -73,8 +73,10 @@ import com.wangzan101.mika.i18n.AppLanguage
 import com.wangzan101.mika.memory.MemoryRuntime
 import com.wangzan101.mika.record.RunStore
 import com.wangzan101.mika.knowledge.FileRouteStore
+import com.wangzan101.mika.settings.ActivityRecentsSystem
 import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.settings.Prerequisites
+import com.wangzan101.mika.settings.RecentsExclusion
 import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.SystemStatusMonitor
 import com.wangzan101.mika.task.TaskService
@@ -153,6 +155,8 @@ import com.wangzan101.mika.voice.ui.VoiceServicesScreen
 
 class MainActivity : ComponentActivity() {
     private lateinit var monitor: SystemStatusMonitor
+    internal lateinit var recentsExclusion: RecentsExclusion
+        private set
     private var requestedConversation by mutableStateOf<String?>(null)
     private var requestedCalls by mutableStateOf(false)
     private var requestedCallHistoryId by mutableStateOf<String?>(null)
@@ -179,6 +183,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        recentsExclusion = RecentsExclusion(FeatureFlags.get(this), ActivityRecentsSystem(this))
+        recentsExclusion.reapply()
         if (savedInstanceState == null) {
             (application as MikaApp).chat.cancelPendingSharedDraft()
         }
@@ -314,6 +320,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         foreground = true
         monitor.refresh()
+        recentsExclusion.reapply()
         // 回到前台时按最新设置查一次自动归档(启动时也查过,这里照顾长期不退出的进程)
         (application as MikaApp).autoArchiveNow()
     }

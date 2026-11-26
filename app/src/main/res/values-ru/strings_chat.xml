@@ -216,6 +216,7 @@
     <string name="attach_recent">Недавние фото</string>
     <string name="attach_recent_partial">Фото, к которым вы дали доступ Mika</string>
     <string name="attach_all">Все фото</string>
+    <string name="attach_more">Ещё</string>
     <string name="attach_change">Изменить доступ</string>
     <string name="attach_no_photos">Фото пока нет</string>
     <string name="attach_need_access">Чтобы выбирать фото здесь, разрешите Mika доступ к вашим фото</string>

@@ -85,6 +85,7 @@ internal fun ProviderStore.meteredWith(
     call: ProactiveCall = ProactiveCall.Triage,
     beforeRetry: (UsageSource, Int) -> Unit = { _, _ -> },
     effortOverride: String? = null,
+    useRoleEffort: Boolean = true,
 ): ChatModel {
     val p = provider(cfg.providerId)
     val listed = listedOf(cfg)
@@ -98,7 +99,7 @@ internal fun ProviderStore.meteredWith(
         compactionTriggerTokens = settings.triggerTokens,
         compactionEveryRounds = TEMP_COMPACTION_EVERY_ROUNDS,
     ))
-    val roleEffort = effortOverride ?: _roles.value.reasoningEffort(role)
+    val roleEffort = if (useRoleEffort) effortOverride ?: _roles.value.reasoningEffort(role) else effortOverride
     // 主动能力:思考取服务商写明的最低档;回复短的那两种请求另设上限(见 ProactiveModelSetup)
     val (effort, cap) = if (purpose == UsagePurpose.Proactive) {
         ProactiveModelSetup.of(adapterFor(cfg, listed?.endpoint).first, ReasoningOptions.of(cfg, listed), roleEffort, call)

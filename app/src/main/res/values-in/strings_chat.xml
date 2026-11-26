@@ -183,6 +183,7 @@
     <string name="attach_recent">Foto terbaru</string>
     <string name="attach_recent_partial">Foto yang Anda izinkan diakses Mika</string>
     <string name="attach_all">Semua foto</string>
+    <string name="attach_more">Lainnya</string>
     <string name="attach_change">Ubah akses</string>
     <string name="attach_no_photos">Belum ada foto</string>
     <string name="attach_need_access">Untuk memilih foto di sini, izinkan Mika mengakses foto Anda</string>

@@ -183,6 +183,7 @@
     <string name="attach_recent">Ảnh gần đây</string>
     <string name="attach_recent_partial">Ảnh bạn cho phép Mika truy cập</string>
     <string name="attach_all">Tất cả ảnh</string>
+    <string name="attach_more">Thêm</string>
     <string name="attach_change">Thay đổi quyền truy cập</string>
     <string name="attach_no_photos">Chưa có ảnh</string>
     <string name="attach_need_access">Để chọn ảnh ở đây, hãy cho phép Mika truy cập ảnh của bạn</string>

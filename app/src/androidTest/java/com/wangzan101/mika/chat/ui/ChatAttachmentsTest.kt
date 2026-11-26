@@ -5,8 +5,10 @@ import com.wangzan101.mika.cap.sandbox.AttachmentFailure
 import com.wangzan101.mika.cap.sandbox.AttachmentFailureReason
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,15 +16,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import android.graphics.Bitmap
 import android.net.Uri
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -30,18 +39,27 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Text
 import androidx.core.content.FileProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wangzan101.mika.chat.AttachFilesProvider
 import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 /** 对话页的附件:「＋」的回调、相册页、输入框上方待发的那一排、发出去的消息怎么画。 */
@@ -253,6 +271,124 @@ class ChatAttachmentsTest {
         photosPage(PhotoAccess.Partial, listOf(PendingAttachment("content://m/1", "p.jpg", 1, photo = true)))
         compose.onNodeWithText(AttachCopy.RECENT_PARTIAL).assertIsDisplayed()
         compose.onNodeWithText(AttachCopy.CHANGE).assertIsDisplayed()
+    }
+
+    /** 照片条:几张假照片加末尾的「更多」。[fontScale] 叠在系统字号上,[width] 是窄屏,[extra] 画在照片条下面。 */
+    private fun recentRow(
+        recent: List<PendingAttachment> = (1..4).map { PendingAttachment("content://m/$it", "p$it.jpg", 1, photo = true) },
+        selected: List<PendingAttachment> = emptyList(),
+        onToggle: (PendingAttachment) -> Unit = {},
+        onPreview: ((PendingAttachment) -> Unit)? = null,
+        onMore: () -> Unit = {},
+        fontScale: Float = 1f,
+        width: Dp = 320.dp,
+        extra: @Composable () -> Unit = {},
+    ) = compose.setContent {
+        val density = LocalDensity.current
+        MikaTheme {
+            CompositionLocalProvider(
+                LocalAttachImages provides images,
+                LocalDensity provides Density(density.density, density.fontScale * fontScale),
+            ) {
+                Column {
+                    Box(Modifier.width(width)) { PlusRecentRow(recent, selected, onToggle, onMore, onPreview = onPreview) }
+                    extra()
+                }
+            }
+        }
+    }
+
+    /** 一张 40×30 的真 PNG,给查看页解码。 */
+    private fun png(): ByteArray = ByteArrayOutputStream().also { out ->
+        Bitmap.createBitmap(40, 30, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, out)
+    }.toByteArray()
+
+    /** 一张放在 FileProvider 里的真照片,查看页能读。 */
+    private fun viewablePhoto(): Pair<File, PendingAttachment> {
+        val context = compose.activity
+        val file = File(context.cacheDir, "attach/viewing/recent-preview.png").apply { parentFile?.mkdirs(); writeBytes(png()) }
+        val uri = FileProvider.getUriForFile(context, AttachFilesProvider.authority(context.packageName), file).toString()
+        return file to PendingAttachment(uri, "recent-preview.png", file.length(), photo = true)
+    }
+
+    /** 等某个标签出现。查看页刚起步、两个界面都还没注册的一瞬间查不到任何界面,这时接着等。 */
+    private fun waitForKey(tag: String) = compose.waitUntil(5_000) {
+        try {
+            compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        } catch (e: IllegalStateException) {
+            false
+        }
+    }
+
+    @Test fun moreTileKeepsItsLabelOnOneLineWithLargeFonts() {
+        // 320dp 的窄屏加 1.3 倍字号:一句四个字的标签在这里放不下,修复前折成「全部照/片」
+        recentRow(fontScale = 1.3f) {
+            // 同样的字不限宽度再画一遍,用来比宽度:没被省略时两处一样宽
+            Text(AttachCopy.MORE, Modifier.testTag("unconstrained-label"), style = MikaType.Caption)
+        }
+        val label = compose.onNodeWithTag("plus-more-photos-label", useUnmergedTree = true)
+        val layout = mutableListOf<TextLayoutResult>()
+        label.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layout) }
+        assertEquals(1, layout.single().lineCount)
+        val inTile = label.getBoundsInRoot()
+        val full = compose.onNodeWithTag("unconstrained-label", useUnmergedTree = true).getBoundsInRoot()
+        assertTrue("label was cut down: $inTile vs $full", inTile.right - inTile.left >= full.right - full.left - 1.dp)
+        assertTrue("label was clipped: $inTile vs $full", inTile.bottom - inTile.top >= full.bottom - full.top - 1.dp)
+        val tile = compose.onNodeWithTag("plus-more-photos").getBoundsInRoot()
+        assertTrue("label leaves its tile: $inTile vs $tile", inTile.left >= tile.left && inTile.right <= tile.right && inTile.top >= tile.top && inTile.bottom <= tile.bottom)
+    }
+
+    @Test fun moreTileOpensTheRecentPhotosPage() {
+        var opened = 0
+        recentRow(onMore = { opened++ })
+        compose.onNodeWithTag("plus-more-photos").assertHasClickAction().performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test fun longPressPreviewsAResentPhotoWithoutChangingTheSelection() {
+        val recent = (1..4).map { PendingAttachment("content://m/$it", "p$it.jpg", 1, photo = true) }
+        val toggled = mutableListOf<String>()
+        val previewed = mutableListOf<String>()
+        recentRow(recent, selected = listOf(recent[0]), onToggle = { toggled += it.uri }, onPreview = { previewed += it.uri })
+        val cells = compose.onAllNodesWithTag("recent-photo")
+        // 长按已选中的第 1 张:只预览,还是选中的、序号不变
+        cells[0].performTouchInput { longClick() }
+        assertEquals(listOf("content://m/1"), previewed)
+        cells[0].assertIsSelected()
+        compose.onNodeWithText("1").assertIsDisplayed()
+        // 长按没选的第 3 张:只预览,不会被选上
+        cells[2].performTouchInput { longClick() }
+        assertEquals(listOf("content://m/1", "content://m/3"), previewed)
+        compose.onAllNodes(hasTestTag("recent-photo") and isSelected()).assertCountEquals(1)
+        assertEquals(emptyList<String>(), toggled)
+        // 点一下仍然是选上或取消,不预览
+        cells[1].performClick()
+        assertEquals(listOf("content://m/2"), toggled)
+        assertEquals(2, previewed.size)
+    }
+
+    @Test fun longPressOpensTheFullSizeViewerFromTheStrip() {
+        val (file, photo) = viewablePhoto()
+        try {
+            recentRow(listOf(photo))
+            compose.onAllNodesWithTag("recent-photo")[0].performTouchInput { longClick() }
+            waitForKey("viewer.image")
+            compose.onNodeWithTag("viewer.image").assertIsDisplayed()
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test fun longPressOpensTheFullSizeViewerFromTheGrid() {
+        val (file, photo) = viewablePhoto()
+        try {
+            photosPage(PhotoAccess.Full, listOf(photo))
+            compose.onAllNodesWithTag("recent-photo")[0].performTouchInput { longClick() }
+            waitForKey("viewer.image")
+            compose.onNodeWithTag("viewer.image").assertIsDisplayed()
+        } finally {
+            file.delete()
+        }
     }
 
     @Test fun plusSheetGroupsIntoAttachTurnAndReuse() {

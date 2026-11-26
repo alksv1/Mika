@@ -205,6 +205,7 @@
     <string name="attach_recent">Fotos recentes</string>
     <string name="attach_recent_partial">Fotos que você permitiu o Mika acessar</string>
     <string name="attach_all">Todas as fotos</string>
+    <string name="attach_more">Mais</string>
     <string name="attach_change">Alterar acesso</string>
     <string name="attach_no_photos">Ainda não há fotos</string>
     <string name="attach_need_access">Para escolher fotos aqui, permita que o Mika acesse suas fotos</string>

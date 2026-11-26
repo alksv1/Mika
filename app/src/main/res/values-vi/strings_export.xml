@@ -8,6 +8,7 @@
     <string name="export_format">Định dạng</string>
     <string name="export_format_markdown">Markdown</string>
     <string name="export_format_json">JSON</string>
+    <string name="export_format_html">HTML</string>
     <string name="export_include_tool_steps">Các bước công cụ</string>
     <string name="export_include_attachments">Tệp đính kèm</string>
     <string name="export_include_screens">Ảnh chụp màn hình</string>
@@ -16,6 +17,8 @@
     <string name="export_redact_pii">Ẩn thêm số điện thoại, email và đường dẫn</string>
     <string name="export_bundle_note">Có kèm tệp đính kèm hoặc ảnh chụp màn hình, nên tệp xuất ra là tệp zip.</string>
     <string name="export_button">Xuất</string>
+    <string name="export_preview">Xem trước</string>
+    <string name="export_preview_truncated">Bản xem trước đã bị cắt ngắn; tệp xuất ra chứa toàn bộ nội dung.</string>
     <string name="export_cancel">Hủy</string>
     <string name="export_close">Đóng</string>
     <string name="export_preparing">Đang chuẩn bị…</string>

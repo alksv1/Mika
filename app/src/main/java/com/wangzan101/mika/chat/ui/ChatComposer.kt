@@ -126,6 +126,9 @@ internal fun Composer(
     overLimit: Int = 0,
     onRemove: (String) -> Unit = {},
     onDismissRejected: () -> Unit = {},
+    /** 输入框上方的本对话主模型入口。 */
+    mainModel: MainModelUi = MainModelUi(),
+    onMainModel: () -> Unit = {},
     /** 要随下一句话发出去的引用;有时输入框上方一张小条,× 去掉。 */
     quote: QuoteMessage.Quote? = null,
     onRemoveQuote: () -> Unit = {},
@@ -219,6 +222,7 @@ internal fun Composer(
             ) {
                 lastQuote?.let { QuoteChip(it, onRemoveQuote, Modifier.padding(bottom = 6.dp)) }
             }
+            MainModelChip(mainModel, busy = busy || working, onClick = onMainModel, modifier = Modifier.padding(bottom = 6.dp))
             AnimatedVisibility(
                 visible = attachments.isNotEmpty(),
                 enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),

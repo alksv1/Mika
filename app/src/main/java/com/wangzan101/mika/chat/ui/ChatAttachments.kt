@@ -22,6 +22,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,6 +96,7 @@ object AttachCopy {
     val RECENT: String get() = tr(R.string.attach_recent)
     val RECENT_PARTIAL: String get() = tr(R.string.attach_recent_partial)
     val ALL: String get() = tr(R.string.attach_all)
+    val MORE: String get() = tr(R.string.attach_more)
     val CHANGE: String get() = tr(R.string.attach_change)
     val NO_PHOTOS: String get() = tr(R.string.attach_no_photos)
     val NEED_ACCESS: String get() = tr(R.string.attach_need_access)
@@ -211,9 +214,13 @@ internal fun rememberAttachLaunchers(
     )
 }
 
-/** 最近的一张照片:方块缩略图;选中时蓝框、淡蓝罩、右上角蓝底序号,没选时右上角一个空心圈。 */
+/**
+ * 最近的一张照片:方块缩略图;选中时蓝框、淡蓝罩、右上角蓝底序号,没选时右上角一个空心圈。
+ * 点一下交给 [onClick](选上或取消);给了 [onPreview] 时长按看大图,选中状态不变。
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun RecentCell(photo: PendingAttachment, order: Int?, onClick: () -> Unit) {
+internal fun RecentCell(photo: PendingAttachment, order: Int?, onClick: () -> Unit, onPreview: (() -> Unit)? = null) {
     val c = MikaTheme.colors
     val reduce = MikaTheme.reduceMotion
     val view = LocalView.current
@@ -223,13 +230,26 @@ internal fun RecentCell(photo: PendingAttachment, order: Int?, onClick: () -> Un
     val badgeBg by animateColorAsState(if (selected) c.accent else Color.Black.copy(alpha = 0.18f), MikaMotion.effects(reduce), label = "recent-badge-bg")
     val badgeBorder by animateColorAsState(if (selected) c.accent else Color.White, MikaMotion.effects(reduce), label = "recent-badge-border")
     val badgeScale by animateFloatAsState(if (selected) 1f else 0.92f, MikaMotion.tactile(reduce), label = "recent-badge-scale")
+    val selectLabel = stringResource(if (selected) R.string.attach_deselect else R.string.attach_select)
+    val previewLabel = stringResource(R.string.attach_view_large)
+    val onSelect = {
+        MikaHaptics.tick(view)
+        onClick()
+    }
+    val press = if (onPreview == null) {
+        Modifier.clickable(onClickLabel = selectLabel, onClick = onSelect)
+    } else {
+        Modifier.combinedClickable(
+            onClickLabel = selectLabel,
+            onLongClickLabel = previewLabel,
+            onLongClick = onPreview,
+            onClick = onSelect,
+        )
+    }
     Box(
         Modifier.testTag("recent-photo").aspectRatio(1f).clip(CellShape).background(c.fill)
             .semantics { this.selected = selected }
-            .clickable(onClickLabel = if (selected) stringResource(R.string.attach_deselect) else stringResource(R.string.attach_select)) {
-                MikaHaptics.tick(view)
-                onClick()
-            },
+            .then(press),
     ) {
         thumb?.let { Image(it, photo.name, Modifier.matchParentSize(), contentScale = ContentScale.Crop) }
         if (overlayAlpha > 0.01f) Box(
@@ -244,6 +264,22 @@ internal fun RecentCell(photo: PendingAttachment, order: Int?, onClick: () -> Un
             contentAlignment = Alignment.Center,
         ) {
             if (order != null) Text("$order", style = BadgeText, color = c.onAccent)
+        }
+    }
+}
+
+/** 预览一张还没发出的照片:在 App 的查看页看大图;读不到时提示一声。 */
+@Composable
+internal fun rememberPhotoPreview(): (PendingAttachment) -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    return remember(context, scope) {
+        { photo ->
+            scope.launch {
+                if (!AttachFiles.openPending(context, photo.uri, photo.name)) {
+                    Toast.makeText(context, AttachCopy.GONE, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 }

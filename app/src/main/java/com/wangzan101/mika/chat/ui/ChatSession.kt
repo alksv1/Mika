@@ -61,6 +61,7 @@ internal class ChatSession(private val vm: ChatViewModel) {
         draftStateChanged = true
         return _ui.value.conversationId ?: store.newConversation().also { id ->
             workspaceResolver?.setDraftProject(id, _ui.value.projectId)
+            vm.bindPendingMainModel(id)
             _ui.update { it.copy(conversationId = id) }
             markCurrent(CurrentChat.Open(id))
         }

@@ -22,4 +22,7 @@
     <string name="rec_not_recovered">Không thể tự động kết nối lại ở lần khởi động trước. Đảm bảo bạn đang dùng Wi-Fi tin cậy với Gỡ lỗi không dây đang bật, và Mika sẽ kết nối.</string>
     <string name="rec_needs_pairing">Chỉ hoạt động sau khi ghép nối Gỡ lỗi không dây. Trợ lý đã được khởi động bằng lệnh USB, nên hãy chạy lại lệnh sau khi điện thoại khởi động lại.</string>
     <string name="rec_shizuku_no_wireless">Gỡ lỗi không dây không được dùng khi Shizuku được chọn. Mika kết nối lại qua Shizuku khi Shizuku đang chạy.</string>
+    <string name="rec_exclude_recents">Ẩn khỏi Ứng dụng gần đây</string>
+    <string name="rec_exclude_recents_sub">Không hiển thị Mika trong danh sách ứng dụng gần đây của hệ thống.</string>
+    <string name="rec_exclude_recents_failed">Không thể thay đổi chế độ hiển thị trong Ứng dụng gần đây. Lựa chọn đã lưu không thay đổi; hãy thử lại.</string>
 </resources>

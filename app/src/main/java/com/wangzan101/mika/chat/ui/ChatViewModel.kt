@@ -5,6 +5,7 @@ import com.wangzan101.mika.cap.web.KeptPage
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.chat.BranchCopyResult
 import com.wangzan101.mika.chat.BranchWorkspace
+import com.wangzan101.mika.chat.ConversationSettings
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.ConversationSummary
 import com.wangzan101.mika.chat.CurrentChat
@@ -27,6 +28,7 @@ import com.wangzan101.mika.core.learn.memory.MemoryNote
 import com.wangzan101.mika.core.run.record.RunEvent
 import com.wangzan101.mika.core.learn.skills.SkillNote
 import com.wangzan101.mika.memory.RunNotes
+import com.wangzan101.mika.settings.ModelChoice
 import com.wangzan101.mika.settings.Prerequisites
 import com.wangzan101.mika.takeover.Takeover
 import com.wangzan101.mika.task.SteerNote
@@ -176,6 +178,8 @@ class ChatViewModel(
     internal val projectDeletionImpact: (String) -> ProjectDeleteImpact = { ProjectDeleteImpact(0, 0, 0) },
     internal val removeProject: suspend (String) -> Unit = {},
     internal val workspaceResolver: WorkspaceResolver? = null,
+    /** 对话主模型的只读目录;未注入时(旧测试/预览)不显示模型入口。 */
+    internal val mainModels: MainModelCatalog? = null,
     /** 聊天走前台:打的字交给这条会话的前台,派出的任务挂成卡片;没给时(只在测试里)照旧直接开任务。 */
     desk: DeskChatDeps? = null,
 ) {
@@ -241,6 +245,71 @@ class ChatViewModel(
     val ui: StateFlow<ChatUi> = _ui.asStateFlow()
     val jump: StateFlow<ChatJump?> = _jump.asStateFlow()
 
+    /** 未物化对话的选择由进程级 [ConversationStore] 保存；首句被收下时才写入旁文件。 */
+    private val materializedMainChoices = mutableSetOf<String>()
+
+    internal fun refreshMainModel() {
+        val catalog = mainModels
+        if (catalog == null) {
+            _ui.update { it.copy(mainModel = MainModelUi()) }
+            return
+        }
+        val id = _ui.value.conversationId
+        val saved = when {
+            store.hasPendingMainChoice(id) -> store.pendingMainChoice(id)
+            id != null && (id in materializedMainChoices || store.exists(id)) -> runCatching { store.settings(id).main }.getOrNull()
+            else -> null
+        }
+        val usable = catalog.usable(saved)
+        val global = catalog.globalLabel()
+        val options = catalog.options()
+        val model = MainModelUi(
+            available = global != null || options.isNotEmpty() || usable != null,
+            override = saved,
+            label = if (saved != null && usable != null) catalog.label(usable) else global,
+            group = usable?.let(catalog::isGroup) == true,
+            fallback = saved != null && usable == null,
+            globalLabel = global,
+            options = options,
+        )
+        _ui.update { it.copy(mainModel = model) }
+    }
+
+    /** 选择只影响下一次任务；正在执行的任务继续使用启动时冻结的模型快照。 */
+    fun chooseMainModel(choice: ModelChoice?) {
+        val catalog = mainModels ?: return
+        if (choice != null && catalog.usable(choice) == null) return
+        val id = _ui.value.conversationId
+        if (id != null && (id in materializedMainChoices || store.exists(id))) {
+            if (!store.setSettings(id, ConversationSettings(choice))) return
+            store.clearPendingMainChoice(id)
+        } else {
+            store.setPendingMainChoice(id, choice)
+        }
+        refreshMainModel()
+    }
+
+    /** 前台构造模型时读取这一刻的有效选择；未落盘的首句选择也包含在内。 */
+    internal fun effectiveMainModelChoice(id: String?): ModelChoice? =
+        if (store.hasPendingMainChoice(id)) store.pendingMainChoice(id)
+        else id?.let { runCatching { store.settings(it).main }.getOrNull() }
+
+    /** 草稿编号确定时绑定选择；前台拒绝后再移回 null 键。 */
+    internal fun bindPendingMainModel(id: String) = store.movePendingMainChoice(null, id)
+
+    internal fun unbindPendingMainModel(id: String) = store.movePendingMainChoice(id, null)
+
+    internal fun flushPendingMainModel(id: String) {
+        if (!store.hasPendingMainChoice(id)) return
+        val choice = store.pendingMainChoice(id)
+        if (store.setSettings(id, ConversationSettings(choice))) {
+            store.clearPendingMainChoice(id)
+            materializedMainChoices += id
+        }
+    }
+
+    internal fun clearUnnumberedMainChoice() = store.clearPendingMainChoice(null)
+
     /** 尚未发送第一句话的草稿也能从侧栏找回来;已有历史的对话由侧栏沿用原标题。 */
     val draftConversations = combine(drafts, _ui) { saved, current ->
         val all = saved + listOfNotNull(current.conversationId?.let { it to current.draft() }).toMap()
@@ -277,7 +346,10 @@ class ChatViewModel(
         // 不论是谁存进屏上这个对话的(悬浮胶囊、定时任务、这里),都按存下的那份补上
         scope.launch {
             store.changes.collect { id ->
-                if (id == _ui.value.conversationId) live.syncSaved(id)
+                if (id == _ui.value.conversationId) {
+                    live.syncSaved(id)
+                    refreshMainModel()
+                }
                 // 删掉的对话又有人往里存了:重新列出来
                 if (id in _deleted.value && id !in deleting && store.turns(id).isNotEmpty()) _deleted.update { it - id }
             }
@@ -300,6 +372,7 @@ class ChatViewModel(
         // 任务登记进任务列表(原话可以取了)可能晚于它的第一个状态:那时接上的那一问一答补上原话
         scope.launch { activeConversations.collect { live.fillGoal() } }
         scope.launch { summarizing.collect { set -> _ui.update { ui -> ui.copy(exchanges = ui.exchanges.map { session.withSummarizing(it, set) }) } } }
+        mainModels?.let { catalog -> scope.launch { catalog.changes.collect { refreshMainModel() } } }
         // 分享附件有私有副本,可以恢复;只把当前对话那份放到输入框,其余留在各自草稿里。
         sharedDrafts?.readAll()?.forEach { draft ->
             drafts.update { it + (draft.conversationId to ComposerDraft(input = draft.text,
@@ -312,6 +385,7 @@ class ChatViewModel(
             _ui.value = session.restoreDraft(_ui.value.rebuildForConversation(conversationId = current.id, exchanges = session.saved(current.id)))
                 .copy(pendingSharedDraft = pending)
         }
+        refreshMainModel()
     }
 
     val deleteBatch: StateFlow<DeleteBatch?> = _deleteBatch.asStateFlow()

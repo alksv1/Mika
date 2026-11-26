@@ -50,7 +50,6 @@ import com.wangzan101.mika.settings.ApprovalControl
 import com.wangzan101.mika.settings.ApprovalStore
 import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.settings.ProviderStore
-import com.wangzan101.mika.settings.modelFor
 import com.wangzan101.mika.settings.proactiveTarget
 import com.wangzan101.mika.settings.proactiveTargeted
 import com.wangzan101.mika.settings.ttsModel
@@ -212,7 +211,7 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
     override val providers: ProviderStore by lazy {
         ProviderStore.create(this, usage, "Mika/${BuildConfig.VERSION_NAME}", usage::providerTokensToday,
             proactiveUsage = usage::proactiveTokensToday, proactiveLimit = { FeatureFlags.get(this).proactiveDailyTokenBudget() },
-            proactiveCalls = usage::proactiveCallsToday).also { store ->
+            proactiveCalls = usage::proactiveCallsToday, externalConfigReferences = conversations::referencedModelConfigIds).also { store ->
             voiceSettings.reconcileTtsChoice(store)
             scope.launch(Dispatchers.Main.immediate) {
                 store.providers.collect { voiceSettings.reconcileTtsChoice(store) }
@@ -528,6 +527,7 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
                 override fun togglePipSoundIn(conversationId: String) { taskState.run(conversationId)?.togglePipSound() }
             },
             conversations,
+            mainModels = com.wangzan101.mika.chat.ui.ProviderMainModelCatalog(providers),
             // 通话里在等主人回话时,这个对话里的下一句就是回话
             ownerAnswer = { id, text -> ownerQuestions.answerIn(id, text) },
             followUps = followUpQueue.changes,
@@ -607,8 +607,9 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             desk = com.wangzan101.mika.chat.ui.DeskChatDeps(
                 desk = { id -> desks.desk(id) },
                 executor = { id, words -> desks.executor(id, words) },
-                brain = { id ->
-                    com.wangzan101.mika.frontdesk.deskModel(app)?.let { model ->
+                brain = { id, mainOverride ->
+                    com.wangzan101.mika.frontdesk.deskModel(app,
+                        com.wangzan101.mika.core.model.ModelSession.of(id), mainOverride)?.let { model ->
                         com.wangzan101.mika.core.frontdesk.LlmBrain(
                             model,
                             com.wangzan101.mika.core.frontdesk.DeskPrompt.user(
@@ -624,13 +625,12 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
                 // 前台接的新对话不经任务那边起标题,这里按第一句话起一次;轻量模型在前,主模型兜底,用量记在这条对话上
                 title = { id, first ->
                     kotlinx.coroutines.withContext(conversations.meter(id)) {
-                        com.wangzan101.mika.chat.ConversationTitler.ensure(conversations, id, first) {
+                        com.wangzan101.mika.chat.ConversationTitler.ensure(conversations, id, first, {
                             val session = com.wangzan101.mika.core.model.ModelSession.of(id)
-                            listOfNotNull(
-                                providers.modelFor(com.wangzan101.mika.core.model.ModelRole.Light, session),
-                                providers.modelFor(com.wangzan101.mika.core.model.ModelRole.Main, session),
-                            )
-                        }
+                            val models = tasks.modelSnapshot(session = session, context = this@MikaApp,
+                                mainOverride = conversations.settings(id).main)
+                            listOfNotNull(models.light, models.main)
+                        }, language = AppLanguage.resolved(this@MikaApp).tag)
                     }
                 },
             ),
