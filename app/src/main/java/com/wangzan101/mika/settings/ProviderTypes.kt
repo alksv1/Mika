@@ -143,6 +143,12 @@ data class ModelContextSettings(val windowTokens: Int? = null, val triggerTokens
         (readTimeoutSeconds == null || readTimeoutSeconds in MODEL_READ_TIMEOUT_SECONDS)
 }
 
+/** 对话里对主模型的覆盖：一个具体模型或一个模型组；null 表示跟随全局。 */
+sealed interface ModelChoice {
+    data class Model(val configId: String) : ModelChoice
+    data class Group(val groupId: String) : ModelChoice
+}
+
 /** 一个用途选了什么:一个具体模型、一个模型组、用主模型,或不用(只有看图可以不用)。 */
 sealed interface RoleChoice {
     /** 用 [configId] 这条模型配置。 */

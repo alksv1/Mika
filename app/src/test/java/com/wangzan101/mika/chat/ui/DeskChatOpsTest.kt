@@ -3,9 +3,12 @@ package com.wangzan101.mika.chat.ui
 import com.wangzan101.mika.cap.sandbox.ImportResult
 import com.wangzan101.mika.chat.BranchCopyResult
 import com.wangzan101.mika.chat.BranchWorkspace
+import com.wangzan101.mika.chat.ConversationSettings
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.RetryAttachmentResult
 import com.wangzan101.mika.chat.RetryAttachmentStatus
+import com.wangzan101.mika.chat.SharedDraft
+import com.wangzan101.mika.chat.SharedDraftStore
 import com.wangzan101.mika.core.agent.DeskTurn
 import com.wangzan101.mika.core.agent.QuoteMessage
 import com.wangzan101.mika.core.agent.TaskState
@@ -25,13 +28,16 @@ import com.wangzan101.mika.core.frontdesk.ReplyContext
 import com.wangzan101.mika.core.frontdesk.ReportPolicy
 import com.wangzan101.mika.i18n.ChineseTexts
 import com.wangzan101.mika.settings.AccessibilityState
+import com.wangzan101.mika.settings.ModelChoice
 import com.wangzan101.mika.settings.Prerequisites
 import com.wangzan101.mika.settings.Problem
 import com.wangzan101.mika.settings.SystemStatus
 import com.wangzan101.mika.core.device.shell.BuiltinShellStatus
 import com.wangzan101.mika.takeover.Takeover
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,6 +47,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlin.coroutines.CoroutineContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -131,10 +138,13 @@ class DeskChatOpsTest {
     private fun TestScope.harness(
         brain: DeskBrain?,
         store: ConversationStore = ConversationStore(tmp.newFolder()),
-        brains: () -> DeskBrain? = { brain },
+        brains: (ModelChoice?) -> DeskBrain? = { brain },
         importAttachments: suspend (String, List<String>) -> ImportResult = { _, _ -> ImportResult(emptyList(), emptyList()) },
         branchWorkspace: BranchWorkspace? = null,
         title: suspend (String, String) -> Unit = { _, _ -> },
+        io: CoroutineContext = StandardTestDispatcher(testScheduler),
+        mainModels: MainModelCatalog? = null,
+        sharedDrafts: SharedDraftStore? = null,
     ): Harness {
         val port = FakePort()
         val sunk = mutableListOf<Pair<String, DeskReport>>()
@@ -152,16 +162,25 @@ class DeskChatOpsTest {
                 val (desk, ledger) = entry(id)
                 DeskToolExecutor(port, ledger, words, { 0L }, id) { desk.track(it.taskId, it.title) }
             },
-            brain = { brains() },
+            brain = { _, choice -> brains(choice) },
             title = title,
         )
         val vm = ChatViewModel(backgroundScope, MutableStateFlow(TaskState.Idle), MutableStateFlow(Takeover.Stage.None), actions, store,
-            io = StandardTestDispatcher(testScheduler), desk = deps, sandboxReady = MutableStateFlow(true),
-            importAttachments = importAttachments, branchWorkspace = branchWorkspace).also { runCurrent() }
+            io = io, desk = deps, sandboxReady = MutableStateFlow(true), mainModels = mainModels,
+            sharedDrafts = sharedDrafts, importAttachments = importAttachments, branchWorkspace = branchWorkspace).also { runCurrent() }
         return Harness(vm, store, port, sunk) { entry(it).first }
     }
 
     private fun dispatch(words: String, title: String) = buildJsonObject { put("words", words); put("title", title) }
+
+    private fun catalog(choice: ModelChoice) = object : MainModelCatalog {
+        override val changes = MutableSharedFlow<Unit>()
+        override fun options() = listOf(MainModelOption(choice, "selected"))
+        override fun usable(value: ModelChoice?) = value?.takeIf { it == choice }
+        override fun label(value: ModelChoice) = "selected"
+        override fun globalLabel() = "global"
+        override fun isGroup(value: ModelChoice) = false
+    }
 
     @Test fun sendStreamsDeskReplyAndPersistsTurn() = runTest {
         val more = CompletableDeferred<Unit>()
@@ -396,7 +415,7 @@ class DeskChatOpsTest {
                 override suspend fun record(conversationId: String, report: DeskReport) {}
             }) },
             executor = { id, words -> DeskToolExecutor(port, DeskLedger(), words, { 0L }, id) },
-            brain = { brain },
+            brain = { _, _ -> brain },
         )
         val vm = ChatViewModel(backgroundScope, MutableStateFlow(TaskState.Idle), MutableStateFlow(Takeover.Stage.None), actions,
             ConversationStore(tmp.newFolder()), io = StandardTestDispatcher(testScheduler), desk = deps,
@@ -425,7 +444,7 @@ class DeskChatOpsTest {
                 override suspend fun record(conversationId: String, report: DeskReport) {}
             }) },
             executor = { id, words -> made += "executor:$id"; DeskToolExecutor(port, DeskLedger(), words, { 0L }, id) },
-            brain = { brain },
+            brain = { _, _ -> brain },
         )
         val store = ConversationStore(tmp.newFolder())
         store.setDeskParent("child-1", "c")
@@ -459,7 +478,7 @@ class DeskChatOpsTest {
                 override suspend fun record(conversationId: String, report: DeskReport) {}
             }) },
             executor = { id, words -> DeskToolExecutor(port, DeskLedger(), words, { 0L }, id) },
-            brain = { brain },
+            brain = { _, _ -> brain },
         )
         val vm = ChatViewModel(backgroundScope, MutableStateFlow(TaskState.Idle), MutableStateFlow(Takeover.Stage.None), actions,
             ConversationStore(tmp.newFolder()), io = StandardTestDispatcher(testScheduler), desk = deps,
@@ -592,6 +611,190 @@ class DeskChatOpsTest {
         assertEquals(listOf(Triple("c", "帮我查明天的天气", 0)), titled)
     }
 
+    @Test fun deskBrainReceivesPendingChoiceBeforeAcceptedSidecarCommit() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-selected")
+        val catalog = object : MainModelCatalog {
+            override val changes = MutableSharedFlow<Unit>()
+            override fun options() = listOf(MainModelOption(choice, "selected"))
+            override fun usable(value: ModelChoice?) = value?.takeIf { it == choice }
+            override fun label(value: ModelChoice) = "selected"
+            override fun globalLabel() = "global"
+            override fun isGroup(value: ModelChoice) = false
+        }
+        var received: ModelChoice? = null
+        var sidecarExistedDuringBrain = false
+        val h = harness(null, store = store, mainModels = catalog, brains = { override ->
+            received = override
+            sidecarExistedDuringBrain = tmp.root.walkTopDown().any { it.name.endsWith(".settings.json") }
+            ScriptBrain({ _, ctx -> ctx.say("好。") })
+        })
+        h.vm.chooseMainModel(choice)
+
+        assertTrue(h.vm.send("用选中的模型", ok))
+        runCurrent()
+
+        val id = h.vm.ui.value.conversationId!!
+        assertEquals(choice, received)
+        assertFalse(sidecarExistedDuringBrain)
+        assertEquals(choice, store.settings(id).main)
+    }
+
+    @Test fun conversationChoiceSatisfiesOnlyTheNoModelGate() = runTest {
+        val choice = ModelChoice.Model("cfg-selected")
+        var received: ModelChoice? = null
+        val h = harness(null, mainModels = catalog(choice), brains = { override ->
+            received = override
+            ScriptBrain({ _, ctx -> ctx.say("好。") })
+        })
+        h.vm.chooseMainModel(choice)
+        val noGlobalMain = Prerequisites.check(ready, hasMainModel = false)
+
+        val sent = h.vm.send("用本对话的模型", noGlobalMain)
+        runCurrent()
+
+        assertEquals(choice, received)
+        assertTrue(sent)
+        assertTrue(h.vm.ui.value.blocked.orEmpty().isEmpty())
+    }
+
+    @Test fun invalidConversationChoiceKeepsTheNoModelGate() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val valid = ModelChoice.Model("cfg-selected")
+        assertTrue(store.setSettings("c", ConversationSettings(ModelChoice.Model("cfg-missing"))))
+        var brainCalled = false
+        val h = harness(null, store = store, mainModels = catalog(valid), brains = {
+            brainCalled = true
+            ScriptBrain({ _, _ -> })
+        })
+        h.vm.openConversation("c")
+        h.vm.input("不能使用失效模型")
+        val noGlobalMain = Prerequisites.check(ready, hasMainModel = false)
+
+        assertFalse(h.vm.send(h.vm.ui.value.input, noGlobalMain))
+
+        assertFalse(brainCalled)
+        assertEquals(listOf<Problem>(Problem.NoModel), h.vm.ui.value.blocked)
+        assertEquals("不能使用失效模型", h.vm.ui.value.input)
+    }
+
+    @Test fun immediateSharedDraftKeepsPendingChoiceForActualSend() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-selected")
+        var received: ModelChoice? = null
+        val h = harness(null, store = store, mainModels = catalog(choice),
+            sharedDrafts = SharedDraftStore(tmp.newFolder()), brains = { override ->
+                received = override
+                ScriptBrain({ _, ctx -> ctx.say("好。") })
+            })
+        h.vm.chooseMainModel(choice)
+
+        assertTrue(h.vm.openSharedDraft(SharedDraft("", "分享的文字"), inCurrentConversation = true))
+        val sent = h.vm.send("分享的文字", ok)
+        runCurrent()
+
+        assertEquals(choice, received)
+        assertTrue(sent)
+        assertEquals(choice, h.vm.ui.value.mainModel.override)
+        assertEquals(choice, store.settings(h.vm.ui.value.conversationId!!).main)
+    }
+
+    @Test fun confirmedSharedDraftReplacementKeepsPendingChoiceForActualSend() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-selected")
+        var received: ModelChoice? = null
+        val h = harness(null, store = store, mainModels = catalog(choice),
+            sharedDrafts = SharedDraftStore(tmp.newFolder()), brains = { override ->
+                received = override
+                ScriptBrain({ _, ctx -> ctx.say("好。") })
+            })
+        h.vm.chooseMainModel(choice)
+        assertTrue(h.vm.openSharedDraft(SharedDraft("", "原有分享"), inCurrentConversation = true))
+
+        assertTrue(h.vm.openSharedDraft(SharedDraft("", "确认替换的分享"), inCurrentConversation = true))
+        assertEquals("确认替换的分享", h.vm.ui.value.pendingSharedDraft?.text)
+        assertTrue(h.vm.confirmPendingSharedDraft())
+        val sent = h.vm.send("确认替换的分享", ok)
+        runCurrent()
+
+        assertEquals(choice, received)
+        assertTrue(sent)
+        assertEquals(choice, h.vm.ui.value.mainModel.override)
+        assertEquals(choice, store.settings(h.vm.ui.value.conversationId!!).main)
+    }
+
+    @Test fun rejectedFirstDeskSendRetriesWithTheSamePendingChoice() = runTest {
+        val storeDir = tmp.newFolder()
+        val store = ConversationStore(storeDir)
+        val choice = ModelChoice.Model("cfg-selected")
+        val received = mutableListOf<ModelChoice?>()
+        val h = harness(null, store = store, mainModels = catalog(choice), brains = { override ->
+            received += override
+            if (received.size == 1) null else ScriptBrain({ _, ctx -> ctx.say("好。") })
+        })
+        h.vm.chooseMainModel(choice)
+
+        assertFalse(h.vm.send("第一次会被拒绝", ok))
+        assertNull(h.vm.ui.value.conversationId)
+        assertFalse(storeDir.listFiles().orEmpty().any { it.name.endsWith(".settings.json") })
+        val retried = h.vm.send("重试", ok)
+        runCurrent()
+
+        assertTrue(retried)
+        assertEquals(listOf<ModelChoice?>(choice, choice), received)
+        assertEquals(choice, store.settings(h.vm.ui.value.conversationId!!).main)
+    }
+
+    @Test fun firstDeskTitleReadsTheAcceptedPendingMainChoice() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-selected")
+        val catalog = object : MainModelCatalog {
+            override val changes = MutableSharedFlow<Unit>()
+            override fun options() = listOf(MainModelOption(choice, "selected"))
+            override fun usable(value: ModelChoice?) = value?.takeIf { it == choice }
+            override fun label(value: ModelChoice) = "selected"
+            override fun globalLabel() = "global"
+            override fun isGroup(value: ModelChoice) = false
+        }
+        val titled = mutableListOf<ModelChoice?>()
+        val brain = ScriptBrain({ _, ctx -> ctx.say("好。") })
+        val h = harness(brain, store = store, title = { id, _ -> titled += store.settings(id).main },
+            io = Dispatchers.Unconfined, mainModels = catalog)
+        h.vm.chooseMainModel(choice)
+
+        assertTrue(h.vm.send("帮我查明天的天气", ok))
+        runCurrent()
+
+        val id = h.vm.ui.value.conversationId!!
+        assertEquals(listOf<ModelChoice?>(choice), titled)
+        assertEquals(choice, store.settings(id).main)
+    }
+
+    @Test fun firstDeskAttachmentTitleReadsTheAcceptedPendingMainChoice() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-selected")
+        val catalog = object : MainModelCatalog {
+            override val changes = MutableSharedFlow<Unit>()
+            override fun options() = listOf(MainModelOption(choice, "selected"))
+            override fun usable(value: ModelChoice?) = value?.takeIf { it == choice }
+            override fun label(value: ModelChoice) = "selected"
+            override fun globalLabel() = "global"
+            override fun isGroup(value: ModelChoice) = false
+        }
+        val titled = mutableListOf<ModelChoice?>()
+        val brain = ScriptBrain({ _, ctx -> ctx.say("好。") })
+        val h = harness(brain, store = store, title = { id, _ -> titled += store.settings(id).main },
+            io = Dispatchers.Unconfined, mainModels = catalog)
+        h.vm.chooseMainModel(choice)
+        val id = h.vm.claimConversation()
+
+        h.vm.desking!!.line(id).sendFiles("看看附件", "看看附件", emptyList(), "附件")
+        runCurrent()
+
+        assertEquals(listOf<ModelChoice?>(choice), titled)
+        assertEquals(choice, store.settings(id).main)
+    }
+
     // 前台摘了一段(去掉了「不要」):交给后台的还是用户打的整句,不是那段
     @Test fun aFragmentReachesTheBackendAsTheWholeMessage() = runTest {
         val brain = ScriptBrain({ _, ctx ->
@@ -658,6 +861,68 @@ class DeskChatOpsTest {
         runCurrent()
         assertEquals(listOf("ok", "rejected"), results.map { it!!["status"].toString().trim('"') })
         assertEquals(listOf("child-1"), h.port.cancelled)
+    }
+
+    @Test fun stoppingQueuedRepliesKeepsSentMessagesInOrder() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val brain = ScriptBrain({ _, ctx -> ctx.say("partial"); gate.await() })
+        val h = harness(brain)
+        h.vm.openConversation("c")
+        runCurrent()
+        assertTrue(h.vm.send("first", ok))
+        runCurrent()
+        listOf("second", "third", "fourth").forEach { assertTrue(h.vm.send(it, ok)) }
+        runCurrent()
+
+        h.vm.stopAll()
+        runCurrent()
+
+        val expected = listOf("first", "second", "third", "fourth")
+        assertEquals(expected, h.store.turns("c").map { it.userText })
+        assertEquals(listOf("partial", "", "", ""), h.store.turns("c").map { it.outcome })
+        assertEquals(listOf("first"), brain.replies)
+        assertTrue(h.vm.ui.value.exchanges.all { it.status is ExchangeStatus.Done })
+        h.vm.openConversation("other")
+        runCurrent()
+        h.vm.openConversation("c")
+        runCurrent()
+        assertEquals(expected, h.vm.ui.value.exchanges.map { it.goal })
+    }
+
+    @Test fun stoppingImmediatelyStillSavesEverySentMessage() = runTest {
+        val brain = ScriptBrain({ _, _ -> error("A stopped reply must not reach the model") })
+        val h = harness(brain)
+        h.vm.openConversation("c")
+        runCurrent()
+        listOf("first", "second", "third").forEach { assertTrue(h.vm.send(it, ok)) }
+        h.vm.stopAll()
+        runCurrent()
+
+        assertEquals(listOf("first", "second", "third"), h.store.turns("c").map { it.userText })
+        assertTrue(brain.replies.isEmpty())
+        assertTrue(h.vm.ui.value.exchanges.all { it.status is ExchangeStatus.Done })
+    }
+
+    @Test fun stoppingAnAnswerSavesItsPartialReplyAndTaskExactlyOnce() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val brain = ScriptBrain({ text, ctx ->
+            ctx.callTool(DeskTools.DISPATCH, dispatch(text, "task"))
+            ctx.say("partial")
+            gate.await()
+        })
+        val h = harness(brain)
+        h.vm.openConversation("c")
+        runCurrent()
+        assertTrue(h.vm.send("work", ok))
+        runCurrent()
+        h.vm.stopAll()
+        runCurrent()
+
+        val saved = h.store.turns("c").single()
+        assertEquals("work", saved.userText)
+        assertEquals("partial", saved.outcome)
+        assertEquals(listOf("child-1"), saved.deskTasks)
+        assertEquals(h.vm.ui.value.exchanges.single().runId, saved.runId)
     }
 
     // 用户只看得到 Mika:通知、小画面、旧链接要打开 Mika 办事用的子对话时,打开的是它所属的那条聊天

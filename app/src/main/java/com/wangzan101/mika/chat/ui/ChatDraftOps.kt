@@ -103,6 +103,7 @@ internal class ChatDraftOps(private val vm: ChatViewModel, private val session: 
         cancelPendingSharedDraft()
         session.keepDraft()
         val previous = _ui.value
+        if (previous.conversationId == null) vm.bindPendingMainModel(id)
         if (previous.conversationId != id) vm.live.parkLive()
         // 原任务还在等服务收尾时,直接按服务既有的排队能力交过去;它的开始和插话不能跟着新草稿走。
         vm.sending.handOffPendingStart()
@@ -118,6 +119,7 @@ internal class ChatDraftOps(private val vm: ChatViewModel, private val session: 
                 attachments = attachments,
             ).copy(rejectedAttachments = rejected, overLimit = overLimit)
         }
+        vm.refreshMainModel()
         session.markCurrent(CurrentChat.Open(id))
         return true
     }
@@ -149,6 +151,7 @@ internal class ChatDraftOps(private val vm: ChatViewModel, private val session: 
     ): Boolean {
         val id = _ui.value.conversationId ?: store.newConversation()
         val (draft, attachments) = persistSharedDraft(id, prepared) ?: return false
+        vm.bindPendingMainModel(id)
         cancelPendingSharedDraft()
         draftStateChanged = true
         sharedDraftSerial++
@@ -164,6 +167,7 @@ internal class ChatDraftOps(private val vm: ChatViewModel, private val session: 
                 pendingSharedDraft = null,
             )
         }
+        vm.refreshMainModel()
         session.releaseUnusedLibraryCopies()
         session.markCurrent(CurrentChat.Open(id))
         return true

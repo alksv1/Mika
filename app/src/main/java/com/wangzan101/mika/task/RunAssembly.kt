@@ -96,6 +96,8 @@ internal class RunModels(
     val vision: ChatModel?,
     val visionFallbacks: List<ChatModel>,
     val lightFallbacks: List<ChatModel>,
+    val mainFallbacks: List<ChatModel>,
+    val mainProviderIds: List<String?>,
     val knowledge: KnowledgeStore,
     val skills: GuideCatalog,
 )

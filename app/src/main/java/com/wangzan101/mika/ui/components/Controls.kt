@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -147,6 +148,7 @@ fun MikaButton(
     kind: ButtonKind = ButtonKind.Primary,
     size: ButtonSize = ButtonSize.Large,
     enabled: Boolean = true,
+    maxLines: Int = 1,
 ) {
     val c = MikaTheme.colors
     val shape = size.shape
@@ -162,11 +164,13 @@ fun MikaButton(
             .clip(shape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .alpha(if (enabled) 1f else 0.45f)
-            .height(size.height)
-            .padding(horizontal = size.padding),
+            .then(
+                if (maxLines == 1) Modifier.height(size.height).padding(horizontal = size.padding)
+                else Modifier.heightIn(min = size.height).padding(horizontal = size.padding, vertical = 4.dp),
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = size.text, color = fg, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text, style = size.text, color = fg, textAlign = TextAlign.Center, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -244,6 +244,8 @@ data class ChatUi(
     val exchanges: List<Exchange> = emptyList(),
     /** 所属项目分组 id;新对话还没发第一句话时只保存在草稿/界面状态,发送首条消息时写入旁文件。 */
     val projectId: String? = null,
+    /** 这个对话下一次任务使用的主模型;未发首句时选择只留在界面进程内。 */
+    val mainModel: MainModelUi = MainModelUi(),
     /** 上次发送被拦下时缺的条件;为空表示没被拦。 */
     val blocked: List<Problem>? = null,
     val pip: PipUi = PipUi(),

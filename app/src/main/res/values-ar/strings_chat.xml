@@ -238,6 +238,7 @@
     <string name="attach_recent">الصور الأخيرة</string>
     <string name="attach_recent_partial">الصور التي سمحت لـ Mika بالوصول إليها</string>
     <string name="attach_all">كل الصور</string>
+    <string name="attach_more">المزيد</string>
     <string name="attach_change">تغيير إمكانية الوصول</string>
     <string name="attach_no_photos">لا توجد صور بعد</string>
     <string name="attach_need_access">لاختيار الصور هنا، اسمح لـ Mika بالوصول إلى صورك</string>

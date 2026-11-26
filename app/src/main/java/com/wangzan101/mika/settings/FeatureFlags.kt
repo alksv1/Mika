@@ -144,6 +144,11 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         prefs.edit().putBoolean(KEEP_SCREEN_ON, on).commit()
     }
 
+    /** Hide this activity in Recents; changing it is synchronized with the system by RecentsExclusion. */
+    fun excludeFromRecents(): Boolean = prefs.getBoolean(EXCLUDE_FROM_RECENTS, false)
+
+    fun setExcludeFromRecents(on: Boolean): Boolean = prefs.edit().putBoolean(EXCLUDE_FROM_RECENTS, on).commit()
+
     fun showTaskCost(): Boolean = prefs.getBoolean(SHOW_TASK_COST, false)
 
     fun setShowTaskCost(on: Boolean) {
@@ -504,6 +509,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         private const val TASK_TOKEN_BUDGET = "task_token_budget"
         private const val PROACTIVE_DAILY_TOKEN_BUDGET = "proactive_daily_token_budget"
         private const val KEEP_SCREEN_ON = "keep_screen_on"
+        private const val EXCLUDE_FROM_RECENTS = "exclude_from_recents"
         private const val SHOW_TASK_COST = "show_task_cost"
         private const val MUTE_TARGET = "mute_target"
         private const val OPERATING_PACE = "operating_pace"

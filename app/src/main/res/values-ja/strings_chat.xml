@@ -183,6 +183,7 @@
     <string name="attach_recent">最近の写真</string>
     <string name="attach_recent_partial">Mika にアクセスを許可した写真</string>
     <string name="attach_all">すべての写真</string>
+    <string name="attach_more">その他</string>
     <string name="attach_change">アクセスを変更</string>
     <string name="attach_no_photos">写真はまだありません</string>
     <string name="attach_need_access">ここで写真を選ぶには、Mika に写真へのアクセスを許可してください</string>

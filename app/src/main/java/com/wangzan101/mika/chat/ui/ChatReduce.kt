@@ -8,6 +8,7 @@ import com.wangzan101.mika.task.ConfirmationNotifier
 import com.wangzan101.mika.core.agent.AttachmentLines
 import com.wangzan101.mika.core.agent.Conversation
 import com.wangzan101.mika.core.agent.RunProgress
+import com.wangzan101.mika.core.agent.StopSummary
 import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.task.TaskGate
 import com.wangzan101.mika.core.agent.Turn
@@ -167,12 +168,9 @@ internal object ChatReduce {
             "unverified" -> answerParts(t.outcome).let { (a, e) -> ExchangeStatus.Done(a, e, verified = false, note = t.note, unconfirmed = t.unconfirmed) }
             "cancelled" -> {
                 val rawSummary = Conversation.stopSummary(t)
-                val summary = if (rawSummary != null && uiLocale().language != "zh") {
-                    rawSummary
-                        .replace("已经停下。停止前:", "Stopped. Before stopping:")
-                        .replace("已经停下,停止前做了这些:", "Stopped. Actions before stop:")
-                        .replace("已经停下,还没开始操作。", "Stopped before starting any actions.")
-                } else rawSummary
+                val summary = rawSummary?.let {
+                    StopSummary.localizeCancelledHeader(it, uiLocale().toLanguageTag())
+                }
                 ExchangeStatus.Cancelled(summary)
             }
             else -> ExchangeStatus.Failed(t.outcome)
