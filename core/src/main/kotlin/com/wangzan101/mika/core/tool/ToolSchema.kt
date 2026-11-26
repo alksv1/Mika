@@ -394,8 +394,12 @@ internal object ToolSchema {
                     continue
                 }
             }
-            bytes.writeBytes(ch.toString().toByteArray(Charsets.UTF_8))
-            i++
+            // 到下一个 % 为止整段按 UTF-8 写入:逐字符编码会把代理对拆坏。
+            // write(ByteArray, Int, Int) 而不是 writeBytes:后者到 API 33 才有,minSdk 29 上会 NoSuchMethodError
+            val end = segment.indexOf('%', i + 1).let { if (it < 0) segment.length else it }
+            val chunk = segment.substring(i, end).toByteArray(Charsets.UTF_8)
+            bytes.write(chunk, 0, chunk.size)
+            i = end
         }
         return bytes.toString(Charsets.UTF_8)
     }

@@ -111,15 +111,16 @@ class GeminiModel(
 
     private fun mapError(status: Int, retryAfter: String?, body: String): ModelError = ModelHttp.geminiError(status, retryAfter, body, model)
 
-    // Gemini 不接受 additionalProperties / $schema / $id / combinator 等 OpenAPI 子集之外的键 (保留 default)
+    // Gemini 不接受 additionalProperties / $schema / $id / allOf 等 OpenAPI 子集之外的键;
+    // title、minLength、maxLength、pattern、default 在它的 Schema 里,原样保留
     private val rejectedKeys = setOf(
         "additionalProperties", "\$schema", "\$id", "\$defs", "definitions", "\$ref",
-        "oneOf", "allOf", "not", "const", "title", "examples", "\$comment",
+        "allOf", "not", "const", "examples", "\$comment",
         "\$vocabulary", "\$anchor", "\$dynamicRef", "\$dynamicAnchor",
         "dependentSchemas", "dependentRequired", "dependencies",
         "patternProperties", "propertyNames", "if", "then", "else",
         "unevaluatedProperties", "unevaluatedItems", "exclusiveMinimum", "exclusiveMaximum",
-        "multipleOf", "minLength", "maxLength", "pattern", "contentEncoding", "contentMediaType",
+        "multipleOf", "contentEncoding", "contentMediaType",
         "readOnly", "writeOnly", "deprecated",
     )
 
@@ -155,7 +156,8 @@ class GeminiModel(
                         out["items"] = first?.let { sanitize(it, isRoot = false) }
                             ?: buildJsonObject { put("type", "string") }
                     }
-                    k == "anyOf" && v is JsonArray -> {
+                    // oneOf 在 Gemini 里没有,按 anyOf 发(只是放宽了「恰好一个」)
+                    (k == "anyOf" || k == "oneOf") && v is JsonArray -> {
                         val nonNull = v.filterNot { branch ->
                             val obj = branch as? JsonObject ?: return@filterNot false
                             val t = obj["type"]
@@ -166,7 +168,7 @@ class GeminiModel(
                         val cleanBranches = nonNull.map { sanitize(it, isRoot = false) }
                         if (cleanBranches.size == 1 && cleanBranches[0] is JsonObject) {
                             (cleanBranches[0] as JsonObject).forEach { (bk, bv) -> if (bk !in out) out[bk] = bv }
-                        } else if (cleanBranches.isNotEmpty()) {
+                        } else if (cleanBranches.isNotEmpty() && "anyOf" !in out) {
                             out["anyOf"] = JsonArray(cleanBranches)
                         }
                     }
@@ -203,11 +205,12 @@ class GeminiModel(
                 out.remove("properties")
                 out.remove("required")
             } else if (!isRoot && effType == "object") {
-                val propsObj = out["properties"] as? JsonObject
-                if (propsObj == null || propsObj.isEmpty()) {
+                // 没写 properties 的 object 是「任意键值」(内置 do_steps 的 args、read_script 的 args 都是),照原样发;
+                // 降成 string 会让模型传字符串、工具按「必须是对象」拒掉
+                val propsObj = (out["properties"] as? JsonObject)?.takeIf { it.isNotEmpty() }
+                if (propsObj == null) {
                     out.remove("properties")
                     out.remove("required")
-                    out["type"] = JsonPrimitive("string")
                 } else if (out["required"] is JsonArray) {
                     val keptReq = (out["required"] as JsonArray).filter {
                         it is JsonPrimitive && it.isString && it.content in propsObj
@@ -216,7 +219,8 @@ class GeminiModel(
                 }
             }
 
-            if (!isRoot && "type" !in out && "anyOf" !in out && "properties" !in out && "items" !in out) {
+            // 只有原本写了东西、却被剥得一个键不剩的节点(比如只有 $ref)兜底成 string;没写 type 的节点原样发
+            if (!isRoot && out.isEmpty() && el.isNotEmpty()) {
                 out["type"] = JsonPrimitive("string")
             }
             JsonObject(out)
