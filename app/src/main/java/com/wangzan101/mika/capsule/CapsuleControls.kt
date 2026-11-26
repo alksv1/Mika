@@ -1,8 +1,14 @@
 package com.wangzan101.mika.capsule
 
-internal data class CapsuleLook(val kind: CapsuleKind, val pill: Boolean, val count: Int, val needCount: Int) {
+/**
+ * What a capsule looks like at a glance, plus which run it is showing. Only a change here wakes a tucked ball:
+ * a new step's text does not, but another run with the same kind and counts does ([runKey]).
+ */
+internal data class CapsuleLook(
+    val kind: CapsuleKind, val pill: Boolean, val count: Int, val needCount: Int, val runKey: String? = null,
+) {
     companion object {
-        fun of(view: CapsuleView.Shown): CapsuleLook = CapsuleLook(view.kind, view.pill, view.count, view.needCount)
+        fun of(view: CapsuleView.Shown): CapsuleLook = CapsuleLook(view.kind, view.pill, view.count, view.needCount, view.runKey)
     }
 }
 

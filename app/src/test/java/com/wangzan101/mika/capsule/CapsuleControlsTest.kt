@@ -117,4 +117,17 @@ class CapsuleControlsTest {
         assertFalse(CapsuleEdge.shouldWake(hideAtEdge = false, visible = true, previous = idle, current = idle))
         assertTrue(CapsuleEdge.shouldWake(hideAtEdge = false, visible = true, previous = idle, current = running))
     }
+
+    @Test fun anotherRunWithTheSameLookStillWakesTheTuckedBall() {
+        val runA = CapsuleLook.of(CapsuleView.Shown(CapsuleKind.Running, "a", count = 1, runKey = "run-a"))
+        val runAnextStep = CapsuleLook.of(CapsuleView.Shown(CapsuleKind.Running, "a, next step", count = 1, runKey = "run-a"))
+        val runB = CapsuleLook.of(CapsuleView.Shown(CapsuleKind.Running, "b", count = 1, runKey = "run-b"))
+
+        // Same run, only the line changed: stays tucked, whether it was hidden or visible.
+        assertFalse(CapsuleEdge.shouldWake(hideAtEdge = true, visible = false, previous = runA, current = runAnextStep))
+        assertFalse(CapsuleEdge.shouldWake(hideAtEdge = true, visible = true, previous = runA, current = runAnextStep))
+        // Run A ended and run B started while the capsule was hidden: show it.
+        assertTrue(CapsuleEdge.shouldWake(hideAtEdge = true, visible = false, previous = runA, current = runB))
+        assertTrue(CapsuleEdge.shouldWake(hideAtEdge = true, visible = true, previous = runA, current = runB))
+    }
 }
