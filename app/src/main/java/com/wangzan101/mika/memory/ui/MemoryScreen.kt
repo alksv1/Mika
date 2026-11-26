@@ -8,10 +8,23 @@ import androidx.compose.ui.res.stringResource
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import com.wangzan101.mika.ui.components.KeyboardDismissArea
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import com.wangzan101.mika.ui.NavSlide
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.MikaNoticeDialog
 import com.wangzan101.mika.ui.components.MikaTextField
@@ -109,15 +122,21 @@ fun MemoryDataScreen(
 ) {
     var page by rememberSaveable { mutableStateOf(MemoryDataPage.Home) }
     val toHome = { page = MemoryDataPage.Home }
-    if (page != MemoryDataPage.Home) BackHandler(onBack = toHome)
-    when (page) {
-        MemoryDataPage.Home -> MemoryScreen(
-            vm, onBack,
-            webSitesCount = webSites.sites.size, onOpenWebSites = { page = MemoryDataPage.WebSites },
-            routes = routes, onOpenRoutes = { page = MemoryDataPage.Routes },
-        )
-        MemoryDataPage.WebSites -> WebSitesScreen(webSites, onBack = toHome)
-        MemoryDataPage.Routes -> RoutesScreen(routes, onClear = onClearRoutes, onBack = toHome)
+    NavSlide(
+        targetState = page,
+        depth = { if (it == MemoryDataPage.Home) 0 else 1 },
+        canGoBack = page != MemoryDataPage.Home,
+        onBack = toHome,
+    ) { current ->
+        when (current) {
+            MemoryDataPage.Home -> MemoryScreen(
+                vm, onBack,
+                webSitesCount = webSites.sites.size, onOpenWebSites = { page = MemoryDataPage.WebSites },
+                routes = routes, onOpenRoutes = { page = MemoryDataPage.Routes },
+            )
+            MemoryDataPage.WebSites -> WebSitesScreen(webSites, onBack = toHome)
+            MemoryDataPage.Routes -> RoutesScreen(routes, onClear = onClearRoutes, onBack = toHome)
+        }
     }
 }
 
@@ -151,16 +170,41 @@ fun MemoryScreen(
             GroupCard { Text(stringResource(R.string.memory_unreadable), Modifier.padding(16.dp), style = MikaType.Caption, color = MikaTheme.colors.warn) }
         }
 
+        val reduce = MikaTheme.reduceMotion
         val pendingLabel = if (ui.pendingCount > 0) stringResource(R.string.memory_pending_n, ui.pendingCount) else stringResource(R.string.memory_pending)
         SegmentedControl(
             listOf(stringResource(R.string.memory_memory), stringResource(R.string.memory_skills), pendingLabel), Segment.entries.indexOf(ui.segment), { vm.select(Segment.entries[it]) },
             tags = SEGMENT_TAGS,
         )
-        if (searchable && (searching || ui.query.isNotEmpty())) {
+        AnimatedVisibility(
+            visible = searchable && (searching || ui.query.isNotEmpty()),
+            enter = expandVertically(MikaMotion.spatialSize(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+            exit = shrinkVertically(MikaMotion.spatialSize(reduce)) + fadeOut(MikaMotion.effects(reduce, MikaMotion.EXIT_MS)),
+        ) {
             SearchField(ui.query, vm::search, stringResource(R.string.search), Modifier.testTag("memory-search"))
         }
 
-        when (ui.segment) {
+        AnimatedContent(
+            targetState = ui.segment,
+            transitionSpec = {
+                if (reduce) {
+                    fadeIn(snap()) togetherWith fadeOut(snap())
+                } else {
+                    val forward = targetState.ordinal >= initialState.ordinal
+                    val slide = MikaMotion.spatialOffset(false)
+                    if (forward) {
+                        (slideInHorizontally(slide) { it / 4 } + fadeIn(tween(180))) togetherWith
+                            (slideOutHorizontally(slide) { -it / 4 } + fadeOut(tween(130)))
+                    } else {
+                        (slideInHorizontally(slide) { -it / 4 } + fadeIn(tween(180))) togetherWith
+                            (slideOutHorizontally(slide) { it / 4 } + fadeOut(tween(130)))
+                    }
+                }
+            },
+            label = "memory-segment",
+        ) { segment ->
+        Column(Modifier.fillMaxWidth()) {
+        when (segment) {
             Segment.Memories -> MemoryEntries(vm, ui)
             Segment.Skills -> SkillsSection(vm, ui.skills, pending = false, onMarket = { market = true })
             Segment.Pending -> {
@@ -184,6 +228,8 @@ fun MemoryScreen(
                 }
                 SkillsSection(vm, ui.skills, pending = true)
             }
+        }
+        }
         }
 
         GroupLabel(stringResource(R.string.memory_switches))

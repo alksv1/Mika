@@ -17,13 +17,18 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
@@ -69,6 +74,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,10 +84,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.wangzan101.mika.ui.theme.MikaHaptics
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaRadius
 import com.wangzan101.mika.ui.theme.MikaShapes
+import com.wangzan101.mika.ui.theme.pressScale
 import com.wangzan101.mika.ui.components.floatShadow
 import androidx.compose.ui.unit.Dp
 
@@ -135,10 +144,12 @@ fun AgentPip(
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val fade = if (reduceMotion) tween<Float>(150) else tween(300)
+        val popIn = scaleIn(MikaMotion.expressive(reduceMotion), initialScale = 0.80f) + fadeIn(fade)
+        val popOut = scaleOut(if (reduceMotion) tween(150) else tween(180), targetScale = 0.80f) + fadeOut(fade)
         // 关掉了:只留右下角的小按钮(任务做完那几秒不留)
         AnimatedVisibility(
             pip.visible && pip.closed && pip.mode != PipMode.Done, Modifier.align(Alignment.BottomEnd),
-            enter = fadeIn(fade), exit = fadeOut(fade),
+            enter = popIn, exit = popOut,
         ) {
             val bottom = with(LocalDensity.current) { bottomInset.toDp() }
             ClosedPip(pip.mode == PipMode.NeedsYou, reduceMotion, Modifier.padding(end = 12.dp, bottom = bottom + 12.dp), onReopen, onAttention)
@@ -146,7 +157,11 @@ fun AgentPip(
         AnimatedVisibility(pip.visible && !pip.closed && pip.expanded, enter = fadeIn(fade), exit = fadeOut(fade)) {
             Box(Modifier.fillMaxSize().background(MikaTheme.colors.floatShadow.copy(alpha = 0.12f)).pointerInput(Unit) { detectTapGestures { onCollapse() } })
         }
-        AnimatedVisibility(pip.visible && !pip.closed, enter = fadeIn(fade), exit = fadeOut(if (reduceMotion) tween(150) else tween(500))) {
+        AnimatedVisibility(
+            pip.visible && !pip.closed,
+            enter = popIn,
+            exit = scaleOut(if (reduceMotion) tween(150) else tween(220), targetScale = 0.80f) + fadeOut(if (reduceMotion) tween(150) else tween(500)),
+        ) {
             PipWindow(
                 pip, frame, webContent, pipInput, soundOn, operateEnabled, reduceMotion,
                 areaWidth = constraints.maxWidth.toFloat(), areaHeight = constraints.maxHeight.toFloat(),
@@ -212,7 +227,7 @@ private fun PipWindow(
     val density = LocalDensity.current
     var expandedScale by rememberSaveable { mutableStateOf(1f) }
     var pinching by remember { mutableStateOf(false) }
-    val sizeSpec = if (reduceMotion || pinching) snap() else tween<androidx.compose.ui.unit.Dp>(350, easing = Ease)
+    val sizeSpec = if (reduceMotion || pinching) snap() else spring<Dp>(dampingRatio = 0.78f, stiffness = 420f)
     // 大小跟着画面的长宽比走:手机游戏和桌面网页都可能横向,按固定的宽度定高度,
     // 画面整张放得下;放不下时按比例整体缩小
     val context = LocalContext.current
@@ -240,7 +255,7 @@ private fun PipWindow(
     // 小窗改放到整屏、只让开系统栏,不再挤在中间一小块里挪。展开收起途中按同一个时长插值,跟着大小一起挪,不跳。
     val collapsedShare by animateFloatAsState(
         if (pip.expanded) 0f else 1f,
-        if (reduceMotion) snap() else tween<Float>(350, easing = Ease),
+        if (reduceMotion) snap() else spring(dampingRatio = 0.78f, stiffness = 420f),
         label = "pipInset",
     )
     val (restTop, restBottom) = PipPhysics.restingInsets(
@@ -308,8 +323,11 @@ private fun PipWindow(
     }
 
     val pos = free ?: bounds.position(corner).let { (x, y) -> Offset(x, y) }
-    val outer = RoundedCornerShape(if (pip.expanded) MikaRadius.Sheet else MikaRadius.Card)
-    val inner = RoundedCornerShape(if (pip.expanded) MikaRadius.Bubble else MikaRadius.Chip)
+    val radiusSpec = if (reduceMotion) snap<Dp>() else spring(dampingRatio = 0.86f, stiffness = 420f)
+    val outerRadius by animateDpAsState(if (pip.expanded) MikaRadius.Sheet else MikaRadius.Card, radiusSpec, label = "pipOuterR")
+    val innerRadius by animateDpAsState(if (pip.expanded) MikaRadius.Bubble else MikaRadius.Chip, radiusSpec, label = "pipInnerR")
+    val outer = RoundedCornerShape(outerRadius.coerceAtLeast(0.dp))
+    val inner = RoundedCornerShape(innerRadius.coerceAtLeast(0.dp))
     val insetDp = if (pip.expanded) 4.dp else 3.dp
     // 直接操作:开了开关、小窗展开、有画面、口子还活着时才把点/滑注入到虚拟屏
     val operate = operateEnabled && pip.expanded && frame != null && pipInput != null
@@ -412,45 +430,60 @@ private fun PipWindow(
                     style = MikaType.Micro, color = MikaTheme.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (pip.expanded) {
-                Row(Modifier.align(Alignment.BottomEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    PipSizeButton("−", stringResource(R.string.pip_size_smaller), "pip-size-smaller") {
-                        expandedScale = PipSizing.scale(expandedScale / 1.2f)
+            AnimatedVisibility(
+                visible = pip.expanded,
+                modifier = Modifier.matchParentSize(),
+                enter = fadeIn(if (reduceMotion) tween(120) else tween(180)) + scaleIn(MikaMotion.tactile(reduceMotion), initialScale = 0.88f),
+                exit = fadeOut(if (reduceMotion) tween(100) else tween(120)) + scaleOut(if (reduceMotion) snap() else tween(120), targetScale = 0.88f),
+            ) {
+                val view = LocalView.current
+                val collapseInteraction = remember { MutableInteractionSource() }
+                Box(Modifier.fillMaxSize()) {
+                    Row(Modifier.align(Alignment.BottomEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        PipSizeButton("−", stringResource(R.string.pip_size_smaller), "pip-size-smaller") {
+                            expandedScale = PipSizing.scale(expandedScale / 1.2f)
+                        }
+                        PipSizeButton("+", stringResource(R.string.pip_size_larger), "pip-size-larger") {
+                            expandedScale = PipSizing.scale(expandedScale * 1.2f)
+                        }
+                        PipSizeButton("↺", stringResource(R.string.pip_size_reset), "pip-size-reset") { expandedScale = 1f }
                     }
-                    PipSizeButton("+", stringResource(R.string.pip_size_larger), "pip-size-larger") {
-                        expandedScale = PipSizing.scale(expandedScale * 1.2f)
-                    }
-                    PipSizeButton("↺", stringResource(R.string.pip_size_reset), "pip-size-reset") { expandedScale = 1f }
-                }
-                // 左上角:返回(直接操作时)、声音开关(恢复/再静,方向跟着任务里的真实音频记录)、关掉小画面;不伪造与真实音频无关的开关状态
-                Row(Modifier.align(Alignment.TopStart).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (operateInput != null) {
+                    // 左上角:返回(直接操作时)、声音开关(恢复/再静,方向跟着任务里的真实音频记录)、关掉小画面;不伪造与真实音频无关的开关状态
+                    Row(Modifier.align(Alignment.TopStart).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (operateInput != null) {
+                            PipButton(
+                                icon = MikaIcons.Back,
+                                label = stringResource(R.string.pip_back),
+                                onClick = { scope.launch { operateInput.back() } },
+                                tag = "pip-back",
+                            )
+                        }
                         PipButton(
-                            icon = MikaIcons.Back,
-                            label = stringResource(R.string.pip_back),
-                            onClick = { scope.launch { operateInput.back() } },
-                            tag = "pip-back",
+                            icon = if (soundOn) MikaIcons.Sound else MikaIcons.Mute,
+                            label = stringResource(if (soundOn) R.string.pip_mute else R.string.pip_unmute),
+                            onClick = onToggleSound,
+                            tag = if (soundOn) "pip-mute" else "pip-unmute",
+                        )
+                        PipButton(
+                            icon = MikaIcons.EyeOff,
+                            label = stringResource(R.string.pip_close),
+                            onClick = onClose,
+                            tag = "pip-close",
                         )
                     }
-                    PipButton(
-                        icon = if (soundOn) MikaIcons.Sound else MikaIcons.Mute,
-                        label = stringResource(if (soundOn) R.string.pip_mute else R.string.pip_unmute),
-                        onClick = onToggleSound,
-                        tag = if (soundOn) "pip-mute" else "pip-unmute",
-                    )
-                    PipButton(
-                        icon = MikaIcons.EyeOff,
-                        label = stringResource(R.string.pip_close),
-                        onClick = onClose,
-                        tag = "pip-close",
-                    )
+                    Box(
+                        Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp)
+                            .pressScale(collapseInteraction, 0.90f)
+                            .floatShadow(MikaTheme.colors, CircleShape).background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
+                            .clickable(
+                                interactionSource = collapseInteraction,
+                                indication = LocalIndication.current,
+                                onClickLabel = stringResource(R.string.collapse),
+                                onClick = { MikaHaptics.tap(view); onCollapse() },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(MikaIcons.Close, stringResource(R.string.collapse), Modifier.size(12.dp), tint = MikaTheme.colors.ink) }
                 }
-                Box(
-                    Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp)
-                        .floatShadow(MikaTheme.colors, CircleShape).background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
-                        .clickable(onClickLabel = stringResource(R.string.collapse), onClick = onCollapse),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(MikaIcons.Close, stringResource(R.string.collapse), Modifier.size(12.dp), tint = MikaTheme.colors.ink) }
             }
         }
         // 边框光画在玻璃框外沿
@@ -465,10 +498,17 @@ private fun PipWindow(
 
 @Composable
 private fun PipButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit, tag: String) {
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Box(
-        Modifier.size(26.dp)
+        Modifier.size(26.dp).pressScale(interaction, 0.90f)
             .floatShadow(MikaTheme.colors, CircleShape).background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
-            .clickable(onClickLabel = label, onClick = onClick)
+            .clickable(
+                interactionSource = interaction,
+                indication = LocalIndication.current,
+                onClickLabel = label,
+                onClick = { MikaHaptics.tap(view); onClick() },
+            )
             .testTag(tag),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, label, Modifier.size(13.dp), tint = MikaTheme.colors.ink) }
@@ -514,10 +554,20 @@ private fun operateInputModifier(input: PipInput, scope: CoroutineScope): Modifi
 /** Discrete controls also let a screen-reader user resize without a two-finger gesture. */
 @Composable
 private fun PipSizeButton(mark: String, label: String, tag: String, onClick: () -> Unit) {
-    Box(Modifier.size(26.dp).floatShadow(MikaTheme.colors, CircleShape)
-        .background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
-        .clickable(role = Role.Button, onClickLabel = label, onClick = onClick).testTag(tag),
-        contentAlignment = Alignment.Center) {
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        Modifier.size(26.dp).pressScale(interaction, 0.90f).floatShadow(MikaTheme.colors, CircleShape)
+            .background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClickLabel = label,
+                onClick = { MikaHaptics.tap(view); onClick() },
+            ).testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(mark, style = MikaType.Hint, color = MikaTheme.colors.ink)
     }
 }

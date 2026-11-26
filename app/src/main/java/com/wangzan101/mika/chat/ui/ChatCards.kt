@@ -5,8 +5,10 @@ import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +23,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -41,10 +45,12 @@ import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaCard
 import com.wangzan101.mika.ui.components.cardSurface
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.theme.pressScale
 import com.wangzan101.mika.ui.viewer.FileViewer
 import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.voice.VoicePlayback
@@ -200,11 +206,16 @@ internal fun GeneratedAudioCards(audios: List<com.wangzan101.mika.core.chat.Gene
     val playback by vm.voice.collectAsState()
     val playing = playback is VoicePlayback.Playing || playback is VoicePlayback.Loading
     val c = MikaTheme.colors
+    val view = LocalView.current
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         audios.forEach { a ->
+            val interaction = remember { MutableInteractionSource() }
             Row(
-                Modifier.fillMaxWidth().cardSurface(c, MikaShapes.Card).clip(MikaShapes.Card)
-                    .clickable(role = Role.Button) { if (playing) vm.stopSpeaking() else vm.playAudio(a.path) }
+                Modifier.fillMaxWidth().pressScale(interaction, 0.98f).cardSurface(c, MikaShapes.Card).clip(MikaShapes.Card)
+                    .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                        MikaHaptics.tap(view)
+                        if (playing) vm.stopSpeaking() else vm.playAudio(a.path)
+                    }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -293,11 +304,16 @@ internal fun TextLink(text: String, onClick: () -> Unit) {
 internal fun FileCards(files: List<SharedFile>) {
     val context = LocalContext.current
     val c = MikaTheme.colors
+    val view = LocalView.current
     Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (f in files) {
+            val interaction = remember { MutableInteractionSource() }
             Row(
-                Modifier.fillMaxWidth().cardSurface(c, MikaShapes.Card).clip(MikaShapes.Card)
-                    .clickable(onClickLabel = stringResource(R.string.chat_open), role = Role.Button) { openShared(context, f) }
+                Modifier.fillMaxWidth().pressScale(interaction, 0.98f).cardSurface(c, MikaShapes.Card).clip(MikaShapes.Card)
+                    .clickable(interactionSource = interaction, indication = LocalIndication.current, onClickLabel = stringResource(R.string.chat_open), role = Role.Button) {
+                        MikaHaptics.tap(view)
+                        openShared(context, f)
+                    }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,

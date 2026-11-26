@@ -1,5 +1,10 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -14,6 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.task.QueuedFollowUp
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
@@ -39,27 +49,36 @@ fun FollowUpTray(
     onStartNow: () -> Unit,
     onActions: (QueuedFollowUp) -> Unit = {},
 ) {
-    if (items.isEmpty()) return
     val c = MikaTheme.colors
-    Column(
-        Modifier.fillMaxWidth().testTag("follow-up-tray").heightIn(max = 180.dp)
-            .verticalScroll(rememberScrollState()).padding(bottom = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+    val reduce = MikaTheme.reduceMotion
+    var lastItems by remember { mutableStateOf(items) }
+    if (items.isNotEmpty()) lastItems = items
+    AnimatedVisibility(
+        visible = items.isNotEmpty(),
+        enter = expandVertically(MikaMotion.spatialSize(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+        exit = shrinkVertically(MikaMotion.spatialSize(reduce)) + fadeOut(MikaMotion.effects(reduce, MikaMotion.EXIT_MS)),
     ) {
-        if (!active) {
-            Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    tr(R.string.follow_up_count, items.size) + " · " + tr(R.string.follow_up_idle_hint),
-                    Modifier.weight(1f), style = MikaType.Hint, color = c.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    tr(R.string.follow_up_start_now), Modifier.clip(MikaShapes.Pill)
-                        .clickable(role = Role.Button, onClick = onStartNow).padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MikaType.Hint, color = c.accent,
-                )
+        val shown = if (items.isNotEmpty()) items else lastItems
+        Column(
+            Modifier.fillMaxWidth().testTag("follow-up-tray").heightIn(max = 180.dp)
+                .verticalScroll(rememberScrollState()).padding(bottom = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            if (!active) {
+                Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        tr(R.string.follow_up_count, shown.size) + " · " + tr(R.string.follow_up_idle_hint),
+                        Modifier.weight(1f), style = MikaType.Hint, color = c.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        tr(R.string.follow_up_start_now), Modifier.clip(MikaShapes.Pill)
+                            .clickable(role = Role.Button, onClick = onStartNow).padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MikaType.Hint, color = c.accent,
+                    )
+                }
             }
+            shown.forEach { item -> PendingRow(item, onActions) }
         }
-        items.forEach { item -> PendingRow(item, onActions) }
     }
 }
 

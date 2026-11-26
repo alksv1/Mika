@@ -1,9 +1,13 @@
 package com.wangzan101.mika.chat.ui
 
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import com.wangzan101.mika.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -52,9 +56,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 
 /** 侧栏「项目」段头与「新建项目」入口。 */
 @Composable
@@ -88,8 +95,12 @@ internal fun ProjectGroupHeader(
     onActions: (Rect) -> Unit,
 ) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
+    val view = LocalView.current
     val haptic = LocalHapticFeedback.current
     val bounds = remember { mutableStateOf(Rect.Zero) }
+    val rot by animateFloatAsState(if (collapsed) 0f else 90f, MikaMotion.expressive(reduce), label = "project-chevron")
+    val newInteraction = remember { MutableInteractionSource() }
     Row(
         Modifier.padding(horizontal = 12.dp).fillMaxWidth()
             .onGloballyPositioned { bounds.value = Rect(it.positionInWindow(), it.size.toSize()) }
@@ -97,7 +108,10 @@ internal fun ProjectGroupHeader(
             .combinedClickable(
                 onLongClickLabel = stringResource(R.string.drawer_project_actions),
                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onActions(bounds.value) },
-                onClick = onToggle,
+                onClick = {
+                    MikaHaptics.tick(view)
+                    onToggle()
+                },
             )
             .padding(horizontal = 10.dp, vertical = 7.dp)
             .testTag("project-header"),
@@ -106,15 +120,18 @@ internal fun ProjectGroupHeader(
     ) {
         Icon(
             MikaIcons.Chevron, null,
-            Modifier.size(12.dp).rotate(if (collapsed) 0f else 90f),
+            Modifier.size(12.dp).graphicsLayer { rotationZ = rot },
             tint = c.ink3,
         )
         Icon(MikaIcons.Folder, null, Modifier.size(15.dp), tint = c.ink2)
         Text(project.name, Modifier.weight(1f), style = ConversationTitle, color = c.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (count > 0) Text("$count", style = MikaType.Hint, color = c.ink3, maxLines = 1, softWrap = false)
         Box(
-            Modifier.size(26.dp).clip(CircleShape)
-                .clickable(enabled = canCreate, role = Role.Button, onClickLabel = stringResource(R.string.drawer_project_new_chat), onClick = onNewChat)
+            Modifier.size(26.dp).pressScale(newInteraction, 0.88f, canCreate).clip(CircleShape)
+                .clickable(interactionSource = newInteraction, indication = LocalIndication.current, enabled = canCreate, role = Role.Button, onClickLabel = stringResource(R.string.drawer_project_new_chat)) {
+                    MikaHaptics.tap(view)
+                    onNewChat()
+                }
                 .alpha(if (canCreate) 1f else 0.4f)
                 .testTag("project-new-chat"),
             contentAlignment = Alignment.Center,

@@ -1,10 +1,12 @@
 package com.wangzan101.mika.chat.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,11 +50,13 @@ import com.wangzan101.mika.R
 import com.wangzan101.mika.chat.Project
 import com.wangzan101.mika.ui.components.GlassBlurSupported
 import com.wangzan101.mika.ui.components.floatShadow
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -189,7 +194,7 @@ internal fun LongPressMenu(
             }
         },
         modifier = Modifier.fillMaxSize()
-            .drawBehind { drawRect(dim.copy(alpha = dim.alpha * progress())) }
+            .drawBehind { drawRect(dim.copy(alpha = dim.alpha * progress().coerceIn(0f, 1f))) }
             .pointerInput(Unit) { detectTapGestures { onDismiss() } }
             .semantics {
                 paneTitle = pane
@@ -218,7 +223,7 @@ internal fun LongPressMenu(
             }
             menu.placeWithLayer(menuX, at.menuTop.roundToInt()) {
                 val p = progress()
-                alpha = p
+                alpha = p.coerceIn(0f, 1f)
                 scaleX = 0.92f + 0.08f * p
                 scaleY = scaleX
                 transformOrigin = TransformOrigin(if (alignEnd) 1f else 0f, if (at.above) 1f else 0f)
@@ -255,9 +260,15 @@ private fun MenuCard(content: @Composable () -> Unit) {
 
 @Composable
 private fun MenuItem(text: String, icon: ImageVector, tag: String, color: Color, onClick: () -> Unit) {
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClick)
+            .pressScale(interaction, 0.97f)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                MikaHaptics.tap(view)
+                onClick()
+            }
             .testTag(tag)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -5,6 +5,9 @@ import com.wangzan101.mika.core.agent.QuoteMessage
 import com.wangzan101.mika.core.agent.AttachedPage
 import com.wangzan101.mika.ui.components.DirectionalIcon
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -14,6 +17,10 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +43,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,16 +58,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -73,7 +82,9 @@ import com.wangzan101.mika.task.SteerNote
 import com.wangzan101.mika.task.SteerState
 import com.wangzan101.mika.task.unconsumed
 import com.wangzan101.mika.ui.components.floatShadow
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
@@ -95,6 +106,44 @@ internal fun JumpHighlight(active: Boolean, reduceMotion: Boolean, content: @Com
     ) { content() }
 }
 
+/** 新发出的消息/回复/卡片入场动画:只播一次，不重播历史消息。 */
+@Composable
+internal fun MessageEntrance(
+    key: String,
+    animate: Boolean,
+    fromEnd: Boolean,
+    animatedKeys: MutableSet<String>?,
+    reduceMotion: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val startAnimated = remember(key) {
+        animate && !reduceMotion && animatedKeys != null && animatedKeys.add(key)
+    }
+    val progress = remember(key) { Animatable(if (startAnimated) 0f else 1f) }
+    LaunchedEffect(key) {
+        if (startAnimated) {
+            progress.animateTo(1f, MikaMotion.expressive(false))
+        }
+    }
+    if (!startAnimated) {
+        content()
+    } else {
+        Box(
+            Modifier.graphicsLayer {
+                val p = progress.value
+                if (p < 0.999f || progress.isRunning) {
+                    alpha = p.coerceIn(0f, 1f)
+                    translationY = 16.dp.toPx() * (1f - p)
+                    val s = 0.94f + 0.06f * p
+                    scaleX = s
+                    scaleY = s
+                    transformOrigin = TransformOrigin(if (fromEnd) 0.92f else 0.08f, 1f)
+                }
+            },
+        ) { content() }
+    }
+}
+
 internal fun LazyListScope.exchange(
     index: Int, ex: Exchange, conversationId: String?, stage: Takeover.Stage, vm: ChatViewModel, reduceMotion: Boolean, backgroundNote: Boolean,
     openRun: (String) -> Unit,
@@ -107,14 +156,21 @@ internal fun LazyListScope.exchange(
     joinedAbove: Boolean = false,
     /** 下一条前台回话紧接在这条下面。 */
     joinedBelow: Boolean = false,
+    isNewTurn: Boolean = false,
+    animatedKeys: MutableSet<String>? = null,
 ) {
     // 前台的一轮:用户的话、前台回的话;不走任务那套步骤和状态卡
     if (ex.deskReply != null) {
-        deskExchange(index, ex, conversationId, reduceMotion, highlightKey, joinedAbove, joinedBelow)
+        deskExchange(index, ex, conversationId, reduceMotion, highlightKey, joinedAbove, joinedBelow, isNewTurn, animatedKeys)
         return
     }
+    val placement = MikaMotion.spatialOffset(reduceMotion)
     if (ex.goal.isNotEmpty()) item("u$index") {
-        JumpHighlight(highlightKey == "u$index", reduceMotion) { UserBubble(ex.goal, conversationId, key = "u$index") }
+        Box(Modifier.animateItem(fadeInSpec = null, placementSpec = placement, fadeOutSpec = tween(150))) {
+            MessageEntrance("u$index", isNewTurn, fromEnd = true, animatedKeys = animatedKeys, reduceMotion = reduceMotion) {
+                JumpHighlight(highlightKey == "u$index", reduceMotion) { UserBubble(ex.goal, conversationId, key = "u$index") }
+            }
+        }
     }
     val paused = ex.status is ExchangeStatus.Paused || ex.status is ExchangeStatus.WaitingUnlock ||
         ex.status is ExchangeStatus.NeedsTakeover || ex.status is ExchangeStatus.NeedsConfirmation ||
@@ -125,18 +181,34 @@ internal fun LazyListScope.exchange(
     // 用户消息下面的一条弱化小字,和前面的主对话区分主从。撤回的插话不显示。
     val steers = ex.steers.filterNot { it.state == SteerState.Withdrawn }
     if (active && !answering) {
-        item("s$index") { WorkBlock(ex, steers.map { it.text }, reduceMotion, backgroundNote, openRun) }
+        item("s$index") {
+            Box(Modifier.animateItem(fadeInSpec = null, placementSpec = placement, fadeOutSpec = tween(150))) {
+                WorkBlock(ex, steers.map { it.text }, reduceMotion, backgroundNote, openRun)
+            }
+        }
     } else {
         steers.forEach { n ->
             item("m$index-${n.id}") {
-                JumpHighlight(highlightKey == "m$index-${n.id}", reduceMotion) { SteerSupplement(n.text) }
+                Box(Modifier.animateItem(fadeInSpec = null, placementSpec = placement, fadeOutSpec = tween(150))) {
+                    JumpHighlight(highlightKey == "m$index-${n.id}", reduceMotion) { SteerSupplement(n.text) }
+                }
             }
         }
     }
-    ex.draft?.takeIf(String::isNotBlank)?.let { draft -> item("d$index") { DraftText(draft, ex.waitingForModel) } }
+    ex.draft?.takeIf(String::isNotBlank)?.let { draft ->
+        item("d$index") {
+            Box(Modifier.animateItem(fadeInSpec = null, placementSpec = placement, fadeOutSpec = tween(150))) {
+                DraftText(draft, ex.waitingForModel)
+            }
+        }
+    }
     item("r$index") {
-        JumpHighlight(highlightKey == "r$index", reduceMotion) {
-            StatusCard(ex.status, stage, vm, ex.recordedRun, "r$index", conversationId = conversationId, recover = recover)
+        Box(Modifier.animateItem(fadeInSpec = null, placementSpec = placement, fadeOutSpec = tween(150))) {
+            MessageEntrance("r$index", isNewTurn, fromEnd = false, animatedKeys = animatedKeys, reduceMotion = reduceMotion) {
+                JumpHighlight(highlightKey == "r$index", reduceMotion) {
+                    StatusCard(ex.status, stage, vm, ex.recordedRun, "r$index", conversationId = conversationId, recover = recover)
+                }
+            }
         }
     }
     // 这一轮结束后留在后台运行的那一页:还开着是绿色一行(能关),关了是一句原因
@@ -333,8 +405,8 @@ internal fun WorkBlock(ex: Exchange, steers: List<String>, reduceMotion: Boolean
             )
             if (elapsed != null) Text(ChatCopy.clock(elapsed), style = ClockText, color = c.ink3)
         }
-        ex.goals?.let { GoalChecklistRow(it, ex.runId) }
-        if (ex.steps.isNotEmpty() || steers.isNotEmpty()) StepLine(ex.steps, ex.stepActions, steers, live = true, paused = paused)
+        ex.goals?.let { GoalChecklistRow(it, ex.runId, reduceMotion) }
+        if (ex.steps.isNotEmpty() || steers.isNotEmpty()) StepLine(ex.steps, ex.stepActions, steers, live = true, paused = paused, reduceMotion = reduceMotion)
         // 跑的时候就能进运行过程(页面按秒接着长);结束后收进「做了 N 步 · 查看过程」那一行
         ex.recordedRun?.let { id ->
             Row(
@@ -359,19 +431,32 @@ internal fun WorkBlock(ex: Exchange, steers: List<String>, reduceMotion: Boolean
 }
 
 @Composable
-private fun GoalChecklistRow(goals: GoalChecklist, runId: String?) {
+private fun GoalChecklistRow(goals: GoalChecklist, runId: String?, reduceMotion: Boolean = MikaTheme.reduceMotion) {
     val c = MikaTheme.colors
+    val view = LocalView.current
     var expanded by rememberSaveable(runId) { mutableStateOf(false) }
+    val rot by animateFloatAsState(if (expanded) -90f else 90f, MikaMotion.expressive(reduceMotion), label = "goals-arrow")
     Column {
         Row(
-            Modifier.clickable(role = Role.Button) { expanded = !expanded }.padding(vertical = 6.dp),
+            Modifier.clickable(role = Role.Button) {
+                MikaHaptics.tick(view)
+                expanded = !expanded
+            }.padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(StatusCopy.goals(goals), style = NoteText, color = c.ink2)
-            Icon(MikaIcons.Chevron, null, Modifier.size(16.dp).rotate(if (expanded) -90f else 90f), tint = c.ink3)
+            Icon(MikaIcons.Chevron, null, Modifier.size(16.dp).graphicsLayer { rotationZ = rot }, tint = c.ink3)
         }
-        if (expanded) goals.items.forEachIndexed { i, goal ->
-            Text("${if (i + 1 in goals.confirmed) "✓" else "○"}  $goal", style = NoteText, color = c.ink2)
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),
+            exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(MikaMotion.effects(reduceMotion, MikaMotion.EXIT_MS)),
+        ) {
+            Column {
+                goals.items.forEachIndexed { i, goal ->
+                    Text("${if (i + 1 in goals.confirmed) "✓" else "○"}  $goal", style = NoteText, color = c.ink2)
+                }
+            }
         }
     }
 }
@@ -396,7 +481,14 @@ private enum class Dot { Done, Current, Paused, Dim }
  * 前面的收成一行,点开看全部。
  */
 @Composable
-private fun StepLine(steps: List<StepRow>, actions: Map<Int, List<StepAction>>, steers: List<String>, live: Boolean, paused: Boolean) {
+private fun StepLine(
+    steps: List<StepRow>,
+    actions: Map<Int, List<StepAction>>,
+    steers: List<String>,
+    live: Boolean,
+    paused: Boolean,
+    reduceMotion: Boolean = MikaTheme.reduceMotion,
+) {
     val c = MikaTheme.colors
     var all by rememberSaveable { mutableStateOf(!live) }
     // 哪几步点开了:按这一屏里的序号记,列表变长也不乱
@@ -413,7 +505,7 @@ private fun StepLine(steps: List<StepRow>, actions: Map<Int, List<StepAction>>, 
         // 顶部开关:折叠时「前面还有 N 步」,展开时「收起」,点一下来回切
         if (collapsible) {
             val label = if (all) stringResource(R.string.collapse) else ChatCopy.earlierSteps(hidden)
-            StepItem(label, "", Dot.Dim, current = false, link = true, onClick = { all = !all })
+            StepItem(label, "", Dot.Dim, current = false, link = true, reduceMotion = reduceMotion, onClick = { all = !all })
         }
         val visible = steps.drop(hidden)
         visible.forEachIndexed { i, row ->
@@ -431,7 +523,7 @@ private fun StepLine(steps: List<StepRow>, actions: Map<Int, List<StepAction>>, 
             val detail = actions[row.step].orEmpty()
             StepItem(
                 row.text, row.subtitle, dot, current = dot == Dot.Current || dot == Dot.Paused,
-                actions = detail, open = open,
+                actions = detail, open = open, reduceMotion = reduceMotion,
                 // 有具体动作才点得开:点开看这一步实际做了什么、对什么、结果如何
                 onClick = if (detail.isEmpty()) null else ({ expanded[key] = !open }),
             )
@@ -440,7 +532,7 @@ private fun StepLine(steps: List<StepRow>, actions: Map<Int, List<StepAction>>, 
         if (visible.isEmpty()) steers.forEach { SteerStepPill(it) }
         // 底部「收起」:展开后步数一多,滑到最下面不用再爬回去也能收
         if (all && collapsible) {
-            StepItem(stringResource(R.string.collapse), "", Dot.Dim, current = false, link = true, onClick = { all = false })
+            StepItem(stringResource(R.string.collapse), "", Dot.Dim, current = false, link = true, reduceMotion = reduceMotion, onClick = { all = false })
         }
     }
 }
@@ -448,21 +540,30 @@ private fun StepLine(steps: List<StepRow>, actions: Map<Int, List<StepAction>>, 
 @Composable
 private fun StepItem(
     text: String, subtitle: String, dot: Dot, current: Boolean, link: Boolean = false, onClick: (() -> Unit)? = null,
-    actions: List<StepAction> = emptyList(), open: Boolean = false,
+    actions: List<StepAction> = emptyList(), open: Boolean = false, reduceMotion: Boolean = MikaTheme.reduceMotion,
 ) {
     val c = MikaTheme.colors
+    val view = LocalView.current
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val arrowRot by animateFloatAsState(
+        if (open) if (rtl) -90f else 90f else 0f,
+        MikaMotion.expressive(reduceMotion),
+        label = "step-arrow",
+    )
     Row(
         Modifier.fillMaxWidth()
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(onClickLabel = stringResource(if (open) R.string.collapse else R.string.chat_expand_steps), onClick = onClick)
+                    Modifier.clickable(onClickLabel = stringResource(if (open) R.string.collapse else R.string.chat_expand_steps)) {
+                        MikaHaptics.tick(view)
+                        onClick()
+                    }
                 } else Modifier,
             )
             .heightIn(min = 28.dp).padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(StepRail * 2), contentAlignment = Alignment.Center) { StepDot(dot) }
+        Box(Modifier.width(StepRail * 2), contentAlignment = Alignment.Center) { StepDot(dot, reduceMotion) }
         Spacer(Modifier.width(9.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -476,17 +577,25 @@ private fun StepItem(
             )
             if (subtitle.isNotEmpty()) Text(subtitle, style = MikaType.Hint, color = c.ink3, maxLines = 2, overflow = TextOverflow.Ellipsis)
             // 点开:这一步实际做的几件事,一件一行「做了什么 · 对什么 · 结果」,说法和运行过程页一样
-            if (open) actions.forEach { a ->
-                Text(
-                    ChatCopy.actionLine(a), Modifier.padding(top = 2.dp),
-                    style = MikaType.Hint, color = if (a.failed) c.bad else c.ink3, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                )
+            AnimatedVisibility(
+                visible = open && actions.isNotEmpty(),
+                enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),
+                exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(MikaMotion.effects(reduceMotion, MikaMotion.EXIT_MS)),
+            ) {
+                Column {
+                    actions.forEach { a ->
+                        Text(
+                            ChatCopy.actionLine(a), Modifier.padding(top = 2.dp),
+                            style = MikaType.Hint, color = if (a.failed) c.bad else c.ink3, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
         // 能点开的只有有动作的那些:右边一个小箭头,点开时朝下
         if (actions.isNotEmpty()) DirectionalIcon(
             MikaIcons.Chevron, null,
-            Modifier.padding(start = 6.dp).size(12.dp).graphicsLayer { rotationZ = if (open) if (rtl) -90f else 90f else 0f },
+            Modifier.padding(start = 6.dp).size(12.dp).graphicsLayer { rotationZ = arrowRot },
             tint = c.ink3,
         )
     }
@@ -494,22 +603,27 @@ private fun StepItem(
 
 /** 步骤点:6dp 实心;当前步外面一圈 3dp 的淡色光环。 */
 @Composable
-private fun StepDot(dot: Dot) {
+private fun StepDot(dot: Dot, reduceMotion: Boolean = MikaTheme.reduceMotion) {
     val c = MikaTheme.colors
-    val (fill, ring) = when (dot) {
+    val (targetFill, targetRing) = when (dot) {
         Dot.Done -> c.ink3 to null
         Dot.Dim -> c.hair to null
         Dot.Current -> c.accent to c.accentSoft
         Dot.Paused -> c.warnSolid to c.warnSoft
     }
+    val fill by animateColorAsState(targetFill, MikaMotion.effects(reduceMotion), label = "step-dot-fill")
+    val haloWeight by animateFloatAsState(if (targetRing != null) 1f else 0f, MikaMotion.expressive(reduceMotion), label = "step-dot-halo")
+    val ring = targetRing ?: Color.Transparent
     // 底色先盖住竖线,点才是干净的
     val bg = c.bg
     Box(
         Modifier.size(12.dp).drawBehind {
             val center = Offset(size.width / 2, size.height / 2)
-            if (ring != null) {
-                drawCircle(bg, 6.dp.toPx(), center)
-                drawCircle(ring, 6.dp.toPx(), center)
+            val haloAlpha = haloWeight.coerceIn(0f, 1f)
+            if (haloAlpha > 0.01f) {
+                val r = 6.dp.toPx() * haloWeight.coerceAtLeast(0f)
+                drawCircle(bg, r, center)
+                drawCircle(ring.copy(alpha = ring.alpha * haloAlpha), r, center)
             }
             drawCircle(fill, 3.dp.toPx(), center)
         },

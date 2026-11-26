@@ -1,10 +1,14 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,10 +49,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -56,16 +65,20 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.settings.RecommendedTask
+import com.wangzan101.mika.ui.theme.MikaHaptics
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.components.MikaLogo
 import com.wangzan101.mika.i18n.uiLocale
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.time.LocalTime
+import kotlin.math.abs
 
 /**
  * 空对话:问候 + 一句价值主张 + 一张可左右滑的推广示例卡,底部贴着输入框两条慢慢反向滚动的示例。
@@ -88,24 +101,58 @@ internal fun EmptyState(
     val ideas by produceState<EmptyIdeas?>(null, seed) {
         value = withContext(Dispatchers.IO) { loadEmptyIdeas(context, kotlin.random.Random(seed)) }
     }
+    var entered by remember(conversation, reduceMotion) { mutableStateOf(reduceMotion) }
+    LaunchedEffect(conversation, reduceMotion) { if (!reduceMotion) entered = true }
+    val pHeader by animateFloatAsState(if (entered) 1f else 0f, if (reduceMotion) tween(0) else tween(260, 0, MikaMotion.EmphasizedDecelerate), label = "empty-0")
+    val pLead by animateFloatAsState(if (entered) 1f else 0f, if (reduceMotion) tween(0) else tween(280, 50, MikaMotion.EmphasizedDecelerate), label = "empty-1")
+    val pCard by animateFloatAsState(if (entered) 1f else 0f, if (reduceMotion) tween(0) else tween(300, 100, MikaMotion.EmphasizedDecelerate), label = "empty-2")
+    val pRows by animateFloatAsState(if (entered) 1f else 0f, if (reduceMotion) tween(0) else tween(300, 150, MikaMotion.EmphasizedDecelerate), label = "empty-3")
     Column(modifier.fillMaxSize()) {
         // 问候放在上方约三分之一处,下面紧跟推广卡;剩下的空间留给底部两条滚动示例
         Spacer(Modifier.weight(0.55f))
         Column(Modifier.fillMaxWidth().padding(horizontal = ComposerInset)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.graphicsLayer {
+                    alpha = pHeader
+                    translationY = 12.dp.toPx() * (1f - pHeader)
+                },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 MikaLogo(26.dp, Modifier.border(0.5.dp, c.edge, RoundedCornerShape(8.dp)), corner = 8.dp)
                 Text(remember(conversation) { todayLabel() }, style = MikaType.Caption, color = c.ink3)
             }
-            Text(ChatCopy.greeting(hour), Modifier.padding(top = 14.dp), style = EmptyGreeting, color = c.ink)
-            Text(ChatCopy.EMPTY_VALUE, Modifier.padding(top = 6.dp), style = EmptyLead, color = c.ink3)
+            Column(
+                Modifier.graphicsLayer {
+                    alpha = pLead
+                    translationY = 14.dp.toPx() * (1f - pLead)
+                },
+            ) {
+                Text(ChatCopy.greeting(hour), Modifier.padding(top = 14.dp), style = EmptyGreeting, color = c.ink)
+                Text(ChatCopy.EMPTY_VALUE, Modifier.padding(top = 6.dp), style = EmptyLead, color = c.ink3)
+            }
         }
         ideas?.featured?.takeIf { it.isNotEmpty() }?.let { featured ->
             Spacer(Modifier.height(22.dp))
-            FeaturedPager(featured, reduceMotion, onSend)
+            Box(
+                Modifier.graphicsLayer {
+                    alpha = pCard
+                    translationY = 14.dp.toPx() * (1f - pCard)
+                },
+            ) {
+                FeaturedPager(featured, reduceMotion, onSend)
+            }
         }
         Spacer(Modifier.weight(1f))
-        ideas?.rows?.forEachIndexed { i, row ->
-            MarqueeRow(row, reverse = i % 2 == 1, animate = !reduceMotion, onPick = onPick, modifier = Modifier.padding(top = if (i == 0) 0.dp else 8.dp))
+        Column(
+            Modifier.graphicsLayer {
+                alpha = pRows
+                translationY = 12.dp.toPx() * (1f - pRows)
+            },
+        ) {
+            ideas?.rows?.forEachIndexed { i, row ->
+                MarqueeRow(row, reverse = i % 2 == 1, animate = !reduceMotion, onPick = onPick, modifier = Modifier.padding(top = if (i == 0) 0.dp else 8.dp))
+            }
         }
         Spacer(Modifier.height(4.dp))
     }
@@ -131,13 +178,16 @@ private fun FeaturedPager(items: List<Idea>, reduceMotion: Boolean, onPick: (Rec
             pageSpacing = 8.dp,
         ) { page -> FeaturedCard(items[page], onPick) }
         if (items.size > 1) {
+            val position = pager.currentPage + pager.currentPageOffsetFraction
             Row(
                 Modifier.fillMaxWidth().padding(top = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
             ) {
                 repeat(items.size) { i ->
-                    val on = i == pager.currentPage
-                    Box(Modifier.height(5.dp).width(if (on) 14.dp else 5.dp).clip(CircleShape).background(if (on) c.ink2 else c.hair))
+                    val weight = (1f - abs(position - i)).coerceIn(0f, 1f)
+                    val dotWidth = 5.dp + 9.dp * weight
+                    val dotColor = lerp(c.hair, c.ink2, weight)
+                    Box(Modifier.height(5.dp).width(dotWidth).clip(CircleShape).background(dotColor))
                 }
             }
         }
@@ -147,11 +197,16 @@ private fun FeaturedPager(items: List<Idea>, reduceMotion: Boolean, onPick: (Rec
 @Composable
 private fun FeaturedCard(idea: Idea, onPick: (RecommendedTask) -> Unit) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     // 浅灰底、不描边,和底部的示例胶囊同一种材质;副标题是一句说明,点了直接把完整提示词发出去
     val blurb = idea.blurb ?: idea.task.prompt.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
     Row(
-        Modifier.fillMaxWidth().clip(FeaturedShape).background(c.fill)
-            .clickable(role = Role.Button) { onPick(idea.task) }
+        Modifier.fillMaxWidth().pressScale(interaction, 0.97f).clip(FeaturedShape).background(c.fill)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                MikaHaptics.tap(view)
+                onPick(idea.task)
+            }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -225,15 +280,26 @@ private fun MarqueeRow(items: List<Idea>, reverse: Boolean, animate: Boolean, on
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     var cycle by remember { mutableIntStateOf(0) }
     var shift by remember { mutableFloatStateOf(0f) }
+    var touched by remember { mutableStateOf(false) }
     LaunchedEffect(cycle) {
         if (cycle == 0) return@LaunchedEffect
         var last = 0L
         while (true) withFrameNanos { now ->
-            if (last != 0L) shift = (shift + speed * (now - last) / 1e9f) % cycle
+            if (last != 0L && !touched) shift = (shift + speed * (now - last) / 1e9f) % cycle
             last = now
         }
     }
-    Box(modifier.fillMaxWidth().clipToBounds().then(fade)) {
+    Box(
+        modifier.fillMaxWidth().clipToBounds().then(fade)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        touched = event.changes.any { it.pressed }
+                    }
+                }
+            },
+    ) {
         Row(
             Modifier.wrapContentWidth(Alignment.Start, unbounded = true).offset {
                 // 往左走:0 → -cycle;往右走:-cycle → 0。从右往左排的语言里方向一起镜像
@@ -255,9 +321,14 @@ private fun MarqueeRow(items: List<Idea>, reverse: Boolean, animate: Boolean, on
 @Composable
 private fun Pill(idea: Idea, onPick: (RecommendedTask) -> Unit) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
-        Modifier.height(40.dp).clip(CircleShape).background(c.fill)
-            .clickable(role = Role.Button) { onPick(idea.task) }
+        Modifier.height(40.dp).pressScale(interaction, 0.95f).clip(CircleShape).background(c.fill)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                MikaHaptics.tap(view)
+                onPick(idea.task)
+            }
             .padding(start = 7.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

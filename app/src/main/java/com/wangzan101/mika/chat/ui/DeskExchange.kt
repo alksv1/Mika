@@ -1,12 +1,19 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +35,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.ui.MarkdownText
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
@@ -39,12 +47,21 @@ import com.wangzan101.mika.ui.theme.MikaType
 internal fun LazyListScope.deskExchange(
     index: Int, ex: Exchange, conversationId: String?, reduceMotion: Boolean, highlightKey: String?,
     joinedAbove: Boolean = false, joinedBelow: Boolean = false,
+    isNewTurn: Boolean = false, animatedKeys: MutableSet<String>? = null,
 ) {
     if (ex.goal.isNotEmpty()) item("u$index") {
-        JumpHighlight(highlightKey == "u$index", reduceMotion) { UserBubble(ex.goal, conversationId, key = "u$index") }
+        Box(Modifier.animateItem(fadeInSpec = null, placementSpec = MikaMotion.spatialOffset(reduceMotion), fadeOutSpec = tween(150))) {
+            MessageEntrance("u$index", isNewTurn, fromEnd = true, animatedKeys = animatedKeys, reduceMotion = reduceMotion) {
+                JumpHighlight(highlightKey == "u$index", reduceMotion) { UserBubble(ex.goal, conversationId, key = "u$index") }
+            }
+        }
     }
     item("r$index") {
-        JumpHighlight(highlightKey == "r$index", reduceMotion) { DeskReply(ex, "r$index", reduceMotion, joinedAbove, joinedBelow) }
+        Box(Modifier.animateItem(fadeInSpec = null, placementSpec = MikaMotion.spatialOffset(reduceMotion), fadeOutSpec = tween(150))) {
+            MessageEntrance("r$index", isNewTurn, fromEnd = false, animatedKeys = animatedKeys, reduceMotion = reduceMotion) {
+                JumpHighlight(highlightKey == "r$index", reduceMotion) { DeskReply(ex, "r$index", reduceMotion, joinedAbove, joinedBelow) }
+            }
+        }
     }
 }
 
@@ -58,17 +75,35 @@ private fun DeskReply(ex: Exchange, key: String, reduceMotion: Boolean, joinedAb
     val c = MikaTheme.colors
     val text = ex.deskReply.orEmpty()
     val working = ex.status == ExchangeStatus.Working
-    Column(Modifier.fillMaxWidth().padding(bottom = if (joinedBelow) JoinedReplyGap else ReplyGap).testTag("desk-reply")) {
+    Column(
+        Modifier.fillMaxWidth()
+            .animateContentSize(MikaMotion.spatialSize(reduceMotion))
+            .padding(bottom = if (joinedBelow) JoinedReplyGap else ReplyGap)
+            .testTag("desk-reply"),
+    ) {
         ex.deskTool?.let { tool ->
             Text(
                 tool, Modifier.padding(bottom = 4.dp).background(c.fill, MikaShapes.Chip).padding(horizontal = 8.dp, vertical = 1.dp),
                 style = MikaType.Micro, color = c.ink3, maxLines = 1,
             )
         }
-        when {
-            text.isNotBlank() && working -> MarkdownText(text, AnswerText.copy(color = c.ink), Modifier.answerSurface(joinedAbove), streaming = true)
-            text.isNotBlank() -> AnswerArea(key, text, Modifier.answerSurface(joinedAbove)) { MarkdownText(text, AnswerText.copy(color = c.ink)) }
-            working -> Thinking(reduceMotion)
+        AnimatedContent(
+            targetState = text.isNotBlank(),
+            transitionSpec = {
+                if (reduceMotion) {
+                    fadeIn(snap()) togetherWith fadeOut(snap())
+                } else {
+                    (fadeIn(tween(180)) + scaleIn(MikaMotion.expressive(false), initialScale = 0.95f)) togetherWith
+                        fadeOut(tween(110))
+                }
+            },
+            label = "desk-reply-phase",
+        ) { hasText ->
+            when {
+                hasText && working -> MarkdownText(text, AnswerText.copy(color = c.ink), Modifier.answerSurface(joinedAbove), streaming = true)
+                hasText -> AnswerArea(key, text, Modifier.answerSurface(joinedAbove)) { MarkdownText(text, AnswerText.copy(color = c.ink)) }
+                working -> Thinking(reduceMotion)
+            }
         }
         if (ex.status is ExchangeStatus.Failed) {
             Text(stringResource(R.string.desk_reply_failed), Modifier.padding(top = 2.dp), style = MikaType.Caption, color = c.ink3)

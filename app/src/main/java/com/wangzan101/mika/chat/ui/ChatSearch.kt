@@ -1,8 +1,16 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +37,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -43,9 +52,12 @@ import com.wangzan101.mika.R
 import androidx.compose.ui.semantics.Role
 import com.wangzan101.mika.ui.components.SegmentedControl
 import com.wangzan101.mika.ui.components.keepsKeyboard
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 
 /** 搜索时按归档状态筛选:[All] 全部(归档的带上标记)、[Active] 只看未归档、[Archived] 只看已归档。 */
 enum class SearchArchiveFilter { All, Active, Archived }
@@ -61,16 +73,20 @@ data class DrawerSearch(
 @Composable
 internal fun DrawerSearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
+    val view = LocalView.current
     val clear = stringResource(R.string.drawer_search_clear)
     val focus = LocalFocusManager.current
     var focused by remember { mutableStateOf(false) }
+    val borderColor by animateColorAsState(if (focused) c.accent else c.hair, MikaMotion.effects(reduce), label = "search-border")
+    val clearInteraction = remember { MutableInteractionSource() }
     Row(
         modifier
             .height(38.dp)
             .keepsKeyboard()
             .clip(NavShape)
             // 只描边不填色,和上面的浅灰入口卡区分开
-            .border(1.dp, if (focused) c.accent else c.hair, NavShape)
+            .border(1.dp, borderColor, NavShape)
             .padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -91,10 +107,17 @@ internal fun DrawerSearchField(query: String, onQueryChange: (String) -> Unit, m
                 keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
             )
         }
-        if (query.isNotEmpty()) {
+        AnimatedVisibility(
+            visible = query.isNotEmpty(),
+            enter = scaleIn(MikaMotion.tactile(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+            exit = scaleOut(MikaMotion.effects(reduce, 120)) + fadeOut(MikaMotion.effects(reduce, 120)),
+        ) {
             Box(
-                Modifier.size(30.dp).clip(CircleShape)
-                    .clickable(role = Role.Button, onClickLabel = clear) { onQueryChange("") }
+                Modifier.size(30.dp).pressScale(clearInteraction, 0.88f).clip(CircleShape)
+                    .clickable(interactionSource = clearInteraction, indication = LocalIndication.current, role = Role.Button, onClickLabel = clear) {
+                        MikaHaptics.tap(view)
+                        onQueryChange("")
+                    }
                     .testTag("drawer-search-clear"),
                 contentAlignment = Alignment.Center,
             ) { Icon(MikaIcons.Close, clear, Modifier.size(14.dp), tint = c.ink3) }

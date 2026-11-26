@@ -1,7 +1,9 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,18 +17,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 
 /** 侧栏顶部的三项主要能力:浏览器、教 Mika、AI 电话,一排三块等宽。 */
 @Composable
@@ -44,9 +50,15 @@ private val ShortcutShape = RoundedCornerShape(14.dp)
 @Composable
 private fun Shortcut(icon: ImageVector, label: String, tag: String, onClick: () -> Unit, modifier: Modifier) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Column(
-        modifier.height(70.dp).clip(ShortcutShape).background(c.fill)
-            .clickable(role = Role.Button, onClick = onClick).testTag(tag)
+        modifier.height(70.dp).pressScale(interaction, 0.95f).clip(ShortcutShape).background(c.fill)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                MikaHaptics.tap(view)
+                onClick()
+            }
+            .testTag(tag)
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -59,8 +71,14 @@ private fun Shortcut(icon: ImageVector, label: String, tag: String, onClick: () 
 @Composable
 internal fun SettingsEntry(onClick: () -> Unit) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
-        Modifier.height(46.dp).clip(ShortcutShape).clickable(role = Role.Button, onClick = onClick)
+        Modifier.height(46.dp).pressScale(interaction, 0.95f).clip(ShortcutShape)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                MikaHaptics.tap(view)
+                onClick()
+            }
             .padding(horizontal = 6.dp).testTag("drawer-settings"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

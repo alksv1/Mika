@@ -325,7 +325,8 @@ val PlainCardShape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp)
 @Composable
 fun PlainListTheme(content: @Composable () -> Unit) {
     val base = MikaTheme.colors
-    val colors = androidx.compose.runtime.remember(base) { base.forPlainList() }
+    val target = androidx.compose.runtime.remember(base) { base.forPlainList() }
+    val colors = com.wangzan101.mika.ui.theme.animatedPalette(target, MikaTheme.reduceMotion)
     androidx.compose.runtime.CompositionLocalProvider(
         com.wangzan101.mika.ui.theme.LocalMikaColors provides colors,
         LocalPlainList provides true,

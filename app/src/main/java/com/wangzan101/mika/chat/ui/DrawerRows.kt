@@ -12,6 +12,16 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.wangzan101.mika.ui.components.MikaDialog
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import com.wangzan101.mika.chat.DeleteImpact
@@ -38,10 +48,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.wangzan101.mika.ui.theme.MikaHaptics
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.components.KeyboardDismissArea
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -84,6 +97,8 @@ internal fun ConversationEntry(
     showProjectMark: Boolean = false,
 ) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
+    val view = LocalView.current
     val deletable = item.id != null
     val selectable = selecting && deletable
     val haptic = LocalHapticFeedback.current
@@ -100,7 +115,7 @@ internal fun ConversationEntry(
                 .clip(NavShape)
                 .then(
                     when {
-                        selectable -> Modifier.toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggleSelect(item) })
+                        selectable -> Modifier.toggleable(value = selected, role = Role.Checkbox, onValueChange = { MikaHaptics.tick(view); onToggleSelect(item) })
                         // 多选模式里没存过的草稿不响应,免得点一下退出侧栏
                         selecting -> Modifier
                         deletable -> Modifier.combinedClickable(
@@ -117,8 +132,14 @@ internal fun ConversationEntry(
                 .alpha(if (item.enabled || selectable) 1f else 0.45f)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (selectable) SelectMark(selected)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AnimatedVisibility(
+                    visible = selectable,
+                    enter = expandHorizontally(MikaMotion.spatialSize(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+                    exit = shrinkHorizontally(MikaMotion.spatialSize(reduce)) + fadeOut(MikaMotion.effects(reduce, MikaMotion.EXIT_MS)),
+                ) {
+                    Box(Modifier.padding(end = 10.dp)) { SelectMark(selected) }
+                }
                 Box(Modifier.weight(1f)) { ConversationRowContent(item, terms, showArchivedMark, showProjectMark) }
             }
         }
@@ -130,14 +151,23 @@ internal fun ConversationEntry(
 @Composable
 private fun SelectMark(selected: Boolean) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
+    val bg by animateColorAsState(if (selected) c.accent else c.bg.copy(alpha = 0f), MikaMotion.effects(reduce, 150), label = "selectBg")
+    val border by animateColorAsState(if (selected) c.accent else c.edge, MikaMotion.effects(reduce, 150), label = "selectBorder")
     Box(
         Modifier.size(20.dp).clip(CircleShape)
-            .then(if (selected) Modifier.background(c.accent) else Modifier)
-            .border(1.5.dp, if (selected) c.accent else c.edge, CircleShape)
+            .background(bg)
+            .border(1.5.dp, border, CircleShape)
             .testTag("conversation-check"),
         contentAlignment = Alignment.Center,
     ) {
-        if (selected) Icon(MikaIcons.Check, null, Modifier.size(13.dp), tint = c.onAccent)
+        AnimatedVisibility(
+            visible = selected,
+            enter = scaleIn(MikaMotion.tactile(reduce), initialScale = 0.5f) + fadeIn(if (reduce) snap() else tween(120)),
+            exit = scaleOut(if (reduce) snap() else tween(100), targetScale = 0.5f) + fadeOut(if (reduce) snap() else tween(100)),
+        ) {
+            Icon(MikaIcons.Check, null, Modifier.size(13.dp), tint = c.onAccent)
+        }
     }
 }
 

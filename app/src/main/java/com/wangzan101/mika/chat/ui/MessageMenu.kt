@@ -164,7 +164,7 @@ internal fun Modifier.behindMenu(open: Boolean, progress: () -> Float): Modifier
     if (!open) this else this
         .then(
             if (GlassBlurSupported) Modifier.graphicsLayer {
-                val r = MenuBlur.toPx() * progress()
+                val r = MenuBlur.toPx() * progress().coerceIn(0f, 1f)
                 renderEffect = if (r >= 0.5f) BlurEffect(r, r, TileMode.Clamp) else null
             } else Modifier,
         )

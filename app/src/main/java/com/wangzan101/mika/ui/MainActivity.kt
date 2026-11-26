@@ -680,8 +680,7 @@ private fun MikaRoot(
         }
     }
     val phoneSetupNeed by phoneSetup.needed.collectAsState()
-    // 页面有自己的返回处理时(设置页里的子页、侧栏)由它们先接;这里只管退回上一页
-    BackHandler(enabled = nav.canGoBack) { nav.back() }
+    // 页面有自己的返回处理时(设置页里的子页、侧栏)由它们先接;全局返回与预测性返回交给外层 NavSlide
     val back: () -> Unit = { nav.back() }
     // 聊天页离开组合树时保留列表位置和输入内容，返回设置页等子页面后原样恢复。
     val screenStates = rememberSaveableStateHolder()
@@ -695,7 +694,7 @@ private fun MikaRoot(
     AdaptiveWindow(navigation = sidebarPage) {
         val page: @Composable (() -> Unit) -> Unit = { openDrawer ->
     // 全局换页套滑动推入过渡;页内一律用 route 不用 nav.current:过渡动画期间旧页还在渲染,读实时状态会瞬间变脸
-    NavSlide(nav.stack, depth = { it.size }) { stack ->
+    NavSlide(nav.stack, depth = { it.size }, canGoBack = nav.canGoBack, onBack = back) { stack ->
     val route = stack.last()
     when (route) {
         Route.PhoneSetup -> PhoneSetupScreen(status, setupRepair, onFix, onboarding = onboarding == OnboardingStep.Phone) {

@@ -6,8 +6,24 @@ import com.wangzan101.mika.core.agent.QuoteMessage
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import com.wangzan101.mika.ui.components.pageBackground
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,10 +59,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -57,10 +75,13 @@ import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.ui.components.GlassBackdrop
 import com.wangzan101.mika.ui.components.GlassBar
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 import com.wangzan101.mika.voice.HoldToTalk
 import com.wangzan101.mika.voice.VoiceSource
 import com.wangzan101.mika.i18n.trPlural
@@ -173,6 +194,12 @@ internal fun Composer(
     // 输入框外面的字一变(说完填进来、点了示例),光标放到末尾,接着说或接着打都在后面
     var fieldValue by remember { mutableStateOf(TextFieldValue(text, TextRange(text.length))) }
     val shownValue = if (fieldValue.text == text) fieldValue else TextFieldValue(text, TextRange(text.length))
+    val view = LocalView.current
+    var lastQuote by remember { mutableStateOf(quote) }
+    if (quote != null) lastQuote = quote
+    var lastAttachments by remember { mutableStateOf(attachments) }
+    if (attachments.isNotEmpty()) lastAttachments = attachments
+    val showNotice = importing || rejected.isNotEmpty() || overLimit > 0
     Box(
         modifier.fillMaxWidth()
             .pageBackground(c.bg, fade)
@@ -185,9 +212,25 @@ internal fun Composer(
                 queued, active = mode != ComposerMode.Idle,
                 onEdit = onEditQueued, onCancel = onCancelQueued, onStartNow = onStartQueued, onActions = onQueueActions,
             )
-            quote?.let { QuoteChip(it, onRemoveQuote, Modifier.padding(bottom = 6.dp)) }
-            if (attachments.isNotEmpty()) PendingTray(attachments, onRemove, Modifier.padding(bottom = 2.dp))
-            if (importing || rejected.isNotEmpty() || overLimit > 0) {
+            AnimatedVisibility(
+                visible = quote != null,
+                enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),
+                exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(MikaMotion.effects(reduceMotion, MikaMotion.EXIT_MS)),
+            ) {
+                lastQuote?.let { QuoteChip(it, onRemoveQuote, Modifier.padding(bottom = 6.dp)) }
+            }
+            AnimatedVisibility(
+                visible = attachments.isNotEmpty(),
+                enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),
+                exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(MikaMotion.effects(reduceMotion, MikaMotion.EXIT_MS)),
+            ) {
+                if (lastAttachments.isNotEmpty()) PendingTray(lastAttachments, onRemove, Modifier.padding(bottom = 2.dp))
+            }
+            AnimatedVisibility(
+                visible = showNotice,
+                enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),
+                exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(MikaMotion.effects(reduceMotion, MikaMotion.EXIT_MS)),
+            ) {
                 Column(Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (importing) Text(AttachCopy.IMPORTING, style = MikaType.Caption, color = c.ink3)
                     if (rejected.isNotEmpty() || overLimit > 0) {
@@ -224,7 +267,7 @@ internal fun Composer(
             GlassBar(Modifier.fillMaxWidth().keepsKeyboard()) {
                 val canSend = AttachTray.canSend(text, attachments, importing)
                 // 两行:第一行纯输入,第二行按钮;字再多按钮排布也不动
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f).animateContentSize(MikaMotion.spatialSize(reduceMotion))) {
                     // start 14dp:文字左缘对齐＋图标可视左缘(40dp 按钮内 20dp 图标居中,字形自身再内缩约 4dp)
                     Box(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 4.dp)) {
                         val converting = vState is HoldToTalk.State.Converting
@@ -256,13 +299,17 @@ internal fun Composer(
                         if (showAttach) {
                             val label = AttachCopy.ADD
                             val blockedHint = stringResource(R.string.attach_blocked_running)
+                            val plusInteraction = remember { MutableInteractionSource() }
                             Box(
-                                Modifier.size(MikaSize.IconButton).clip(CircleShape)
-                                    .clickable(enabled = !importing, onClickLabel = label, onClick = {
+                                Modifier.size(MikaSize.IconButton)
+                                    .pressScale(plusInteraction, 0.90f, !importing)
+                                    .clip(CircleShape)
+                                    .clickable(interactionSource = plusInteraction, indication = LocalIndication.current, enabled = !importing, onClickLabel = label) {
+                                        MikaHaptics.tap(view)
                                         if (attachBlocked) {
                                             Toast.makeText(context, blockedHint, Toast.LENGTH_SHORT).show()
                                         } else onPlus?.invoke()
-                                    }),
+                                    },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(MikaIcons.Plus, label, Modifier.size(20.dp), tint = c.ink)
@@ -280,25 +327,61 @@ internal fun Composer(
                             }
                         }
                         // 在干活时(任务在跑、Mika 在回话或派出的事在跑)没字就停止;写了字停止让位给发送,发出去的话交给 Mika
-                        if ((busy || working) && !canSend) {
-                            Box(
-                                Modifier.size(MikaSize.IconButton).clip(CircleShape)
-                                    .clickable(onClickLabel = stringResource(R.string.chat_stop), onClick = onStop),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(MikaIcons.Stop, stringResource(R.string.chat_stop), Modifier.size(26.dp), tint = c.ink)
+                        val showStop = (busy || working) && !canSend
+                        val sendBg by animateColorAsState(if (canSend) c.ink else c.neutralSoft, MikaMotion.effects(reduceMotion), label = "send-bg")
+                        val sendTint by animateColorAsState(if (canSend) c.bg else c.ink3, MikaMotion.effects(reduceMotion), label = "send-tint")
+                        val sendPop = remember { Animatable(1f) }
+                        var prevCanSend by remember { mutableStateOf(canSend) }
+                        LaunchedEffect(canSend, reduceMotion) {
+                            if (!prevCanSend && canSend && !reduceMotion) {
+                                sendPop.snapTo(0.84f)
+                                sendPop.animateTo(1f, MikaMotion.tactile(false))
                             }
+                            prevCanSend = canSend
                         }
-                        if (!(busy || working) || canSend) {
-                            // 可发时黑底白箭头(主操作);空输入灰底灰箭头——发送是主行动,空态也有圆底和＋/话筒拉开层级,但灰箭头表明还不可用。全用 token,深色主题自动反转
-                            Box(
-                                Modifier.size(MikaSize.IconButton)
-                                    .clip(CircleShape)
-                                    .background(if (canSend) c.ink else c.neutralSoft)
-                                    .clickable(enabled = canSend, onClickLabel = stringResource(R.string.chat_send)) { onSend() },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(MikaIcons.Up, stringResource(R.string.chat_send), Modifier.size(20.dp), tint = if (canSend) c.bg else c.ink3)
+                        AnimatedContent(
+                            targetState = showStop,
+                            transitionSpec = {
+                                if (reduceMotion) {
+                                    fadeIn(snap()) togetherWith fadeOut(snap())
+                                } else {
+                                    (scaleIn(MikaMotion.tactile(false), initialScale = 0.68f) + fadeIn(tween(140))) togetherWith
+                                        (scaleOut(tween(110), targetScale = 0.68f) + fadeOut(tween(100)))
+                                }
+                            },
+                            label = "composer-action",
+                        ) { stopping ->
+                            if (stopping) {
+                                val stopInteraction = remember { MutableInteractionSource() }
+                                Box(
+                                    Modifier.size(MikaSize.IconButton)
+                                        .pressScale(stopInteraction, 0.90f)
+                                        .clip(CircleShape)
+                                        .clickable(interactionSource = stopInteraction, indication = LocalIndication.current, onClickLabel = stringResource(R.string.chat_stop)) {
+                                            MikaHaptics.tap(view)
+                                            onStop()
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(MikaIcons.Stop, stringResource(R.string.chat_stop), Modifier.size(26.dp), tint = c.ink)
+                                }
+                            } else {
+                                // 可发时黑底白箭头(主操作);空输入灰底灰箭头——发送是主行动,空态也有圆底和＋/话筒拉开层级,但灰箭头表明还不可用。全用 token,深色主题自动反转
+                                val sendInteraction = remember { MutableInteractionSource() }
+                                Box(
+                                    Modifier.size(MikaSize.IconButton)
+                                        .graphicsLayer { scaleX = sendPop.value; scaleY = sendPop.value }
+                                        .pressScale(sendInteraction, 0.90f, canSend)
+                                        .clip(CircleShape)
+                                        .background(sendBg)
+                                        .clickable(interactionSource = sendInteraction, indication = LocalIndication.current, enabled = canSend, onClickLabel = stringResource(R.string.chat_send)) {
+                                            MikaHaptics.confirm(view)
+                                            onSend()
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(MikaIcons.Up, stringResource(R.string.chat_send), Modifier.size(20.dp), tint = sendTint)
+                                }
                             }
                         }
                     }

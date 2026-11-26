@@ -2,8 +2,19 @@ package com.wangzan101.mika.chat.ui
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -42,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,10 +73,13 @@ import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaCard
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.PlainListTheme
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.wangzan101.mika.ui.Route
@@ -119,6 +134,8 @@ internal fun ChatPlusSheet(
         }
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val reduce = MikaTheme.reduceMotion
+    BackHandler(enabled = view != PlusView.Main) { view = PlusView.Main }
     // 和设置页一样的简约列表配色:浅灰底上放白块,不描边
     PlainListTheme {
     val c = MikaTheme.colors
@@ -134,7 +151,22 @@ internal fun ChatPlusSheet(
             // 半屏→展开到整屏的 82%:把手加上内容正好这么高
             val body = (maxHeight * 0.82f - PlusHandleHeight).coerceAtLeast(0.dp)
             Column(Modifier.fillMaxWidth().height(body)) {
-                when (view) {
+                AnimatedContent(
+                    targetState = view,
+                    transitionSpec = {
+                        if (reduce) {
+                            fadeIn(snap()) togetherWith fadeOut(snap())
+                        } else if (targetState != PlusView.Main && initialState == PlusView.Main) {
+                            (slideInHorizontally(MikaMotion.spatialOffset(false)) { it / 3 } + fadeIn(tween(200))) togetherWith
+                                (slideOutHorizontally(MikaMotion.spatialOffset(false)) { -it / 5 } + fadeOut(tween(140)))
+                        } else {
+                            (slideInHorizontally(MikaMotion.spatialOffset(false)) { -it / 5 } + fadeIn(tween(200))) togetherWith
+                                (slideOutHorizontally(MikaMotion.spatialOffset(false)) { it / 3 } + fadeOut(tween(140)))
+                        }
+                    },
+                    label = "plus-sheet-view",
+                ) { currentView ->
+                when (currentView) {
                     PlusView.Main -> Column(
                         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = PlusInset, vertical = 4.dp),
                     ) {
@@ -208,6 +240,7 @@ internal fun ChatPlusSheet(
                         onBack = { view = PlusView.Main },
                     )
                 }
+                }
             }
         }
     }
@@ -263,13 +296,19 @@ private fun PlusRow(
 @Composable
 private fun SheetHead(title: String, onBack: () -> Unit, trailing: (@Composable RowScope.() -> Unit)? = null) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
         Modifier.fillMaxWidth().padding(start = 4.dp, end = 6.dp, top = 4.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Box(
-            Modifier.size(32.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack),
+            Modifier.size(32.dp).pressScale(interaction, 0.90f).clip(CircleShape)
+                .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                    MikaHaptics.tap(view)
+                    onBack()
+                },
             contentAlignment = Alignment.Center,
         ) {
             DirectionalIcon(MikaIcons.Back, stringResource(R.string.back), Modifier.size(16.dp), tint = c.ink)
@@ -404,8 +443,15 @@ private fun PlusLabel(text: String) {
 @Composable
 private fun RowScope.QuickButton(icon: ImageVector, label: String, tag: String, onClick: () -> Unit) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Column(
-        Modifier.weight(1f).clip(MikaShapes.Tile).clickable(role = Role.Button, onClick = onClick).padding(vertical = 10.dp).testTag(tag),
+        Modifier.weight(1f).pressScale(interaction, 0.94f).clip(MikaShapes.Tile)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button) {
+                MikaHaptics.tap(view)
+                onClick()
+            }
+            .padding(vertical = 10.dp).testTag(tag),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

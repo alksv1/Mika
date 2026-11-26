@@ -1,6 +1,13 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -36,11 +44,14 @@ import com.wangzan101.mika.core.frontdesk.DeskTaskView
 import com.wangzan101.mika.ui.components.GlassBackdrop
 import com.wangzan101.mika.ui.components.GlassSurface
 import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 
 /** 聊天页右上角 ⋯:新对话、通话记录、这个对话里的事、通话设置。 */
 @Composable
@@ -91,16 +102,29 @@ internal fun TopBarIcon(
     onClick: () -> Unit,
 ) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Box(
-        Modifier.size(width = 44.dp, height = MikaSize.IconButton + 4.dp).clip(TopBarShape)
-            .clickable(enabled = enabled, role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick)
+        Modifier.size(width = 44.dp, height = MikaSize.IconButton + 4.dp)
+            .pressScale(interaction, 0.90f, enabled)
+            .clip(TopBarShape)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, enabled = enabled, role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) {
+                MikaHaptics.tap(view)
+                onClick()
+            }
             .testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, label, Modifier.size(MikaSize.Icon), tint = if (enabled) c.ink else c.ink3)
-        if (badge) {
+        AnimatedVisibility(
+            visible = badge,
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp),
+            enter = scaleIn(MikaMotion.tactile(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+            exit = scaleOut(MikaMotion.effects(reduce, MikaMotion.EXIT_MS)) + fadeOut(MikaMotion.effects(reduce, MikaMotion.EXIT_MS)),
+        ) {
             Box(
-                Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp).size(8.dp)
+                Modifier.size(8.dp)
                     .background(c.bg, CircleShape).padding(1.dp).background(c.accent, CircleShape),
             )
         }

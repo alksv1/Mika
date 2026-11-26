@@ -1,14 +1,27 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,15 +47,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -56,10 +71,13 @@ import com.wangzan101.mika.core.frontdesk.DeskTaskPhase
 import com.wangzan101.mika.core.frontdesk.DeskTaskView
 import com.wangzan101.mika.ui.components.GlassBackdrop
 import com.wangzan101.mika.ui.components.GlassSurface
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 
 private val TrayShape = RoundedCornerShape(16.dp)
 
@@ -87,56 +105,89 @@ internal fun DeskTray(
     onStop: (String) -> Unit, onDetail: (String) -> Unit,
 ) {
     val active = trayOrder(tasks)
-    if (active.isEmpty()) return
+    var lastActive by remember { mutableStateOf(active) }
+    if (active.isNotEmpty()) lastActive = active
+    val shown = if (active.isNotEmpty()) active else lastActive
     val c = MikaTheme.colors
+    val view = LocalView.current
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val head = active.first()
-    val needsYou = head.state == DeskTaskPhase.NeedsYou
+    val chevronRot by animateFloatAsState(if (expanded) 90f else -90f, MikaMotion.expressive(reduceMotion), label = "tray-chevron")
     val now by produceState(System.currentTimeMillis(), active.any { it.startedAt != null }) {
         while (true) {
             value = System.currentTimeMillis()
             kotlinx.coroutines.delay(1000)
         }
     }
-    GlassSurface(Modifier.fillMaxWidth().padding(bottom = 8.dp).testTag("desk-tray"), backdrop, TrayShape) {
-        Column(Modifier.fillMaxWidth()) {
-            Row(
-                Modifier.fillMaxWidth().height(46.dp)
-                    .clickable(
-                        role = Role.Button,
-                        onClickLabel = stringResource(if (expanded) R.string.desk_tray_collapse else R.string.desk_tray_expand),
-                    ) { expanded = !expanded }
-                    .padding(start = 14.dp, end = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                StatusDot(head.state, reduceMotion)
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        head.title, Modifier.widthIn(max = 150.dp), style = TrayText, fontWeight = FontWeight.Medium, color = c.ink,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        currentStep(head), style = TrayText, color = if (needsYou) c.warn else c.ink2,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
+    AnimatedVisibility(
+        visible = active.isNotEmpty(),
+        enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(MikaMotion.effects(reduceMotion)),
+        exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(MikaMotion.effects(reduceMotion, MikaMotion.EXIT_MS)),
+    ) {
+        val head = shown.firstOrNull() ?: return@AnimatedVisibility
+        val needsYou = head.state == DeskTaskPhase.NeedsYou
+        GlassSurface(Modifier.fillMaxWidth().padding(bottom = 8.dp).testTag("desk-tray"), backdrop, TrayShape) {
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth().height(46.dp)
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = stringResource(if (expanded) R.string.desk_tray_collapse else R.string.desk_tray_expand),
+                        ) {
+                            MikaHaptics.pop(view)
+                            expanded = !expanded
+                        }
+                        .padding(start = 14.dp, end = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    StatusDot(head.state, reduceMotion)
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            head.title, Modifier.widthIn(max = 150.dp), style = TrayText, fontWeight = FontWeight.Medium, color = c.ink,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                        AnimatedContent(
+                            targetState = currentStep(head),
+                            modifier = Modifier.weight(1f, fill = false),
+                            transitionSpec = {
+                                if (reduceMotion) {
+                                    fadeIn(snap()) togetherWith fadeOut(snap())
+                                } else {
+                                    (slideInVertically(MikaMotion.spatialOffset(false)) { it / 2 } + fadeIn(tween(180))) togetherWith
+                                        (slideOutVertically(tween(120)) { -it / 2 } + fadeOut(tween(120)))
+                                }
+                            },
+                            label = "tray-step-ticker",
+                        ) { stepText ->
+                            Text(
+                                stepText, style = TrayText, color = if (needsYou) c.warn else c.ink2,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (shown.size > 1) {
+                        Text(
+                            "+${shown.size - 1}",
+                            Modifier.background(c.neutralSoft, RoundedCornerShape(8.dp)).padding(horizontal = 6.dp),
+                            style = MikaType.Micro, color = c.ink2, maxLines = 1,
+                        )
+                    }
+                    head.startedAt?.let { Text(ChatCopy.clock((now - it).coerceAtLeast(0L)), style = ClockText, color = c.ink3, maxLines = 1) }
+                    Icon(MikaIcons.Chevron, null, Modifier.size(16.dp).graphicsLayer { rotationZ = chevronRot }, tint = c.ink3)
                 }
-                if (active.size > 1) {
-                    Text(
-                        "+${active.size - 1}",
-                        Modifier.background(c.neutralSoft, RoundedCornerShape(8.dp)).padding(horizontal = 6.dp),
-                        style = MikaType.Micro, color = c.ink2, maxLines = 1,
-                    )
-                }
-                head.startedAt?.let { Text(ChatCopy.clock((now - it).coerceAtLeast(0L)), style = ClockText, color = c.ink3, maxLines = 1) }
-                Icon(MikaIcons.Chevron, null, Modifier.size(16.dp).rotate(if (expanded) 90f else -90f), tint = c.ink3)
-            }
-            if (expanded) {
-                HorizontalDivider(thickness = 0.5.dp, color = c.hair)
-                Column(Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 6.dp)) {
-                    active.forEachIndexed { i, view ->
-                        if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = c.hair)
-                        TrayTask(view, { onStop(view.taskId) }, { onDetail(view.taskId) })
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = expandVertically(MikaMotion.spatialSize(reduceMotion)) + fadeIn(tween(180)),
+                    exit = shrinkVertically(MikaMotion.spatialSize(reduceMotion)) + fadeOut(tween(130)),
+                ) {
+                    Column(Modifier.fillMaxWidth()) {
+                        HorizontalDivider(thickness = 0.5.dp, color = c.hair)
+                        Column(Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 6.dp)) {
+                            shown.forEachIndexed { i, viewItem ->
+                                if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = c.hair)
+                                TrayTask(viewItem, { onStop(viewItem.taskId) }, { onDetail(viewItem.taskId) })
+                            }
+                        }
                     }
                 }
             }
@@ -184,14 +235,27 @@ private fun TrayTask(view: DeskTaskView, onStop: () -> Unit, onDetail: () -> Uni
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            val viewContext = LocalView.current
+            val stopInteraction = remember { MutableInteractionSource() }
+            val detailInteraction = remember { MutableInteractionSource() }
             Text(
                 stringResource(R.string.desk_tray_stop),
-                Modifier.clip(MikaShapes.Pill).clickable(role = Role.Button, onClick = onStop).padding(vertical = 6.dp),
+                Modifier.pressScale(stopInteraction, 0.94f).clip(MikaShapes.Pill)
+                    .clickable(interactionSource = stopInteraction, indication = LocalIndication.current, role = Role.Button) {
+                        MikaHaptics.tap(viewContext)
+                        onStop()
+                    }
+                    .padding(vertical = 6.dp),
                 style = TrayText, fontWeight = FontWeight.Medium, color = c.bad,
             )
             Text(
                 stringResource(R.string.desk_tray_detail),
-                Modifier.clip(MikaShapes.Pill).clickable(role = Role.Button, onClick = onDetail).padding(vertical = 6.dp),
+                Modifier.pressScale(detailInteraction, 0.94f).clip(MikaShapes.Pill)
+                    .clickable(interactionSource = detailInteraction, indication = LocalIndication.current, role = Role.Button) {
+                        MikaHaptics.tap(viewContext)
+                        onDetail()
+                    }
+                    .padding(vertical = 6.dp),
                 style = TrayText, fontWeight = FontWeight.Medium, color = c.accent,
             )
         }

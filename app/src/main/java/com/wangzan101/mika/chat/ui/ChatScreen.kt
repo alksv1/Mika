@@ -393,7 +393,7 @@ fun ChatScreen(
     }
     LaunchedEffect(menu) {
         if (menu != null) {
-            if (reduceMotion) lift.snapTo(1f) else lift.animateTo(1f, tween(MENU_IN_MS, easing = MikaMotion.Decelerate))
+            if (reduceMotion) lift.snapTo(1f) else lift.animateTo(1f, MikaMotion.expressive(false))
         }
     }
     LaunchedEffect(ui.pendingSharedDraft, ui.sharedDraft) {
@@ -413,7 +413,7 @@ fun ChatScreen(
     fun closeMenu(then: () -> Unit = {}) {
         then()
         scope.launch {
-            if (reduceMotion) lift.snapTo(0f) else lift.animateTo(0f, tween(MENU_OUT_MS, easing = MikaMotion.Decelerate))
+            if (reduceMotion) lift.snapTo(0f) else lift.animateTo(0f, tween(MENU_OUT_MS, easing = MikaMotion.EmphasizedAccelerate))
             menu = null
         }
     }
@@ -421,6 +421,18 @@ fun ChatScreen(
     val menuOpen = menu != null
     /** 空对话:只有问候和推荐卡片,左右不套消息列表那圈留白,由卡片自己和输入栏对齐。 */
     val emptyConversation = ui.exchanges.isEmpty() && ui.blocked == null && calls.isEmpty()
+    var trackedConvId by remember { mutableStateOf(ui.conversationId) }
+    var trackedHadExchanges by remember { mutableStateOf(ui.exchanges.isNotEmpty()) }
+    var initialTurns by remember { mutableIntStateOf(ui.exchanges.size) }
+    val animatedKeys = remember { mutableSetOf<String>() }
+    if (ui.conversationId != trackedConvId) {
+        val liveFirstSend = trackedConvId == null && !trackedHadExchanges && ui.exchanges.size == 1 &&
+            (ui.exchanges[0].status == ExchangeStatus.Working || ui.exchanges[0].live)
+        animatedKeys.clear()
+        initialTurns = if (liveFirstSend) 0 else ui.exchanges.size
+        trackedConvId = ui.conversationId
+    }
+    trackedHadExchanges = ui.exchanges.isNotEmpty()
     PageBackground {
         CompositionLocalProvider(LocalMessageMenu provides menuHost) {
             LazyColumn(
@@ -451,6 +463,8 @@ fun ChatScreen(
                             val label = if (resume) R.string.chat_resume_request else R.string.chat_restart_request
                             vm.send(context.getString(label, ex.goal), check)
                         },
+                        isNewTurn = i >= initialTurns,
+                        animatedKeys = animatedKeys,
                     )
                     // 「去设置」挂在发现手机没就绪的那一轮后面;配不上具体轮次时(下面)照旧挂在最后
                     if (setupRow == i) item("ps$i") { PhoneSetupLine(openPhoneSetup) }
@@ -460,12 +474,14 @@ fun ChatScreen(
                 if (setupRow == -1) item("phone-setup") { PhoneSetupLine(openPhoneSetup) }
                 ui.blocked?.let { problems ->
                     item("blocked") {
-                        NeedCard(
-                            stringResource(R.string.chat_cannot_start),
-                            stringResource(R.string.chat_missing, problems.joinToString(stringResource(R.string.list_sep)) { StatusCopy.banner(it).title }),
-                        ) {
-                            CardButton(stringResource(R.string.ok_got_it), onClick = vm::dismissBlocked)
-                            CardButton(stringResource(R.string.chat_go_settings), primary = true, onClick = { vm.dismissBlocked(); openSettings() })
+                        Box(Modifier.animateItem(fadeInSpec = tween(180), placementSpec = MikaMotion.spatialOffset(reduceMotion), fadeOutSpec = tween(140))) {
+                            NeedCard(
+                                stringResource(R.string.chat_cannot_start),
+                                stringResource(R.string.chat_missing, problems.joinToString(stringResource(R.string.list_sep)) { StatusCopy.banner(it).title }),
+                            ) {
+                                CardButton(stringResource(R.string.ok_got_it), onClick = vm::dismissBlocked)
+                                CardButton(stringResource(R.string.chat_go_settings), primary = true, onClick = { vm.dismissBlocked(); openSettings() })
+                            }
                         }
                     }
                 }

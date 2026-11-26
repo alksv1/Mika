@@ -3,10 +3,14 @@ package com.wangzan101.mika.ui.theme
 import android.content.Context
 import android.provider.Settings
 import android.view.View
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
@@ -24,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -32,15 +38,42 @@ import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.settings.ThemeAccent
 import com.wangzan101.mika.settings.ThemeMode
 
-/** 动效:时长和曲线。系统关了动画时([MikaTheme.reduceMotion])直接到位。 */
+/** 动效:时长、弹簧物理和曲线。系统关了动画时([MikaTheme.reduceMotion])直接到位。 */
 object MikaMotion {
     const val PAGE_MS = 220
     const val SWITCH_MS = 200
+    const val EFFECTS_MS = 180
+    const val THEME_MS = 220
+    const val EXIT_MS = 150
     /** 减速曲线:起步快、落地慢。 */
     val Decelerate: Easing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
+    val EmphasizedDecelerate: Easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+    val EmphasizedAccelerate: Easing = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 
     fun <T> page(reduceMotion: Boolean): AnimationSpec<T> = if (reduceMotion) snap() else tween(PAGE_MS, easing = Decelerate)
-    fun <T> switch(reduceMotion: Boolean): AnimationSpec<T> = if (reduceMotion) snap() else tween(SWITCH_MS, easing = Decelerate)
+    fun <T> switch(reduceMotion: Boolean): AnimationSpec<T> = expressive(reduceMotion)
+
+    /** 轻触按压、圆点弹出、角标等干脆微弹。 */
+    fun <T> tactile(reduceMotion: Boolean): FiniteAnimationSpec<T> =
+        if (reduceMotion) snap() else spring(dampingRatio = 0.65f, stiffness = 900f)
+
+    /** 开关、分段滑块、长按浮起、小窗等 M3 Expressive 弹性交互。 */
+    fun <T> expressive(reduceMotion: Boolean): FiniteAnimationSpec<T> =
+        if (reduceMotion) snap() else spring(dampingRatio = 0.72f, stiffness = 520f)
+
+    /** 抽屉、面板、容器展开等空间位移。 */
+    fun <T> spatial(reduceMotion: Boolean): FiniteAnimationSpec<T> =
+        if (reduceMotion) snap() else spring(dampingRatio = 0.84f, stiffness = 420f)
+
+    fun spatialOffset(reduceMotion: Boolean): FiniteAnimationSpec<IntOffset> =
+        if (reduceMotion) snap() else spring(dampingRatio = 0.88f, stiffness = 420f, visibilityThreshold = IntOffset.VisibilityThreshold)
+
+    fun spatialSize(reduceMotion: Boolean): FiniteAnimationSpec<IntSize> =
+        if (reduceMotion) snap() else spring(dampingRatio = 0.84f, stiffness = 450f, visibilityThreshold = IntSize.VisibilityThreshold)
+
+    /** 颜色与透明度变化只用无过冲曲线。 */
+    fun <T> effects(reduceMotion: Boolean, ms: Int = EFFECTS_MS): FiniteAnimationSpec<T> =
+        if (reduceMotion) snap() else tween(ms, easing = EmphasizedDecelerate)
 }
 
 /** 系统「移除动画」(动画时长缩放为 0)时为真。 */
@@ -111,7 +144,8 @@ fun MikaTheme(
         val base = palette(dark, accent)
         if (imageHue == null) base else SkinAccent.tone(imageHue, dark).let { (color, on) -> base.withAccent(color, on) }
     }
-    val materialColors = remember(colors) { scheme(colors) }
+    val animatedColors = animatedPalette(colors, reduceMotion)
+    val materialColors = remember(animatedColors) { scheme(animatedColors) }
     val layoutDirection = if (LocalContext.current.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL) {
         LayoutDirection.Rtl
     } else {
@@ -119,12 +153,51 @@ fun MikaTheme(
     }
     CompositionLocalProvider(
         LocalLayoutDirection provides layoutDirection,
-        LocalMikaColors provides colors,
+        LocalMikaColors provides animatedColors,
         LocalReduceMotion provides reduceMotion,
     ) {
         MaterialTheme(colorScheme = materialColors) {
-            CompositionLocalProvider(LocalContentColor provides colors.ink, content = content)
+            CompositionLocalProvider(LocalContentColor provides animatedColors.ink, content = content)
         }
+    }
+}
+
+/** 主题色切换（深浅色、强调色、图片主题）时用短促无过冲渐变过渡，关闭动画时直接替换。 */
+@Composable
+internal fun animatedPalette(target: MikaColors, reduceMotion: Boolean): MikaColors {
+    if (reduceMotion) return target
+    val spec = MikaMotion.effects<Color>(false, MikaMotion.THEME_MS)
+    val bg by animateColorAsState(target.bg, spec, label = "theme-bg")
+    val surface by animateColorAsState(target.surface, spec, label = "theme-surface")
+    val fill by animateColorAsState(target.fill, spec, label = "theme-fill")
+    val ink by animateColorAsState(target.ink, spec, label = "theme-ink")
+    val ink2 by animateColorAsState(target.ink2, spec, label = "theme-ink2")
+    val ink3 by animateColorAsState(target.ink3, spec, label = "theme-ink3")
+    val inkSoft by animateColorAsState(target.inkSoft, spec, label = "theme-inkSoft")
+    val hair by animateColorAsState(target.hair, spec, label = "theme-hair")
+    val edge by animateColorAsState(target.edge, spec, label = "theme-edge")
+    val accent by animateColorAsState(target.accent, spec, label = "theme-accent")
+    val accentSoft by animateColorAsState(target.accentSoft, spec, label = "theme-accentSoft")
+    val onAccent by animateColorAsState(target.onAccent, spec, label = "theme-onAccent")
+    val neutralSoft by animateColorAsState(target.neutralSoft, spec, label = "theme-neutralSoft")
+    val answer by animateColorAsState(target.answer, spec, label = "theme-answer")
+    val greySoft by animateColorAsState(target.greySoft, spec, label = "theme-greySoft")
+    val glass by animateColorAsState(target.glass, spec, label = "theme-glass")
+    val glassEdge by animateColorAsState(target.glassEdge, spec, label = "theme-glassEdge")
+    val cardShadow by animateColorAsState(target.cardShadow, spec, label = "theme-cardShadow")
+    return remember(
+        bg, surface, fill, ink, ink2, ink3, inkSoft, hair, edge,
+        accent, accentSoft, onAccent, neutralSoft, answer, greySoft,
+        glass, glassEdge, cardShadow, target,
+    ) {
+        MikaColors(
+            bg = bg, surface = surface, fill = fill, ink = ink, ink2 = ink2, ink3 = ink3, inkSoft = inkSoft,
+            hair = hair, edge = edge, accent = accent, accentSoft = accentSoft, onAccent = onAccent,
+            ok = target.ok, okSoft = target.okSoft, warn = target.warn, warnSolid = target.warnSolid, warnSoft = target.warnSoft,
+            bad = target.bad, badSoft = target.badSoft, neutralSoft = neutralSoft, answer = answer, greySoft = greySoft,
+            glass = glass, glassEdge = glassEdge, cardShadow = cardShadow, floatShadow = target.floatShadow,
+            thumb = target.thumb, series = target.series, seriesOther = target.seriesOther, grid = target.grid, isDark = target.isDark,
+        )
     }
 }
 

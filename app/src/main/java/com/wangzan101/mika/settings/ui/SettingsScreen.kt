@@ -1,7 +1,6 @@
 package com.wangzan101.mika.settings.ui
 
 import android.app.ActivityManager
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -72,6 +71,7 @@ import com.wangzan101.mika.ui.components.StatusPill
 import com.wangzan101.mika.ui.components.TileTone
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.NavSlide
 import com.wangzan101.mika.wechat.WechatConnectionState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -103,6 +103,14 @@ private const val SHIZUKU_SETUP_GUIDE_URL = "https://shizuku.rikka.app/guide/set
 
 /** 设置里能进入的子页面;[Home] 是设置首页,[Advanced] 集中放置连接、维护和工程能力。 */
 private enum class SettingsPage { Home, Advanced, AppAccess, SmsLogin, PhoneOps, Calls, Wechat, DuringWork, AppPace, Capsule, Language, Notifications, Recommendations, Checklists, Workflows, Sandbox, Plugins, EnvVars, Recovery, SelfCheck, ComputerAccess, McpServers, Root, Developer, DeviceDirectories, RunStats, Proactive, Backup }
+
+private fun SettingsPage.depth(): Int = when (this) {
+    SettingsPage.Home -> 0
+    SettingsPage.SelfCheck, SettingsPage.RunStats, SettingsPage.DeviceDirectories -> 3
+    SettingsPage.AppPace, SettingsPage.Sandbox, SettingsPage.Recovery, SettingsPage.ComputerAccess,
+    SettingsPage.McpServers, SettingsPage.Root, SettingsPage.Developer, SettingsPage.EnvVars -> 2
+    else -> 1
+}
 
 /**
  * 设置页:总状态卡 + 常用 / 我的数据 / 其他。高级与其他只增加一层,各子页返回来时的页面。
@@ -249,14 +257,18 @@ fun SettingsScreen(
         }
     }
 
-    if (page != SettingsPage.Home) BackHandler { back() }
-
     val visiblePage = when {
         !showDeveloper && (page == SettingsPage.Developer || page == SettingsPage.DeviceDirectories || page == SettingsPage.RunStats) -> SettingsPage.Home
         page == SettingsPage.Root && !rootState.suPresent -> SettingsPage.Advanced
         else -> page
     }
-    when (visiblePage) {
+    NavSlide(
+        targetState = visiblePage,
+        depth = SettingsPage::depth,
+        canGoBack = visiblePage != SettingsPage.Home,
+        onBack = back,
+    ) { currentPage ->
+    when (currentPage) {
         SettingsPage.Home -> SettingsContent(
             status = status, androidRelease = androidRelease,
             mainModel = roles.main?.let { id -> configs.firstOrNull { it.id == id } }?.let(ProviderConnection::displayName)
@@ -388,6 +400,7 @@ fun SettingsScreen(
         SettingsPage.RunStats -> RunStatsScreen(remember { RunStore(context).metrics }, onBack = back)
         SettingsPage.Proactive -> com.wangzan101.mika.proactive.ProactiveScreen(onBack = back)
         SettingsPage.Backup -> BackupScreen(onBack = toHome)
+    }
     }
 
     if (editingProxy) NetProxyDialog(

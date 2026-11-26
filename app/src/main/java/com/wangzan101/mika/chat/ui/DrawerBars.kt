@@ -7,8 +7,10 @@ import com.wangzan101.mika.ui.components.DirectionalIcon
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.TextButton
 import com.wangzan101.mika.chat.DeleteBatch
 import com.wangzan101.mika.i18n.trPlural
@@ -27,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,15 +37,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 import com.wangzan101.mika.about.ui.UpdateDot
 
 /** 侧栏顶上的小按钮:平时的「多选」和多选中的「取消」。 */
@@ -230,9 +236,18 @@ internal fun NavEntry(
 @Composable
 internal fun NewConversationButton(enabled: Boolean, onClick: () -> Unit) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Box(
-        Modifier.size(38.dp).clip(CircleShape).background(c.fill)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = stringResource(R.string.chat_new), onClick = onClick)
+        Modifier.size(38.dp).pressScale(interaction, 0.90f, enabled).clip(CircleShape).background(c.fill)
+            .clickable(
+                interactionSource = interaction,
+                indication = LocalIndication.current,
+                enabled = enabled,
+                role = Role.Button,
+                onClickLabel = stringResource(R.string.chat_new),
+                onClick = { MikaHaptics.tap(view); onClick() },
+            )
             .alpha(if (enabled) 1f else 0.4f),
         contentAlignment = Alignment.Center,
     ) {

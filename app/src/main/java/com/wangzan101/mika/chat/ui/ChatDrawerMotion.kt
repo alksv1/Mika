@@ -3,7 +3,7 @@
 package com.wangzan101.mika.chat.ui
 
 import androidx.compose.animation.core.exponentialDecay
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.AnchoredDraggableState
@@ -64,7 +64,7 @@ internal class ChatDrawerState(initial: DrawerValue, density: Density) {
             distance * if (isCurrentAnchorOpen()) 1f - CHAT_DRAWER_OPEN_FRACTION else CHAT_DRAWER_OPEN_FRACTION
         },
         velocityThreshold = { with(this.density) { 400.dp.toPx() } },
-        snapAnimationSpec = tween<Float>(256, easing = MikaMotion.Decelerate),
+        snapAnimationSpec = spring<Float>(dampingRatio = 0.96f, stiffness = 600f, visibilityThreshold = 0.5f),
         decayAnimationSpec = exponentialDecay(),
     )
     private fun isCurrentAnchorOpen(): Boolean = drag.currentValue == DrawerValue.Open

@@ -1,5 +1,6 @@
 package com.wangzan101.mika.chat.ui
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
@@ -20,6 +21,7 @@ import com.wangzan101.mika.takeover.Takeover
 import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.MikaButton
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,8 +34,10 @@ internal fun LazyListScope.deskNeedRows(
     tasks.filter { it.need != null }.forEach { view ->
         val key = needCardKey(view.taskId)
         item(key) {
-            JumpHighlight(highlightKey == key, reduceMotion) {
-                DeskNeedCard(view, key, { answer(view.taskId, it) }, { cancel(view.taskId) }, vm)
+            Box(Modifier.animateItem(fadeInSpec = tween(180), placementSpec = MikaMotion.spatialOffset(reduceMotion), fadeOutSpec = tween(140))) {
+                JumpHighlight(highlightKey == key, reduceMotion) {
+                    DeskNeedCard(view, key, { answer(view.taskId, it) }, { cancel(view.taskId) }, vm)
+                }
             }
         }
     }

@@ -1,8 +1,18 @@
 package com.wangzan101.mika.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +27,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,13 +41,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
@@ -46,11 +59,14 @@ import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.ui.theme.MikaColors
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.ui.theme.pressScale
 
 /** 分组小标题:13 / 500,辅助文字色。 */
 @Composable
@@ -71,16 +87,22 @@ fun FooterNote(text: String, modifier: Modifier = Modifier, color: Color = Color
 @Composable
 fun DetailNote(summary: String, detail: String, modifier: Modifier = Modifier) {
     var open by rememberSaveable { mutableStateOf(false) }
+    val reduce = MikaTheme.reduceMotion
+    val view = LocalView.current
+    val rot by animateFloatAsState(if (open) 90f else 0f, MikaMotion.expressive(reduce), label = "detail-arrow")
     Column(modifier) {
         Text(summary, style = MikaType.Hint, color = MikaTheme.colors.ink3)
         if (detail.isNotBlank()) {
             Row(
-                Modifier.clickable { open = !open }.padding(top = 4.dp),
+                Modifier.clickable {
+                    MikaHaptics.tick(view)
+                    open = !open
+                }.padding(top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 DirectionalIcon(
                     MikaIcons.Chevron, null,
-                    Modifier.size(MikaSize.SmallIcon).rotate(if (open) 90f else 0f),
+                    Modifier.size(MikaSize.SmallIcon).graphicsLayer { rotationZ = rot },
                     tint = MikaTheme.colors.accent,
                 )
                 Text(
@@ -88,7 +110,11 @@ fun DetailNote(summary: String, detail: String, modifier: Modifier = Modifier) {
                     style = MikaType.Hint.copy(fontWeight = FontWeight.SemiBold), color = MikaTheme.colors.accent,
                 )
             }
-            if (open) {
+            AnimatedVisibility(
+                visible = open,
+                enter = expandVertically(MikaMotion.spatialSize(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+                exit = shrinkVertically(MikaMotion.spatialSize(reduce)) + fadeOut(MikaMotion.effects(reduce, MikaMotion.EXIT_MS)),
+            ) {
                 Text(detail, Modifier.padding(top = 6.dp), style = MikaType.Hint, color = MikaTheme.colors.ink2)
             }
         }
@@ -232,12 +258,17 @@ fun RadioRow(
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val c = MikaTheme.colors
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     val noteInCard = rememberCardNote(title, note, selected)
     val sub = listOfNotNull(subtitle?.takeIf { it.isNotEmpty() }, note?.takeIf { !noteInCard && it.isNotEmpty() }).joinToString("\n").ifEmpty { null }
     Row(
         modifier.fillMaxWidth()
             .topHairline(first, 50.dp, c.hair)
-            .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected, interactionSource = interaction, indication = LocalIndication.current, enabled = enabled, role = Role.RadioButton) {
+                if (!selected) MikaHaptics.tick(view)
+                onClick()
+            }
             .heightIn(min = 56.dp)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -256,15 +287,24 @@ fun RadioRow(
 @Composable
 private fun RadioMark(selected: Boolean, enabled: Boolean = true) {
     val c = MikaTheme.colors
-    if (selected && enabled) {
-        // 简约列表里选中用正文色(和黑色开关一致),别处用强调色
-        val fill = if (LocalPlainList.current) c.ink else c.accent
-        Box(Modifier.size(22.dp).background(fill, CircleShape), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(10.dp).background(if (LocalPlainList.current) c.surface else c.onAccent, CircleShape))
-        }
-    } else {
-        Box(Modifier.size(22.dp).border(1.6.dp, c.hair, CircleShape))
-    }
+    val reduce = MikaTheme.reduceMotion
+    // 简约列表里选中用正文色(和黑色开关一致),别处用强调色
+    val fill = if (LocalPlainList.current) c.ink else c.accent
+    val innerFill = if (LocalPlainList.current) c.surface else c.onAccent
+    val progress by animateFloatAsState(if (selected && enabled) 1f else 0f, MikaMotion.tactile(reduce), label = "radio-mark")
+    val ringColor by animateColorAsState(if (selected && enabled) fill else c.hair, MikaMotion.effects(reduce), label = "radio-ring")
+    Box(
+        Modifier.size(22.dp).drawBehind {
+            val radius = size.minDimension / 2f
+            val stroke = 1.6.dp.toPx()
+            drawCircle(ringColor, radius = radius - stroke / 2f, style = Stroke(stroke))
+            val alpha = progress.coerceIn(0f, 1f)
+            if (alpha > 0.01f) {
+                drawCircle(fill.copy(alpha = alpha), radius = radius)
+                drawCircle(innerFill.copy(alpha = alpha), radius = 5.dp.toPx() * progress.coerceAtLeast(0f))
+            }
+        },
+    )
 }
 
 /**
@@ -289,6 +329,7 @@ fun InputRow(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
     Row(
         Modifier.fillMaxWidth().topHairline(first, TextStartPlain, c.hair).keepsKeyboard()
             .heightIn(min = MikaSize.RowMin).padding(horizontal = 16.dp, vertical = 12.dp),
@@ -305,8 +346,12 @@ fun InputRow(
                 visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
             )
         }
-        if (onClear != null && value.isNotEmpty()) {
-            FieldClearButton(clearDescription, onClear, clearModifier.padding(start = 4.dp))
+        AnimatedVisibility(
+            visible = onClear != null && value.isNotEmpty(),
+            enter = scaleIn(MikaMotion.tactile(reduce)) + fadeIn(MikaMotion.effects(reduce)),
+            exit = scaleOut(MikaMotion.effects(reduce, 120)) + fadeOut(MikaMotion.effects(reduce, 120)),
+        ) {
+            if (onClear != null) FieldClearButton(clearDescription, onClear, clearModifier.padding(start = 4.dp))
         }
         if (trailing != null) Box(Modifier.padding(start = 8.dp)) { trailing() }
     }
@@ -315,9 +360,16 @@ fun InputRow(
 /** 输入框末尾的叉:点一下清空。和搜索框的清空按钮同一套大小和颜色,只在有内容时由调用方放出来。 */
 @Composable
 fun FieldClearButton(description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val view = LocalView.current
+    val interaction = remember { MutableInteractionSource() }
     Box(
-        modifier.size(30.dp).clip(CircleShape)
-            .clickable(role = Role.Button, onClickLabel = description) { onClick() },
+        modifier.size(30.dp)
+            .pressScale(interaction, 0.88f)
+            .clip(CircleShape)
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button, onClickLabel = description) {
+                MikaHaptics.tap(view)
+                onClick()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Icon(MikaIcons.Close, description, Modifier.size(14.dp), tint = MikaTheme.colors.ink3)

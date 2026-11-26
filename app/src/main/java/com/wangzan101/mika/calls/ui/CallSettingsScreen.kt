@@ -1,7 +1,16 @@
 package com.wangzan101.mika.calls.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import com.wangzan101.mika.ui.theme.LocalSkinBackdrop
+import com.wangzan101.mika.ui.theme.MikaMotion
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -273,10 +282,31 @@ private fun CallSettingsWorkspace(
                 }
             }
             CallWorkspaceTabs(tab) { tab = it }
-            tabStates.SaveableStateProvider(tab.name) {
+            val reduce = MikaTheme.reduceMotion
+            AnimatedContent(
+                targetState = tab,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                transitionSpec = {
+                    if (reduce) {
+                        fadeIn(snap()) togetherWith fadeOut(snap())
+                    } else {
+                        val forward = targetState.ordinal >= initialState.ordinal
+                        val slide = MikaMotion.spatialOffset(false)
+                        if (forward) {
+                            (slideInHorizontally(slide) { it / 4 } + fadeIn(tween(180))) togetherWith
+                                (slideOutHorizontally(slide) { -it / 4 } + fadeOut(tween(130)))
+                        } else {
+                            (slideInHorizontally(slide) { -it / 4 } + fadeIn(tween(180))) togetherWith
+                                (slideOutHorizontally(slide) { it / 4 } + fadeOut(tween(130)))
+                        }
+                    }
+                },
+                label = "call-workspace-tab",
+            ) { currentTab ->
+            tabStates.SaveableStateProvider(currentTab.name) {
                 val scroll = rememberScrollState()
-                LaunchedEffect(tab, liveNavigation, taskNavigation) {
-                    when (tab) {
+                LaunchedEffect(currentTab, liveNavigation, taskNavigation) {
+                    when (currentTab) {
                         CallWorkspaceTab.Receive -> if (liveNavigation != handledLiveNavigation) {
                             scroll.scrollTo(0)
                             handledLiveNavigation = liveNavigation
@@ -289,18 +319,18 @@ private fun CallSettingsWorkspace(
                     }
                 }
                 Column(
-                    Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll)
+                    Modifier.fillMaxSize().verticalScroll(scroll)
                         .padding(horizontal = MikaSpace.Page).padding(top = 8.dp, bottom = 24.dp)
-                        .testTag("call-page-" + tab.name.lowercase()),
+                        .testTag("call-page-" + currentTab.name.lowercase()),
                 ) {
                     val visibleFeedback = feedback?.takeIf {
                         idle && !(lastActionWasLockedDial && it.ok && state.lockedDialDetail != null)
                     }
-                    if (tab == CallWorkspaceTab.Task && idle && pendingLockedDial == null && visibleFeedback == null) {
+                    if (currentTab == CallWorkspaceTab.Task && idle && pendingLockedDial == null && visibleFeedback == null) {
                         state.lockedDialDetail?.let { FooterNote(it) }
                     }
-                    if (tab != CallWorkspaceTab.Task) visibleFeedback?.let { CallFeedback(it) }
-                    when (tab) {
+                    if (currentTab != CallWorkspaceTab.Task) visibleFeedback?.let { CallFeedback(it) }
+                    when (currentTab) {
                         CallWorkspaceTab.Receive -> CallReceivePage(
                             config, state, ready, missing,
                             controlsEnabled = !settingsBusy && !controlBusy && (!busy || config.autoAnswer),
@@ -361,6 +391,7 @@ private fun CallSettingsWorkspace(
                         }
                     }
                 }
+            }
             }
         }
     }

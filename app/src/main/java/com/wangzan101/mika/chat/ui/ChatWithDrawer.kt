@@ -269,14 +269,14 @@ fun ChatWithDrawer(
     }
     LaunchedEffect(acting, actingProject) {
         if (acting != null || actingProject != null) {
-            if (reduceMotion) lift.snapTo(1f) else lift.animateTo(1f, tween(MENU_IN_MS, easing = MikaMotion.Decelerate))
+            if (reduceMotion) lift.snapTo(1f) else lift.animateTo(1f, MikaMotion.expressive(false))
         }
     }
     /** 收起菜单:倒着放一遍出现的动画,放完再清掉;[then] 当场做(改名、删除的弹窗不用等菜单收完)。 */
     fun closeMenu(then: () -> Unit = {}) {
         then()
         scope.launch {
-            if (reduceMotion) lift.snapTo(0f) else lift.animateTo(0f, tween(MENU_OUT_MS, easing = MikaMotion.Decelerate))
+            if (reduceMotion) lift.snapTo(0f) else lift.animateTo(0f, tween(MENU_OUT_MS, easing = MikaMotion.EmphasizedAccelerate))
             acting = null
             actingProject = null
         }
@@ -322,7 +322,7 @@ fun ChatWithDrawer(
             modifier = if (!menuOpen) Modifier else Modifier
                 .then(
                     if (GlassBlurSupported) Modifier.graphicsLayer {
-                        val r = MenuBlur.toPx() * lift.value
+                        val r = MenuBlur.toPx() * lift.value.coerceIn(0f, 1f)
                         renderEffect = if (r >= 0.5f) BlurEffect(r, r, TileMode.Clamp) else null
                     } else Modifier,
                 )

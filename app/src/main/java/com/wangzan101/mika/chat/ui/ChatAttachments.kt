@@ -16,6 +16,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,9 +54,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -70,7 +74,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.wangzan101.mika.core.chat.GeneratedPhoto
 import com.wangzan101.mika.ui.components.cardSurface
 import com.wangzan101.mika.ui.theme.MikaColors
+import com.wangzan101.mika.ui.theme.MikaHaptics
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.ui.theme.MikaRadius
@@ -209,18 +215,32 @@ internal fun rememberAttachLaunchers(
 @Composable
 internal fun RecentCell(photo: PendingAttachment, order: Int?, onClick: () -> Unit) {
     val c = MikaTheme.colors
+    val reduce = MikaTheme.reduceMotion
+    val view = LocalView.current
+    val selected = order != null
     val thumb = rememberAttachImage(AttachImage.Picked(photo.uri), RECENT_PX)
+    val overlayAlpha by animateFloatAsState(if (selected) 1f else 0f, MikaMotion.effects(reduce), label = "recent-overlay")
+    val badgeBg by animateColorAsState(if (selected) c.accent else Color.Black.copy(alpha = 0.18f), MikaMotion.effects(reduce), label = "recent-badge-bg")
+    val badgeBorder by animateColorAsState(if (selected) c.accent else Color.White, MikaMotion.effects(reduce), label = "recent-badge-border")
+    val badgeScale by animateFloatAsState(if (selected) 1f else 0.92f, MikaMotion.tactile(reduce), label = "recent-badge-scale")
     Box(
         Modifier.testTag("recent-photo").aspectRatio(1f).clip(CellShape).background(c.fill)
-            .semantics { selected = order != null }
-            .clickable(onClickLabel = if (order != null) stringResource(R.string.attach_deselect) else stringResource(R.string.attach_select), onClick = onClick),
+            .semantics { this.selected = selected }
+            .clickable(onClickLabel = if (selected) stringResource(R.string.attach_deselect) else stringResource(R.string.attach_select)) {
+                MikaHaptics.tick(view)
+                onClick()
+            },
     ) {
         thumb?.let { Image(it, photo.name, Modifier.matchParentSize(), contentScale = ContentScale.Crop) }
-        if (order != null) Box(Modifier.matchParentSize().background(c.accent.copy(alpha = 0.12f)).border(2.5.dp, c.accent, CellShape))
+        if (overlayAlpha > 0.01f) Box(
+            Modifier.matchParentSize().graphicsLayer { alpha = overlayAlpha }
+                .background(c.accent.copy(alpha = 0.12f)).border(2.5.dp, c.accent, CellShape),
+        )
         Box(
             Modifier.align(Alignment.TopEnd).padding(5.dp).size(22.dp)
-                .background(if (order != null) c.accent else Color.Black.copy(alpha = 0.18f), CircleShape)
-                .border(1.5.dp, if (order != null) c.accent else Color.White, CircleShape),
+                .graphicsLayer { scaleX = badgeScale; scaleY = badgeScale }
+                .background(badgeBg, CircleShape)
+                .border(1.5.dp, badgeBorder, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (order != null) Text("$order", style = BadgeText, color = c.onAccent)
