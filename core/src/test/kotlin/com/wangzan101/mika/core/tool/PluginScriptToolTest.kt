@@ -11,9 +11,11 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -91,6 +93,47 @@ class PluginScriptToolTest {
         val r = d.execute(call("plugin_mika_translate_translate", """{"text":"hi"}"""), ActionPass()).content
         assertEquals("false", (r["ok"] as JsonPrimitive).content)
         assertEquals("timed_out", (r["error"] as JsonPrimitive).content)
+    }
+
+    @Test fun normalizesDefsRefsAndAnyOfInPluginSchema() = runTest {
+        val schemaJson = Json.parseToJsonElement("""
+            {
+              "type": "object",
+              "${'$'}defs": {
+                "Target": {
+                  "type": "object",
+                  "properties": {"id": {"type": "string"}},
+                  "required": ["id"]
+                }
+              },
+              "properties": {
+                "target": {"${'$'}ref": "#/${'$'}defs/Target"},
+                "note": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+              },
+              "required": ["target"]
+            }
+        """.trimIndent()) as JsonObject
+        val pluginSpec = PluginToolSpec(
+            name = "plugin_mika_demo_lookup",
+            description = "lookup item",
+            scriptPath = "scripts/lookup.sh",
+            scriptDir = tmp.root,
+            inputSchema = schemaJson,
+            timeoutSec = 30,
+            risk = Risk.Read,
+        )
+        val runner = FakeRunner(ScriptResult(0, """{"ok":true}""", "", false))
+        val d = toolDispatcher(FakeScreen(), pluginTools = listOf(pluginSpec), pluginScriptRunner = runner)
+        val defSpec = d.definitions().first { it.name == "plugin_mika_demo_lookup" }
+        val parsed = Json.parseToJsonElement(defSpec.parametersJsonSchema).jsonObject
+        val rawText = parsed.toString()
+        assertFalse(rawText.contains("\$defs"))
+        assertFalse(rawText.contains("\$ref"))
+        assertFalse(rawText.contains("anyOf"))
+        val props = parsed["properties"]!!.jsonObject
+        assertEquals("object", props["target"]!!.jsonObject["type"]!!.jsonPrimitive.content)
+        assertEquals("string", props["target"]!!.jsonObject["properties"]!!.jsonObject["id"]!!.jsonObject["type"]!!.jsonPrimitive.content)
+        assertEquals("string", props["note"]!!.jsonObject["type"]!!.jsonPrimitive.content)
     }
 
     @Test fun toolNamePrefixedAndOffered() = runTest {

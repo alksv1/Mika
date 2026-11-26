@@ -82,6 +82,7 @@ internal class TraceCall(
 
     internal inner class Attempt(val span: LocalSpan, private val protocol: InferenceProtocol) {
         fun httpStatus(code: Int) = run.httpStatus(span, code)
+        fun httpErrorDetail(detail: String) = run.httpErrorDetail(span, detail)
 
         @Volatile var usage: ReportedTokens? = null
             private set
@@ -222,6 +223,10 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
 
     @Synchronized internal fun httpStatus(span: LocalSpan, code: Int) {
         if (span in pending) span.setAttribute("http.response.status_code", code.toLong())
+    }
+
+    @Synchronized internal fun httpErrorDetail(span: LocalSpan, detail: String) {
+        if (span in pending && detail.isNotBlank()) span.setAttribute("mika.http.error_detail", detail)
     }
 
     @Synchronized internal fun end(span: LocalSpan?, status: String, input: Int?, cached: Int?, output: Int?,

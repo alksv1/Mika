@@ -111,15 +111,86 @@ class GeminiModel(
 
     private fun mapError(status: Int, retryAfter: String?, body: String): ModelError = ModelHttp.geminiError(status, retryAfter, body, model)
 
-    // Gemini 不接受 additionalProperties / $schema / $id 等 OpenAPI 子集之外的键
-    private val rejectedKeys = setOf("additionalProperties", "\$schema", "\$id", "\$defs")
+    // Gemini 不接受 additionalProperties / $schema / $id / combinator 等 OpenAPI 子集之外的键 (保留 default)
+    private val rejectedKeys = setOf(
+        "additionalProperties", "\$schema", "\$id", "\$defs", "definitions", "\$ref",
+        "oneOf", "allOf", "not", "const", "title", "examples", "\$comment",
+        "\$vocabulary", "\$anchor", "\$dynamicRef", "\$dynamicAnchor",
+        "dependentSchemas", "dependentRequired", "dependencies",
+        "patternProperties", "propertyNames", "if", "then", "else",
+        "unevaluatedProperties", "unevaluatedItems", "exclusiveMinimum", "exclusiveMaximum",
+        "multipleOf", "minLength", "maxLength", "pattern", "contentEncoding", "contentMediaType",
+        "readOnly", "writeOnly", "deprecated",
+    )
 
-    // 只在 schema 位置剔除;properties 是 名称->schema 的映射,名称本身不动
-    private fun sanitize(el: JsonElement): JsonElement = when (el) {
-        is JsonObject -> JsonObject(el.filterKeys { it !in rejectedKeys }.mapValues { (k, v) ->
-            if (k == "properties" && v is JsonObject) JsonObject(v.mapValues { sanitize(it.value) }) else sanitize(v)
-        })
-        is JsonArray -> JsonArray(el.map { sanitize(it) })
+    // 只在 schema 位置剔除并降级 OpenAPI 子集之外的结构;properties 是 名称->schema 的映射,名称本身不动
+    private fun sanitize(el: JsonElement, isRoot: Boolean = false): JsonElement = when (el) {
+        is JsonObject -> {
+            val out = linkedMapOf<String, JsonElement>()
+            val rawType = el["type"]
+            val constVal = el["const"]
+
+            el.forEach { (k, v) ->
+                when {
+                    k in rejectedKeys -> Unit
+                    k == "properties" && v is JsonObject ->
+                        out[k] = JsonObject(v.mapValues { sanitize(it.value, isRoot = false) })
+                    k == "type" && v is JsonArray -> {
+                        val types = v.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+                        val nonNull = types.filter { it != "null" && it.isNotBlank() }
+                        out["type"] = JsonPrimitive(nonNull.firstOrNull() ?: "string")
+                        if ("null" in types && "nullable" !in el) out["nullable"] = JsonPrimitive(true)
+                    }
+                    k == "items" && v is JsonArray -> {
+                        val first = v.firstOrNull() as? JsonObject
+                        out["items"] = first?.let { sanitize(it, isRoot = false) }
+                            ?: buildJsonObject { put("type", "string") }
+                    }
+                    else -> out[k] = sanitize(v, isRoot = false)
+                }
+            }
+
+            if (constVal != null && constVal !is kotlinx.serialization.json.JsonNull) {
+                if ("enum" !in out) out["enum"] = JsonArray(listOf(constVal))
+                if ("type" !in out && constVal is JsonPrimitive) {
+                    val inferred = when {
+                        constVal.isString -> "string"
+                        constVal.content == "true" || constVal.content == "false" -> "boolean"
+                        constVal.content.toLongOrNull() != null -> "integer"
+                        constVal.content.toDoubleOrNull() != null -> "number"
+                        else -> null
+                    }
+                    if (inferred != null) out["type"] = JsonPrimitive(inferred)
+                }
+            }
+
+            if (rawType !is JsonArray && "type" !in out && "items" in out) {
+                out["type"] = JsonPrimitive("array")
+            }
+
+            val effType = (out["type"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            if (effType == "array" && out["items"] !is JsonObject) {
+                out["items"] = buildJsonObject { put("type", "string") }
+            }
+
+            if (effType != null && effType != "object") {
+                out.remove("properties")
+                out.remove("required")
+            } else if (!isRoot && effType == "object") {
+                val propsObj = out["properties"] as? JsonObject
+                if (propsObj != null && propsObj.isEmpty()) {
+                    out.remove("properties")
+                    out.remove("required")
+                } else if (propsObj != null && out["required"] is JsonArray) {
+                    val keptReq = (out["required"] as JsonArray).filter {
+                        it is JsonPrimitive && it.isString && it.content in propsObj
+                    }
+                    if (keptReq.isEmpty()) out.remove("required") else out["required"] = JsonArray(keptReq)
+                }
+            }
+            JsonObject(out)
+        }
+        is JsonArray -> JsonArray(el.map { sanitize(it, isRoot = false) })
         else -> el
     }
 
@@ -130,7 +201,7 @@ class GeminiModel(
             throw IllegalArgumentException("工具 ${t.name} 的参数 schema 不是合法 JSON", e)
         }
         // 无参数工具:Gemini 拒绝没有 properties 的 object schema,省略 parameters
-        val clean = sanitize(schema)
+        val clean = sanitize(schema, isRoot = true)
         val hasProps = (clean as? JsonObject)?.get("properties")?.let { it is JsonObject && it.isNotEmpty() } == true
         if (hasProps) put("parameters", clean)
     }

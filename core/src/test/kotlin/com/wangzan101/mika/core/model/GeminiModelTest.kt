@@ -268,4 +268,52 @@ class GeminiModelTest {
         val texts = contents[2].arr("parts").map { it.jsonObject.str("text") }
         assertEquals(listOf(InterruptedHistory.STEER, InterruptedHistory.RUNTIME), texts)
     }
+
+    @Test fun sanitizesExtendedKeywordsCombinatorsAndMalformedContainers() = runTest {
+        server.enqueue(ok(cand("""[]""")))
+        val schema = """
+            {
+              "type": "object",
+              "${'$'}schema": "https://json-schema.org/draft/2020-12/schema",
+              "definitions": {"A": {"type": "string"}},
+              "title": "RootTitle",
+              "properties": {
+                "nullableText": {"type": ["string", "null"], "default": "fallback", "minLength": 1},
+                "kind": {"const": "page"},
+                "tags": {"type": "array"},
+                "emptyObj": {"type": "object", "properties": {}},
+                "strWithProps": {"type": "string", "properties": {"ignored": {"type": "string"}}, "required": ["ignored"]},
+                "nested": {"oneOf": [{"type": "string"}], "${'$'}comment": "x", "examples": ["a"]}
+              },
+              "required": ["nullableText", "kind"]
+            }
+        """.trimIndent()
+        model().complete("s", user, listOf(ToolSpec("t", "d", schema)))
+        val p = sentBody().arr("tools")[0].jsonObject.arr("functionDeclarations")[0].jsonObject.obj("parameters")
+        assertFalse(p.containsKey("\$schema"))
+        assertFalse(p.containsKey("definitions"))
+        assertFalse(p.containsKey("title"))
+        val props = p.obj("properties")
+        val nullableText = props.obj("nullableText")
+        assertEquals("string", nullableText.str("type"))
+        assertEquals("true", nullableText["nullable"]!!.jsonPrimitive.content)
+        assertEquals("fallback", nullableText.str("default"))
+        assertFalse(nullableText.containsKey("minLength"))
+        val kind = props.obj("kind")
+        assertEquals("string", kind.str("type"))
+        assertFalse(kind.containsKey("const"))
+        assertEquals("page", kind.arr("enum")[0].jsonPrimitive.content)
+        val tags = props.obj("tags")
+        assertEquals("string", tags.obj("items").str("type"))
+        val emptyObj = props.obj("emptyObj")
+        assertEquals("object", emptyObj.str("type"))
+        assertFalse(emptyObj.containsKey("properties"))
+        val strWithProps = props.obj("strWithProps")
+        assertFalse(strWithProps.containsKey("properties"))
+        assertFalse(strWithProps.containsKey("required"))
+        val nested = props.obj("nested")
+        assertFalse(nested.containsKey("oneOf"))
+        assertFalse(nested.containsKey("\$comment"))
+        assertFalse(nested.containsKey("examples"))
+    }
 }
