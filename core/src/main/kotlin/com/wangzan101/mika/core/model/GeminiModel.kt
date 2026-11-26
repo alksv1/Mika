@@ -135,23 +135,49 @@ class GeminiModel(
                     k in rejectedKeys -> Unit
                     k == "properties" && v is JsonObject ->
                         out[k] = JsonObject(v.mapValues { sanitize(it.value, isRoot = false) })
+                    k == "default" -> out[k] = v
+                    k == "enum" && v is JsonArray -> {
+                        val strings = v.filter { it is JsonPrimitive && it.isString }
+                        if (strings.isNotEmpty()) out[k] = JsonArray(strings)
+                    }
                     k == "type" && v is JsonArray -> {
                         val types = v.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
                         val nonNull = types.filter { it != "null" && it.isNotBlank() }
                         out["type"] = JsonPrimitive(nonNull.firstOrNull() ?: "string")
                         if ("null" in types && "nullable" !in el) out["nullable"] = JsonPrimitive(true)
                     }
+                    k == "type" && v is JsonPrimitive && v.isString && v.content == "null" -> {
+                        out["type"] = JsonPrimitive("string")
+                        if ("nullable" !in el) out["nullable"] = JsonPrimitive(true)
+                    }
                     k == "items" && v is JsonArray -> {
                         val first = v.firstOrNull() as? JsonObject
                         out["items"] = first?.let { sanitize(it, isRoot = false) }
                             ?: buildJsonObject { put("type", "string") }
+                    }
+                    k == "anyOf" && v is JsonArray -> {
+                        val nonNull = v.filterNot { branch ->
+                            val obj = branch as? JsonObject ?: return@filterNot false
+                            val t = obj["type"]
+                            (t is JsonPrimitive && t.isString && t.content == "null") ||
+                                (t is JsonArray && t.all { it is JsonPrimitive && it.isString && it.content == "null" })
+                        }
+                        if (nonNull.size < v.size && "nullable" !in el) out["nullable"] = JsonPrimitive(true)
+                        val cleanBranches = nonNull.map { sanitize(it, isRoot = false) }
+                        if (cleanBranches.size == 1 && cleanBranches[0] is JsonObject) {
+                            (cleanBranches[0] as JsonObject).forEach { (bk, bv) -> if (bk !in out) out[bk] = bv }
+                        } else if (cleanBranches.isNotEmpty()) {
+                            out["anyOf"] = JsonArray(cleanBranches)
+                        }
                     }
                     else -> out[k] = sanitize(v, isRoot = false)
                 }
             }
 
             if (constVal != null && constVal !is kotlinx.serialization.json.JsonNull) {
-                if ("enum" !in out) out["enum"] = JsonArray(listOf(constVal))
+                if (constVal is JsonPrimitive && constVal.isString && "enum" !in out) {
+                    out["enum"] = JsonArray(listOf(constVal))
+                }
                 if ("type" !in out && constVal is JsonPrimitive) {
                     val inferred = when {
                         constVal.isString -> "string"
@@ -178,15 +204,20 @@ class GeminiModel(
                 out.remove("required")
             } else if (!isRoot && effType == "object") {
                 val propsObj = out["properties"] as? JsonObject
-                if (propsObj != null && propsObj.isEmpty()) {
+                if (propsObj == null || propsObj.isEmpty()) {
                     out.remove("properties")
                     out.remove("required")
-                } else if (propsObj != null && out["required"] is JsonArray) {
+                    out["type"] = JsonPrimitive("string")
+                } else if (out["required"] is JsonArray) {
                     val keptReq = (out["required"] as JsonArray).filter {
                         it is JsonPrimitive && it.isString && it.content in propsObj
                     }
                     if (keptReq.isEmpty()) out.remove("required") else out["required"] = JsonArray(keptReq)
                 }
+            }
+
+            if (!isRoot && "type" !in out && "anyOf" !in out && "properties" !in out && "items" !in out) {
+                out["type"] = JsonPrimitive("string")
             }
             JsonObject(out)
         }

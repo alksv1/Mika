@@ -104,7 +104,7 @@ internal fun userReason(e: ModelError): String = when (e) {
         ProxyFailure.AuthFailed -> "网络代理拒绝了账号或密码(HTTP 407)。请在设置 › 网络代理 里检查代理地址中的用户名和密码。"
     }
     is ModelError.Server -> {
-        val detail = e.detail?.takeIf { it.isNotBlank() }?.let(::quoted)
+        val detail = safeServerDetail(e.detail)
         if (detail != null) "模型服务出错(HTTP ${e.status}: $detail),请稍后再试。"
         else "模型服务出错(HTTP ${e.status}),请稍后再试。"
     }
@@ -137,6 +137,18 @@ private fun chainErrorTag(e: ModelError): String = when (e) {
     is ModelError.RateLimited -> " HTTP 429"
     is ModelError.Auth -> " " + RetryPolicy.label(e)
     else -> " ${RetryPolicy.label(e)}"
+}
+
+private fun safeServerDetail(raw: String?): String? {
+    val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    if (trimmed.startsWith("<!", ignoreCase = true) ||
+        trimmed.startsWith("<html", ignoreCase = true) ||
+        trimmed.startsWith("<head", ignoreCase = true) ||
+        trimmed.startsWith("<body", ignoreCase = true)
+    ) return null
+    val normalized = trimmed.replace(Regex("""\s+"""), " ")
+    val masked = com.wangzan101.mika.core.run.record.Redactor.text(normalized).trim()
+    return masked.takeIf { it.isNotEmpty() }?.let(::quoted)
 }
 
 /** 引在句中的服务端原话:去掉末尾一个句号(原话自带的),由引它的句子补上自己的「。」;省略号(截短的「…」、「...」)不动。 */

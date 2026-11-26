@@ -279,7 +279,11 @@ class GeminiModelTest {
               "title": "RootTitle",
               "properties": {
                 "nullableText": {"type": ["string", "null"], "default": "fallback", "minLength": 1},
+                "nullScalar": {"type": "null"},
+                "nullableUnion": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
                 "kind": {"const": "page"},
+                "countConst": {"const": 42},
+                "defaultObj": {"type": "string", "default": {"nestedKey": "v"}},
                 "tags": {"type": "array"},
                 "emptyObj": {"type": "object", "properties": {}},
                 "strWithProps": {"type": "string", "properties": {"ignored": {"type": "string"}}, "required": ["ignored"]},
@@ -299,19 +303,32 @@ class GeminiModelTest {
         assertEquals("true", nullableText["nullable"]!!.jsonPrimitive.content)
         assertEquals("fallback", nullableText.str("default"))
         assertFalse(nullableText.containsKey("minLength"))
+        val nullScalar = props.obj("nullScalar")
+        assertEquals("string", nullScalar.str("type"))
+        assertEquals("true", nullScalar["nullable"]!!.jsonPrimitive.content)
+        val nullableUnion = props.obj("nullableUnion")
+        assertEquals("integer", nullableUnion.str("type"))
+        assertEquals("true", nullableUnion["nullable"]!!.jsonPrimitive.content)
+        assertFalse(nullableUnion.containsKey("anyOf"))
         val kind = props.obj("kind")
         assertEquals("string", kind.str("type"))
         assertFalse(kind.containsKey("const"))
         assertEquals("page", kind.arr("enum")[0].jsonPrimitive.content)
+        val countConst = props.obj("countConst")
+        assertEquals("integer", countConst.str("type"))
+        assertFalse(countConst.containsKey("enum"))
+        val defaultObj = props.obj("defaultObj")
+        assertEquals("v", defaultObj.obj("default").str("nestedKey"))
         val tags = props.obj("tags")
         assertEquals("string", tags.obj("items").str("type"))
         val emptyObj = props.obj("emptyObj")
-        assertEquals("object", emptyObj.str("type"))
+        assertEquals("string", emptyObj.str("type"))
         assertFalse(emptyObj.containsKey("properties"))
         val strWithProps = props.obj("strWithProps")
         assertFalse(strWithProps.containsKey("properties"))
         assertFalse(strWithProps.containsKey("required"))
         val nested = props.obj("nested")
+        assertEquals("string", nested.str("type"))
         assertFalse(nested.containsKey("oneOf"))
         assertFalse(nested.containsKey("\$comment"))
         assertFalse(nested.containsKey("examples"))

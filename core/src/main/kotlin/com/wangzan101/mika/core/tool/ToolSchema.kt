@@ -66,18 +66,30 @@ internal object ToolSchema {
         if (raw.isEmpty() && !isRoot) return JsonObject(emptyMap())
 
         val ownDesc = stringProp(raw, "description")
-        val ownDefault = raw["default"]
 
         val ref = stringProp(raw, "\$ref")
         if (ref != null) {
-            if (ref in seenRefs) return refFallback(ownDesc)
-            val target = resolvePointer(root, ref) ?: return refFallback(ownDesc)
-            val resolved = if (depth >= MAX_DEPTH) {
-                cappedNode(target, ownDesc)
+            val resolved = if (ref in seenRefs) {
+                refFallback(ownDesc)
             } else {
-                normalizeNode(target, root, seenRefs + ref, depth + 1, isRoot = isRoot)
+                val target = resolvePointer(root, ref)
+                when {
+                    target == null -> refFallback(ownDesc)
+                    depth >= MAX_DEPTH -> cappedNode(target, ownDesc)
+                    else -> normalizeNode(target, root, seenRefs + ref, depth + 1, isRoot = isRoot)
+                }
             }
-            return attachSiblings(resolved, ownDesc, ownDefault)
+            val withoutRef = JsonObject(raw.filterKeys { it != "\$ref" })
+            if (withoutRef.isEmpty()) return resolved
+            val siblings = if (depth >= MAX_DEPTH) {
+                JsonObject(buildMap {
+                    ownDesc?.takeIf { it.isNotBlank() }?.let { put("description", JsonPrimitive(it)) }
+                    raw["default"]?.let { put("default", it) }
+                })
+            } else {
+                normalizeNode(withoutRef, root, seenRefs + ref, depth + 1, isRoot = isRoot)
+            }
+            return finalizeObjectHygiene(combineParentAndBase(parent = siblings, base = resolved), isRoot)
         }
 
         if (depth >= MAX_DEPTH && !isRoot) {
@@ -98,8 +110,7 @@ internal object ToolSchema {
             if (branches.isNotEmpty()) base = mergeAllOf(branches)
         }
 
-        val unionArray = anyOf ?: oneOf
-        if (unionArray != null) {
+        for (unionArray in listOfNotNull(anyOf, oneOf)) {
             val branches = unionArray.mapNotNull { it as? JsonObject }
                 .map { normalizeNode(it, root, seenRefs, depth + 1) }
                 .filterNot(::isNullOnly)
@@ -110,9 +121,9 @@ internal object ToolSchema {
         }
 
         val stripped = stripMetaAndTransform(working, root, seenRefs, depth)
-        val merged = if (base != null) combineParentAndBase(stripped, base, combineRequiredAsUnion = allOf != null && unionArray == null) else stripped
+        val merged = if (base != null) combineParentAndBase(stripped, base) else stripped
 
-        return finalizeObjectHygiene(attachSiblings(merged, ownDesc, ownDefault), isRoot)
+        return finalizeObjectHygiene(merged, isRoot)
     }
 
     private fun stripMetaAndTransform(
@@ -207,9 +218,17 @@ internal object ToolSchema {
         }
         if (!isRoot && type == "object") {
             val props = obj["properties"] as? JsonObject
-            val req = (obj["required"] as? JsonArray)?.let { stringArray(JsonObject(mapOf("required" to it))["required"]) }.orEmpty()
+            val req = stringArray(obj["required"])
             if (props != null && props.isEmpty() && req.isEmpty()) {
                 return JsonObject(obj.filterKeys { it != "properties" && it != "required" })
+            }
+            if (props != null && req.isNotEmpty()) {
+                val filteredReq = req.filter { it in props }
+                if (filteredReq.size != req.size) {
+                    val next = if (filteredReq.isEmpty()) obj.filterKeys { it != "required" }
+                    else obj + ("required" to JsonArray(filteredReq.map(::JsonPrimitive)))
+                    return if (props.isEmpty()) JsonObject(next.filterKeys { it != "properties" }) else JsonObject(next)
+                }
             }
         }
         return obj
@@ -218,7 +237,6 @@ internal object ToolSchema {
     private fun combineParentAndBase(
         parent: JsonObject,
         base: JsonObject,
-        combineRequiredAsUnion: Boolean,
     ): JsonObject {
         val out = linkedMapOf<String, JsonElement>()
         base.forEach { (k, v) -> out[k] = v }
@@ -232,8 +250,7 @@ internal object ToolSchema {
                 k == "required" && v is JsonArray -> {
                     val parentReq = stringArray(v)
                     val baseReq = stringArray(out[k])
-                    val mergedReq = if (combineRequiredAsUnion) (baseReq + parentReq).distinct()
-                    else (parentReq + baseReq).distinct()
+                    val mergedReq = (baseReq + parentReq).distinct()
                     if (mergedReq.isNotEmpty()) out[k] = JsonArray(mergedReq.map(::JsonPrimitive))
                 }
                 k == "description" -> {
@@ -271,19 +288,23 @@ internal object ToolSchema {
     private fun mergeUnion(branches: List<JsonObject>): JsonObject {
         if (branches.size == 1) return branches.first()
 
-        // Collapse multiple scalar enum/const options into one enum schema when compatible.
+        // Collapse multiple scalar enum/const options into one enum schema when type-compatible.
         val allEnumLike = branches.all { b -> "properties" !in b && (b["enum"] is JsonArray || "const" in b) }
         if (allEnumLike) {
             val values = branches.flatMap { b -> (b["enum"] as? JsonArray)?.toList().orEmpty() }.distinct()
             val types = branches.mapNotNull { (it["type"] as? JsonPrimitive)?.contentOrNull }.distinct()
-            val out = linkedMapOf<String, JsonElement>()
-            out["type"] = JsonPrimitive(types.firstOrNull() ?: "string")
-            if (values.isNotEmpty()) out["enum"] = JsonArray(values)
-            branches.firstNotNullOfOrNull { stringProp(it, "description") }?.let { out["description"] = JsonPrimitive(it) }
-            return JsonObject(out)
+            val valueTypes = values.mapNotNull(::inferPrimitiveType).distinct()
+            if (types.size <= 1 && valueTypes.size <= 1) {
+                val out = linkedMapOf<String, JsonElement>()
+                out["type"] = JsonPrimitive(types.firstOrNull() ?: valueTypes.firstOrNull() ?: "string")
+                if (values.isNotEmpty()) out["enum"] = JsonArray(values)
+                branches.firstNotNullOfOrNull { stringProp(it, "description") }?.let { out["description"] = JsonPrimitive(it) }
+                return JsonObject(out)
+            }
         }
 
-        // If all branches are object-like, merge their properties and intersect required keys.
+        // If all branches are object-like, merge their properties (recursively merging colliding property schemas)
+        // and intersect required keys.
         val allObjects = branches.all { b ->
             (b["type"] as? JsonPrimitive)?.contentOrNull == "object" || "properties" in b || "required" in b
         }
@@ -291,7 +312,12 @@ internal object ToolSchema {
             val props = linkedMapOf<String, JsonElement>()
             branches.forEach { b ->
                 (b["properties"] as? JsonObject)?.forEach { (pk, pv) ->
-                    if (pk !in props) props[pk] = pv
+                    val prev = props[pk]
+                    props[pk] = when {
+                        prev == null -> pv
+                        prev is JsonObject && pv is JsonObject && prev != pv -> mergeUnion(listOf(prev, pv))
+                        else -> prev
+                    }
                 }
             }
             val reqLists = branches.map { stringArray(it["required"]).toSet() }
@@ -337,20 +363,9 @@ internal object ToolSchema {
             },
         )
 
-    private fun attachSiblings(obj: JsonObject, siblingDesc: String?, siblingDefault: JsonElement?): JsonObject {
-        var next = obj
-        if (!siblingDesc.isNullOrBlank() && stringProp(next, "description").isNullOrBlank()) {
-            next = JsonObject(next + ("description" to JsonPrimitive(siblingDesc)))
-        }
-        if (siblingDefault != null && "default" !in next) {
-            next = JsonObject(next + ("default" to siblingDefault))
-        }
-        return next
-    }
-
     private fun resolvePointer(root: JsonObject, ref: String): JsonObject? {
         if (!ref.startsWith("#/")) return null
-        val parts = ref.substring(2).split('/').map { it.replace("~1", "/").replace("~0", "~") }
+        val parts = ref.substring(2).split('/').map { percentDecode(it).replace("~1", "/").replace("~0", "~") }
         var cur: JsonElement = root
         for (segment in parts) {
             cur = when (cur) {
@@ -363,6 +378,26 @@ internal object ToolSchema {
             }
         }
         return cur as? JsonObject
+    }
+
+    private fun percentDecode(segment: String): String {
+        if ('%' !in segment) return segment
+        val bytes = java.io.ByteArrayOutputStream(segment.length)
+        var i = 0
+        while (i < segment.length) {
+            val ch = segment[i]
+            if (ch == '%' && i + 2 < segment.length) {
+                val hex = segment.substring(i + 1, i + 3).toIntOrNull(16)
+                if (hex != null) {
+                    bytes.write(hex)
+                    i += 3
+                    continue
+                }
+            }
+            bytes.writeBytes(ch.toString().toByteArray(Charsets.UTF_8))
+            i++
+        }
+        return bytes.toString(Charsets.UTF_8)
     }
 
     private fun collapseType(typeEl: JsonElement?): String? = when (typeEl) {

@@ -93,6 +93,12 @@ class ModelErrorReasonTest {
 
         assertEquals("模型服务出错(HTTP 500),请稍后再试。", userReason(ModelError.Server(500, null)))
         assertEquals("模型服务出错(HTTP 502),请稍后再试。", userReason(ModelError.Server(502, "   ")))
+        assertEquals("模型服务出错(HTTP 502),请稍后再试。", userReason(ModelError.Server(502, "<html><body>502 Bad Gateway</body></html>")))
+
+        val redacted = userReason(ModelError.Server(400, "Invalid key sk-1234567890abcdef123456 or Bearer secretToken123456"))
+        assertFalse(redacted.contains("sk-1234567890abcdef123456"))
+        assertFalse(redacted.contains("secretToken123456"))
+        assertTrue(redacted.contains("***"))
     }
 
     @Test fun streamCutIsNotBlamedOnConfiguration() {

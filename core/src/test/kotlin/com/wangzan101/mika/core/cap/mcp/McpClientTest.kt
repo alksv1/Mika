@@ -656,6 +656,86 @@ class McpClientTest {
         assertTrue(props.containsKey("mode"))
     }
 
+    @Test fun discriminatedUnionMergesCollidingPropertySchemasWithoutLockingFirstBranch() = runBlocking {
+        val ep = endpointWithSchema("""
+            {
+              "type": "object",
+              "properties": {
+                "parent": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {"const": "page_id"},
+                        "page_id": {"type": "string"}
+                      },
+                      "required": ["type", "page_id"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {"const": "database_id"},
+                        "database_id": {"type": "string"}
+                      },
+                      "required": ["type", "database_id"]
+                    }
+                  ]
+                }
+              },
+              "required": ["parent"]
+            }
+        """.trimIndent())
+        val schema = parameters(toolDispatcher(FakeScreen(), mcpServers = listOf(McpConnection(ep))))
+        val parent = schema["properties"]!!.jsonObject["parent"]!!.jsonObject
+        val typeEnum = parent["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray.map { it.jsonPrimitive.content }
+        assertEquals(listOf("page_id", "database_id"), typeEnum)
+        assertEquals(listOf("type"), parent["required"]!!.jsonArray.map { it.jsonPrimitive.content })
+    }
+
+    @Test fun refMergesSiblingKeywordsAndPrefersUsageDescription() = runBlocking {
+        val ep = endpointWithSchema("""
+            {
+              "type": "object",
+              "${'$'}defs": {
+                "My Type": {"type": "string", "description": "Generic ID"},
+                "BaseObj": {
+                  "type": "object",
+                  "description": "Generic object",
+                  "properties": {"id": {"type": "string"}},
+                  "required": ["id"]
+                }
+              },
+              "properties": {
+                "authorId": {"${'$'}ref": "#/${'$'}defs/My%20Type", "description": "Specific author ID"},
+                "item": {
+                  "${'$'}ref": "#/${'$'}defs/BaseObj",
+                  "description": "Item payload",
+                  "properties": {"title": {"type": "string"}, "badNested": {"type": "object", "properties": {"a": {"type": "string"}}, "required": ["a", "missingKey"]}},
+                  "required": ["title"]
+                },
+                "mixedConst": {
+                  "anyOf": [
+                    {"type": "string", "const": "auto"},
+                    {"type": "integer", "const": 1}
+                  ]
+                }
+              }
+            }
+        """.trimIndent())
+        val schema = parameters(toolDispatcher(FakeScreen(), mcpServers = listOf(McpConnection(ep))))
+        val props = schema["properties"]!!.jsonObject
+        assertEquals("Specific author ID", props["authorId"]!!.jsonObject["description"]!!.jsonPrimitive.content)
+        val item = props["item"]!!.jsonObject
+        assertEquals("Item payload", item["description"]!!.jsonPrimitive.content)
+        assertTrue(item["properties"]!!.jsonObject.containsKey("id"))
+        assertTrue(item["properties"]!!.jsonObject.containsKey("title"))
+        val badNested = item["properties"]!!.jsonObject["badNested"]!!.jsonObject
+        assertEquals(listOf("a"), badNested["required"]!!.jsonArray.map { it.jsonPrimitive.content })
+        val mixedConst = props["mixedConst"]!!.jsonObject
+        assertEquals("string", mixedConst["type"]!!.jsonPrimitive.content)
+        assertEquals(listOf("auto"), mixedConst["enum"]!!.jsonArray.map { it.jsonPrimitive.content })
+    }
+
     @Test fun duplicateListingsKeepTheFirstDeclarationAndReportDegradation() {
         fun descriptor(name: String, description: String) =
             McpToolDescriptor(name, description, buildJsonObject { put("type", "object") })

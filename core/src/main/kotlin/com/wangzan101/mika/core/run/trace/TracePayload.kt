@@ -72,6 +72,15 @@ internal object TracePayload {
         return CapturedReply(if (reason != null) visible.take(MAX_BLOCK) + "\n[truncated]" else visible, reason)
     }
 
+    fun errorBody(body: String): CapturedReply {
+        if (body.length > MAX_BLOCK) {
+            val prefix = body.take(MAX_BLOCK)
+            val boundary = prefix.lastIndexOfAny(charArrayOf(' ', '\n', '\r', '\t'))
+            return CapturedReply(scrub(if (boundary < 0) "" else prefix.take(boundary)) + "\n[truncated]", "block_size_limit")
+        }
+        return CapturedReply(scrub(body), null)
+    }
+
     private class View(private val images: Iterator<Part.Image>, private val verb: (String?) -> Verb?) {
         private val calls = mutableMapOf<String, Verb?>()
         var truncation: String? = null
