@@ -194,6 +194,7 @@
     <string name="attach_recent">Recent photos</string>
     <string name="attach_recent_partial">Photos you let Mika access</string>
     <string name="attach_all">All photos</string>
+    <string name="attach_more">More</string>
     <string name="attach_change">Change access</string>
     <string name="attach_no_photos">No photos yet</string>
     <string name="attach_need_access">To pick photos here, allow Mika to access your photos</string>

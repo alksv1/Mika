@@ -1,6 +1,17 @@
 package com.wangzan101.mika.capsule
 
 import com.wangzan101.mika.ChineseUi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipe
@@ -59,6 +70,7 @@ class CapsuleCardContentTest {
         override fun loadEarlier() { calls += "earlier" }
         override fun captureScreen() { calls += "capture" }
         override fun dropScreen() { calls += "drop" }
+        override fun hideCapsule() { calls += "hide" }
         override fun setFollowUpMode(mode: com.wangzan101.mika.chat.ui.FollowUpMode) { calls += "mode:$mode" }
         override fun askQuit() { calls += "askQuit" }
         override fun cancelQuit() { calls += "cancelQuit" }
@@ -97,6 +109,79 @@ class CapsuleCardContentTest {
         userTexts.mapIndexed { i, t -> PastTurn(com.wangzan101.mika.core.agent.Turn(t, "收到", "succeeded", runId = "r$i")) },
         CapsuleThreads.PAGE, emptyList(),
     )
+
+    private fun footerTextLayout(text: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(text, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        return results.single()
+    }
+
+    private fun assertEightDpVerticalLinkPadding(text: String) {
+        val bounds = compose.onNodeWithText(text).fetchSemanticsNode().boundsInRoot
+        val textHeight = footerTextLayout(text).size.height
+        assertEquals(with(compose.density) { 16.dp.toPx() }, bounds.height - textHeight, 1f)
+    }
+
+    @Test fun shortFooterLinksStayOnOneRow() {
+        val primary = "A primary link over sixteen chars"
+        compose.setContent {
+            MikaTheme(dark = false, reduceMotion = true) {
+                Box(Modifier.width(360.dp).testTag("short-footer")) {
+                    FooterLinks(actions, primary to { calls += "primary" })
+                }
+            }
+        }
+
+        val first = compose.onNodeWithText(primary).fetchSemanticsNode().boundsInRoot
+        val second = compose.onNodeWithText(CardCopy.HIDE_CAPSULE).fetchSemanticsNode().boundsInRoot
+        val separator = compose.onNodeWithText("·").fetchSemanticsNode().boundsInRoot
+        val footer = compose.onNodeWithTag("short-footer").fetchSemanticsNode().boundsInRoot
+        assertEquals("measured short links stay together despite character count", first.center.y, second.center.y, 1f)
+        assertTrue(first.right <= separator.left && separator.right <= second.left)
+        assertTrue(first.left >= footer.left && second.right <= footer.right)
+        assertEquals(1, footerTextLayout(primary).lineCount)
+        assertEquals(1, footerTextLayout(CardCopy.HIDE_CAPSULE).lineCount)
+        assertEightDpVerticalLinkPadding(primary)
+        assertEightDpVerticalLinkPadding(CardCopy.HIDE_CAPSULE)
+        compose.onNodeWithText(primary).performTouchInput { click(center) }
+        compose.onNodeWithText(CardCopy.HIDE_CAPSULE).performTouchInput { click(center) }
+        compose.runOnIdle { assertEquals(listOf("primary", "hide"), calls) }
+    }
+
+    @Test fun longFooterLinksWrapByMeasuredWidth() {
+        // Twelve wide glyphs at large font need more width than the narrow card; a character-count rule would keep one row.
+        val primary = "WWWWWWWWWWWW"
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                MikaTheme(dark = false, reduceMotion = true) {
+                    Box(Modifier.width(220.dp).testTag("long-footer")) {
+                        FooterLinks(actions, primary to { calls += "primary" })
+                    }
+                }
+            }
+        }
+
+        val first = compose.onNodeWithText(primary).fetchSemanticsNode().boundsInRoot
+        val second = compose.onNodeWithText(CardCopy.HIDE_CAPSULE).fetchSemanticsNode().boundsInRoot
+        val footer = compose.onNodeWithTag("long-footer").fetchSemanticsNode().boundsInRoot
+        assertTrue("second complete link wraps below the first: $first / $second", first.bottom <= second.top + 1f)
+        assertTrue(first.left >= footer.left && first.right <= footer.right)
+        assertTrue(second.left >= footer.left && second.right <= footer.right)
+        val primaryLayout = footerTextLayout(primary)
+        val hideLayout = footerTextLayout(CardCopy.HIDE_CAPSULE)
+        assertTrue("primary layout: ${primaryLayout.lineCount} lines, ${primaryLayout.size}", primaryLayout.lineCount > 1)
+        assertTrue("primary clipped: ${primaryLayout.lineCount} lines, ${primaryLayout.size}", !primaryLayout.hasVisualOverflow)
+        assertEquals(1, hideLayout.lineCount)
+        val hideGlyphWidth = hideLayout.getLineRight(0) - hideLayout.getLineLeft(0)
+        assertTrue("complete hide label fits its measured link: $hideGlyphWidth / ${hideLayout.size.width}", hideGlyphWidth <= hideLayout.size.width + 1f)
+        assertEightDpVerticalLinkPadding(primary)
+        assertEightDpVerticalLinkPadding(CardCopy.HIDE_CAPSULE)
+        compose.onNodeWithText(primary).performTouchInput { click(center) }
+        compose.onNodeWithText(CardCopy.HIDE_CAPSULE).performTouchInput { click(center) }
+        compose.runOnIdle { assertEquals(listOf("primary", "hide"), calls) }
+    }
 
     @Test fun threadShowsScreenMessageWithTagAndWords() {
         show(CardView.Chat("c1", title = "t"), thread = idleThread("[[screen:s1]]", "[[screen:s1]]\n第三条有没有坑?", "[[screen:s2]]"))

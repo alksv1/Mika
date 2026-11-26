@@ -202,6 +202,35 @@ fun RecoverySection(
     }
 }
 
+/** Recents visibility uses the same below-row error presentation as the recovery switches. */
+@Composable
+fun RecentsExclusionSection(excluded: Boolean, onSet: (Boolean) -> Boolean) {
+    var current by remember(excluded) { mutableStateOf(excluded) }
+    var failed by remember { mutableStateOf(false) }
+    GroupCard {
+        ListRow(
+            MikaIcons.EyeOff,
+            tr(R.string.rec_exclude_recents),
+            tr(R.string.rec_exclude_recents_sub),
+            first = true,
+        ) {
+            MikaSwitch(
+                current,
+                { want ->
+                    if (onSet(want)) {
+                        current = want
+                        failed = false
+                    } else {
+                        failed = true
+                    }
+                },
+                Modifier.testTag("recents-exclusion"),
+            )
+        }
+        if (failed) Note(tr(R.string.rec_exclude_recents_failed), MikaTheme.colors.bad)
+    }
+}
+
 private fun iconOf(c: RecoveryCapability): ImageVector = when (c) {
     RecoveryCapability.Accessibility -> MikaIcons.Hand
     RecoveryCapability.BatteryWhitelist -> MikaIcons.Sun

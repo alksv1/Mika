@@ -228,6 +228,7 @@ fun ChatScreen(
     var showWorkflows by rememberSaveable { mutableStateOf(false) }
     // 面板开着时选照片会把首页的草稿提升成对话(id 从 null 变成新值),所以不跟对话 id 绑;换对话时用户本来就会先关掉
     var showPlus by rememberSaveable { mutableStateOf(false) }
+    var showMainModel by rememberSaveable(ui.conversationId) { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var saveTaskPrompt by remember(ui.conversationId) { mutableStateOf<String?>(null) }
@@ -545,7 +546,7 @@ fun ChatScreen(
             hasHistory = ui.exchanges.isNotEmpty(),
             onSend = { vm.send(input, check) },
             onStop = vm::stopAll,
-            working = ui.deskTasks.isNotEmpty() || ui.exchanges.any { it.deskReply != null && it.status == ExchangeStatus.Working },
+            working = ui.deskTasks.any { it.inProgress } || ui.exchanges.any { it.deskReply != null && it.status == ExchangeStatus.Working },
             queued = ui.queued,
             onQueueActions = { queueActions = it },
             onCancelQueued = { id ->
@@ -569,6 +570,8 @@ fun ChatScreen(
             onDismissRejected = vm::dismissRejected,
             quote = ui.quote,
             onRemoveQuote = vm::clearQuote,
+            mainModel = ui.mainModel,
+            onMainModel = { showMainModel = true },
             voice = voice,
             // 说的话接在已有的字后面;任务在跑时先作为补充消息排队
             onVoiceText = { vm.input(HoldToTalk.join(vm.ui.value.input, it)) },
@@ -617,6 +620,14 @@ fun ChatScreen(
             reduceMotion = reduceMotion,
         )
 
+        if (showMainModel) {
+            MainModelSheet(
+                ui = ui.mainModel,
+                onPick = vm::chooseMainModel,
+                onMore = openSettings,
+                onDismiss = { showMainModel = false },
+            )
+        }
         if (showPlus) {
             ChatPlusSheet(
                 selected = ui.attachments,

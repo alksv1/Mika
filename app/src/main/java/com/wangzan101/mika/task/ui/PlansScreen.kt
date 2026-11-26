@@ -34,6 +34,7 @@ import com.wangzan101.mika.core.trigger.TriggerWindow
 import com.wangzan101.mika.core.trigger.TriggerWindowState
 import com.wangzan101.mika.core.trigger.canToggle
 import com.wangzan101.mika.core.trigger.toCopyPlanDraft
+import com.wangzan101.mika.core.trigger.upcoming
 import com.wangzan101.mika.task.ExactAlarmGuide
 import com.wangzan101.mika.task.TriggerRuntime
 import com.wangzan101.mika.ui.components.ActionSheet
@@ -245,7 +246,9 @@ private fun PlanRow(plan: TriggerDefinition, last: TriggerWindow?, first: Boolea
         plan.intervalMs != null -> trPlural(R.plurals.plans_every_minutes, (plan.intervalMs!! / 60_000).toInt())
         else -> tr(R.string.plans_once)
     }
-    val when_ = if (plan.enabled) tr(R.string.plans_next, repeat, formatPlanTime(plan.nextAtMs)) else "$repeat · $status"
+    val when_ = if (plan.enabled)
+        tr(R.string.plans_next, repeat, formatPlanTime(upcoming(plan, System.currentTimeMillis(), 1).single()))
+    else "$repeat · $status"
     val subtitle = plan.conditionGoal?.let {
         tr(if (plan.notifyWhen == ConditionNotify.EachTimeMet) R.string.plans_condition_each else R.string.plans_condition, it, when_)
     } ?: when_

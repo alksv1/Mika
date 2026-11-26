@@ -161,6 +161,7 @@
     <string name="attach_recent">عکس‌های اخیر</string>
     <string name="attach_recent_partial">عکس‌هایی که اجازهٔ دسترسی به آن‌ها را به میکا داده‌اید</string>
     <string name="attach_all">همهٔ عکس‌ها</string>
+    <string name="attach_more">بیشتر</string>
     <string name="attach_change">تغییر دسترسی</string>
     <string name="attach_no_photos">هنوز عکسی وجود ندارد</string>
     <string name="attach_need_access">برای انتخاب عکس در اینجا، به میکا اجازهٔ دسترسی به عکس‌ها را بدهید</string>

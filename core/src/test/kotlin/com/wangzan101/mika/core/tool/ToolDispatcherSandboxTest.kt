@@ -350,13 +350,20 @@ class ToolDispatcherSandboxTest {
         assertEquals("false", r.s("recoverable"))
     }
 
-    @Test fun installPackagesAreNotShared() = runTest {
+    @Test fun installPackagesAreShared() = runTest {
         File(ws, "app.apk").writeText("PK")
         File(ws, "notes.txt").writeText("n")
         val d = dispatcher()
-        assertEquals("share_refused_type", d.execute(call("share_file", buildJsonObject { put("path", "app.apk") })).content.s("error"))
-        assertEquals("share_refused_type", d.execute(call("share_file", buildJsonObject { put("path", "notes.txt"); put("name", "x.APKS") })).content.s("error"))
-        assertTrue(sb.shared.isEmpty())
+        val apk = d.execute(call("share_file", buildJsonObject { put("path", "app.apk") })).content
+        assertEquals(apk.toString(), "true", apk.s("ok"))
+        assertEquals("Download/Mika/app.apk", apk.s("savedAs"))
+        val renamed = d.execute(call("share_file", buildJsonObject { put("path", "notes.txt"); put("name", "x.APKS") })).content
+        assertEquals(renamed.toString(), "true", renamed.s("ok"))
+        assertEquals("Download/Mika/x.APKS", renamed.s("savedAs"))
+        assertEquals(
+            listOf(File(ws, "app.apk").canonicalFile, File(ws, "notes.txt").canonicalFile),
+            sb.shared.map { it.first.canonicalFile },
+        )
     }
 
     @Test fun longNamesFitInBytesAndKeepExtension() {

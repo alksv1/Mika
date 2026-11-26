@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.core.trigger.ConditionNotify
 import com.wangzan101.mika.core.trigger.PlanDraft
+import com.wangzan101.mika.core.trigger.PlanExecutionWindow
 import com.wangzan101.mika.core.trigger.PlanRepeat
 import com.wangzan101.mika.core.trigger.PlanValidation
 import com.wangzan101.mika.core.trigger.PlanValidationException
@@ -143,6 +144,8 @@ fun PlanEditorDialog(
                     target.index?.let { clockEntries.getOrNull(it) }
                         ?: clockEntries.lastOrNull()?.plusHours(1)
                         ?: LocalTime.of(9, 0)
+                TimeTarget.WindowStart -> runCatching { LocalTime.parse(draft.windowStart.trim()) }.getOrNull() ?: LocalTime.of(22, 0)
+                TimeTarget.WindowEnd -> runCatching { LocalTime.parse(draft.windowEnd.trim()) }.getOrNull() ?: LocalTime.of(2, 0)
             },
             title = tr(R.string.plans_pick_time),
             onDismiss = { pickingTime = null },
@@ -162,6 +165,8 @@ fun PlanEditorDialog(
                         }
                         draft = draft.copy(clock = clock)
                     }
+                    TimeTarget.WindowStart -> draft = draft.copy(windowStart = formatPlanClock(time))
+                    TimeTarget.WindowEnd -> draft = draft.copy(windowEnd = formatPlanClock(time))
                 }
                 pickingTime = null
             },
@@ -308,6 +313,62 @@ fun PlanEditorDialog(
                             )
                         }
                     }
+                    if (!draft.reminder) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(tr(R.string.plans_execution_window), style = MikaType.Body, color = MikaTheme.colors.ink2)
+                        Spacer(Modifier.height(6.dp))
+                        SegmentedControl(
+                            listOf(
+                                tr(R.string.plans_window_anytime), tr(R.string.plans_window_off_peak),
+                                tr(R.string.plans_window_custom),
+                            ),
+                            draft.executionWindow.ordinal,
+                            onSelect = { draft = draft.copy(executionWindow = PlanExecutionWindow.entries[it]) },
+                            tags = listOf("plan-editor-window-anytime", "plan-editor-window-off-peak", "plan-editor-window-custom"),
+                        )
+                        when (draft.executionWindow) {
+                            PlanExecutionWindow.DeepSeekOffPeak -> {
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    tr(R.string.plans_window_off_peak_hint),
+                                    style = MikaType.Caption, color = MikaTheme.colors.ink3,
+                                )
+                            }
+                            PlanExecutionWindow.Custom -> {
+                                Spacer(Modifier.height(10.dp))
+                                PlanField(
+                                    draft.executionZone, { draft = draft.copy(executionZone = it) },
+                                    tr(R.string.plans_zone), "plan-editor-window-zone",
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                PlanField(
+                                    draft.windowStart, { draft = draft.copy(windowStart = it) },
+                                    tr(R.string.plans_window_start), "plan-editor-window-start",
+                                    trailing = {
+                                        FieldIconButton(MikaIcons.Clock, tr(R.string.plans_pick_time), "plan-editor-window-start-pick") {
+                                            pickingTime = TimeTarget.WindowStart
+                                        }
+                                    },
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                PlanField(
+                                    draft.windowEnd, { draft = draft.copy(windowEnd = it) },
+                                    tr(R.string.plans_window_end), "plan-editor-window-end",
+                                    trailing = {
+                                        FieldIconButton(MikaIcons.Clock, tr(R.string.plans_pick_time), "plan-editor-window-end-pick") {
+                                            pickingTime = TimeTarget.WindowEnd
+                                        }
+                                    },
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    tr(R.string.plans_window_custom_hint, draft.executionZone),
+                                    style = MikaType.Caption, color = MikaTheme.colors.ink3,
+                                )
+                            }
+                            PlanExecutionWindow.Anytime -> Unit
+                        }
+                    }
                     PlanSwitch(tr(R.string.plans_when_idle), draft.whenIdle, { draft = draft.copy(whenIdle = it) }, "plan-editor-idle")
                     PlanSwitch(tr(R.string.plans_enabled), draft.enabled, { draft = draft.copy(enabled = it) }, "plan-editor-enabled")
 
@@ -442,6 +503,8 @@ private fun ClockChips(
 private sealed interface TimeTarget {
     data class FirstRun(val date: LocalDate) : TimeTarget
     data class Clock(val index: Int?) : TimeTarget
+    data object WindowStart : TimeTarget
+    data object WindowEnd : TimeTarget
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -576,4 +639,5 @@ private fun planValidationText(reason: PlanValidation): String = tr(when (reason
     PlanValidation.InvalidZone -> R.string.plans_error_zone
     PlanValidation.InvalidWeekdays -> R.string.plans_error_weekdays
     PlanValidation.InvalidCooldown -> R.string.plans_error_cooldown
+    PlanValidation.InvalidExecutionWindow -> R.string.plans_error_window
 })

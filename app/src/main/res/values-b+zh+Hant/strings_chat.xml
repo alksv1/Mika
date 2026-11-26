@@ -183,6 +183,7 @@
     <string name="attach_recent">最近的照片</string>
     <string name="attach_recent_partial">你允許 Mika 存取的照片</string>
     <string name="attach_all">全部照片</string>
+    <string name="attach_more">更多</string>
     <string name="attach_change">更改範圍</string>
     <string name="attach_no_photos">還沒有照片</string>
     <string name="attach_need_access">在這裡直接選照片,需要允許 Mika 存取照片</string>

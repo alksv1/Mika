@@ -148,19 +148,7 @@ internal fun ChatPlusSheet(
                             }
                             val recent = attach.recent.orEmpty()
                             if (attach.access != PhotoAccess.None && recent.isNotEmpty()) {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    recent.take(4).forEach { p ->
-                                        Box(Modifier.weight(1f)) { RecentCell(p, AttachTray.order(selected, p.uri)) { attach.toggle(p) } }
-                                    }
-                                    Box(
-                                        Modifier.weight(1f).aspectRatio(1f).clip(MikaShapes.Tile).background(c.fill)
-                                            .clickable(role = Role.Button) { view = PlusView.Photos },
-                                        contentAlignment = Alignment.Center,
-                                    ) { Text(AttachCopy.ALL, style = MikaType.Caption, color = c.ink2) }
-                                }
+                                PlusRecentRow(recent, selected, attach.toggle, onMore = { view = PlusView.Photos })
                             }
                         }
                         Spacer(Modifier.height(12.dp))
@@ -289,7 +277,54 @@ private fun SheetLink(text: String, onClick: () -> Unit) {
     )
 }
 
-/** 相册的二级页:四列最近的照片(点一下选上,右上角是序号;再点取消)。[onGrant] 是没给照片权限时。 */
+/**
+ * 第一张卡片里的最近照片:最新的四张缩略图,末尾一块「更多」进「最近的照片」页。
+ * 点一下选上或取消,长按看大图(选中状态不变);[onPreview] 为空时用 App 自带的查看页。
+ */
+@Composable
+internal fun PlusRecentRow(
+    recent: List<PendingAttachment>,
+    selected: List<PendingAttachment>,
+    onToggle: (PendingAttachment) -> Unit,
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier,
+    onPreview: ((PendingAttachment) -> Unit)? = null,
+) {
+    val preview = onPreview ?: rememberPhotoPreview()
+    Row(
+        modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        recent.take(4).forEach { p ->
+            Box(Modifier.weight(1f)) {
+                RecentCell(p, AttachTray.order(selected, p.uri), onClick = { onToggle(p) }, onPreview = { preview(p) })
+            }
+        }
+        MorePhotosTile(onMore)
+    }
+}
+
+/** 最近照片末尾的「更多」:和缩略图一样大的灰砖,图标加一行字。字放不下时省略,不折行。 */
+@Composable
+private fun RowScope.MorePhotosTile(onClick: () -> Unit) {
+    val c = MikaTheme.colors
+    Box(
+        Modifier.weight(1f).aspectRatio(1f).clip(MikaShapes.Tile).background(c.fill)
+            .clickable(role = Role.Button, onClick = onClick).testTag("plus-more-photos"),
+        contentAlignment = Alignment.Center,
+    ) {
+        // 图标带权重但不撑满:Column 先量文字,格子矮时缩的是图标,字不被裁
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Icon(MikaIcons.Photos, null, Modifier.weight(1f, fill = false).size(22.dp), tint = c.ink2)
+            Text(
+                AttachCopy.MORE, Modifier.testTag("plus-more-photos-label"),
+                style = MikaType.Caption, color = c.ink2, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** 相册的二级页:四列最近的照片(点一下选上,右上角是序号;再点取消;长按看大图,选中状态不变)。[onGrant] 是没给照片权限时。 */
 @Composable
 internal fun PlusPhotosPage(
     access: PhotoAccess,
@@ -301,6 +336,7 @@ internal fun PlusPhotosPage(
     onBack: () -> Unit,
 ) {
     val c = MikaTheme.colors
+    val preview = rememberPhotoPreview()
     Column(Modifier.fillMaxSize().padding(horizontal = PlusInset)) {
         SheetHead(
             title = if (access == PhotoAccess.Partial) AttachCopy.RECENT_PARTIAL else AttachCopy.RECENT,
@@ -331,7 +367,9 @@ internal fun PlusPhotosPage(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 contentPadding = PaddingValues(top = 2.dp, bottom = 12.dp),
             ) {
-                items(recent, key = { it.uri }) { p -> RecentCell(p, AttachTray.order(selected, p.uri)) { onToggle(p) } }
+                items(recent, key = { it.uri }) { p ->
+                    RecentCell(p, AttachTray.order(selected, p.uri), onClick = { onToggle(p) }, onPreview = { preview(p) })
+                }
             }
         }
     }

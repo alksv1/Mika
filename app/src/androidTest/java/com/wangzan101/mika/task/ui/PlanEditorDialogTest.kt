@@ -24,6 +24,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.wangzan101.mika.ChineseUi
 import com.wangzan101.mika.core.trigger.TriggerDefinition
+import com.wangzan101.mika.core.trigger.DEEPSEEK_OFF_PEAK_WINDOWS
+import com.wangzan101.mika.core.trigger.ExecutionWindow
+import com.wangzan101.mika.core.trigger.toPlanDraft
 import com.wangzan101.mika.core.trigger.TriggerWindowState
 import com.wangzan101.mika.task.FileTriggerStore
 import com.wangzan101.mika.task.TriggerRuntime
@@ -135,6 +138,37 @@ class PlanEditorDialogTest {
         assertEquals("旧任务", plan.reminderText)
         assertEquals("旧任务", plan.goal)
         assertNull(plan.conditionGoal)
+    }
+
+    @Test fun deepSeekOffPeakCanBeSelectedAndSaved() {
+        val saved = mutableListOf<TriggerDefinition>()
+        show(saved = saved)
+        compose.onNodeWithTag("plan-editor-content").performTextInput("检查天气")
+        compose.onNodeWithTag("plan-editor-window-off-peak").performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithTag("plan-editor-save").performSemanticsAction(SemanticsActions.OnClick)
+
+        assertEquals("UTC", saved.single().executionWindowZone)
+        assertEquals(DEEPSEEK_OFF_PEAK_WINDOWS, saved.single().executionWindows)
+    }
+
+    @Test fun customExecutionWindowCanCrossMidnight() {
+        val saved = mutableListOf<TriggerDefinition>()
+        show(saved = saved)
+        compose.onNodeWithTag("plan-editor-content").performTextInput("检查天气")
+        compose.onNodeWithTag("plan-editor-window-custom").performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithTag("plan-editor-window-zone").performScrollTo().performTextClearance()
+        compose.onNodeWithTag("plan-editor-window-zone").performTextInput("Asia/Shanghai")
+        compose.onNodeWithTag("plan-editor-window-start").performScrollTo().performTextClearance()
+        compose.onNodeWithTag("plan-editor-window-start").performTextInput("23:00")
+        compose.onNodeWithTag("plan-editor-window-end").performTextClearance()
+        compose.onNodeWithTag("plan-editor-window-end").performTextInput("03:00")
+        compose.onNodeWithTag("plan-editor-save").performSemanticsAction(SemanticsActions.OnClick)
+
+        assertEquals(listOf(ExecutionWindow(23 * 60, 3 * 60)), saved.single().executionWindows)
+        assertEquals("Asia/Shanghai", saved.single().executionWindowZone)
+        assertEquals(saved.single().executionWindowZone, saved.single().toPlanDraft().zone)
     }
 
     @Test fun invalidTimeStaysInEditorUntilCorrected() {
@@ -281,6 +315,61 @@ class PlanEditorDialogTest {
         compose.onNodeWithTag("plan-editor-clock").assertTextContains("09:00, 23:59")
         compose.onNodeWithTag("plan-editor-save").performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(listOf("09:00", "23:59"), saved.single().calendarClocks())
+    }
+
+    @Test fun plansPageShowsExecutionWindowDeferredTime() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = UUID.randomUUID().toString()
+        val goal = "执行时段测试 $id"
+        val plan = TriggerDefinition(
+            id, "window-list-$id", goal, Instant.parse("2099-01-01T02:00:00Z").toEpochMilli(),
+            executionWindowZone = "UTC", executionWindows = listOf(ExecutionWindow(10 * 60, 11 * 60)),
+        )
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        fun format(ms: Long) = formatter.format(Instant.ofEpochMilli(ms).atZone(java.time.ZoneId.systemDefault()))
+        try {
+            TriggerRuntime.schedule(context, plan)
+            compose.setContent {
+                MikaTheme(dark = false, reduceMotion = true) {
+                    PlansScreen(context, onBack = {}, onOpenConversation = {})
+                }
+            }
+
+            compose.onNodeWithText(format(plan.executionAtOrAfter(plan.nextAtMs)), substring = true)
+                .performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText(format(plan.nextAtMs), substring = true).assertDoesNotExist()
+        } finally {
+            TriggerRuntime.remove(context, id)
+        }
+    }
+
+    @Test fun plansPageDoesNotShowPastDeferredTimeForDueOneShot() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = UUID.randomUUID().toString()
+        val goal = "到期执行时段测试 $id"
+        val before = System.currentTimeMillis()
+        val plan = TriggerDefinition(
+            id, "due-window-list-$id", goal, before - 3_600_000,
+            executionWindowZone = "UTC", executionWindows = listOf(ExecutionWindow(0, 24 * 60)),
+        )
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        fun format(ms: Long) = formatter.format(Instant.ofEpochMilli(ms).atZone(java.time.ZoneId.systemDefault()))
+        try {
+            TriggerRuntime.schedule(context, plan)
+            compose.setContent {
+                MikaTheme(dark = false, reduceMotion = true) {
+                    PlansScreen(context, onBack = {}, onOpenConversation = {})
+                }
+            }
+            val currentTimes = listOf(before, System.currentTimeMillis()).map(::format).distinct()
+
+            assertTrue(currentTimes.any { text ->
+                runCatching { compose.onNodeWithText(text, substring = true).assertExists() }.isSuccess
+            })
+            compose.onNodeWithText(format(plan.nextAtMs), substring = true).assertDoesNotExist()
+        } finally {
+            TriggerRuntime.remove(context, id)
+        }
     }
 
     @Test fun plansPageHasManualCreationEntry() {

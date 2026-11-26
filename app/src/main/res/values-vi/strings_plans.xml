@@ -43,6 +43,15 @@
     <string name="plans_notify_each">Mỗi lần</string>
     <string name="plans_cooldown_minutes">Số phút tối thiểu giữa các lần chạy (không bắt buộc)</string>
     <string name="plans_when_idle">Chỉ chạy khi Mika đang rảnh</string>
+    <string name="plans_execution_window">Khung giờ thực thi</string>
+    <string name="plans_window_anytime">Bất kỳ lúc nào</string>
+    <string name="plans_window_off_peak">Ngoài giờ cao điểm</string>
+    <string name="plans_window_custom">Tùy chỉnh</string>
+    <string name="plans_window_off_peak_hint">Khung giờ ngoài giờ cao điểm của DeepSeek: ngày thường 00:00–01:00, 04:00–06:00 và 10:00–24:00 UTC; cả ngày vào cuối tuần. Không cần xét các ưu đãi thêm trong ngày lễ khi lên lịch.</string>
+    <string name="plans_window_start">Giờ bắt đầu (HH:mm)</string>
+    <string name="plans_window_end">Giờ kết thúc (HH:mm hoặc 24:00)</string>
+    <string name="plans_window_custom_hint">Múi giờ: %1$s. Nếu giờ kết thúc sớm hơn giờ bắt đầu, khung giờ sẽ kéo dài qua nửa đêm.</string>
+    <string name="plans_error_window">Nhập khung giờ hợp lệ; giờ bắt đầu và kết thúc phải khác nhau</string>
     <string name="plans_enabled">Đã bật</string>
     <string name="plans_error_content">Nhập một tác vụ hoặc nhắc nhở</string>
     <string name="plans_error_content_long">Dùng tối đa 4.000 ký tự, hoặc 2.000 ký tự cho nhắc nhở</string>

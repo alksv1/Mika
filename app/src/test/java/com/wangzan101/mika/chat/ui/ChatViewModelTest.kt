@@ -27,6 +27,7 @@ import com.wangzan101.mika.core.safety.gate.IrrevAction
 import com.wangzan101.mika.core.agent.Turn
 import com.wangzan101.mika.core.run.record.RunEvent
 import com.wangzan101.mika.settings.AccessibilityState
+import com.wangzan101.mika.settings.ModelChoice
 import com.wangzan101.mika.settings.Prerequisites
 import com.wangzan101.mika.settings.Problem
 import com.wangzan101.mika.core.device.shell.BuiltinShellStatus
@@ -41,6 +42,7 @@ import com.wangzan101.mika.core.agent.AttachedPage
 import com.wangzan101.mika.core.screen.user.UserScreenMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -3722,4 +3724,139 @@ class ChatViewModelTest {
         assertNull(vm.ui.value.conversationId)
         assertNull(vm.ui.value.projectId)
     }
+
+    @Test fun choosingMainModelWaitsForFirstMessageBeforeWritingSidecar() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-2")
+        val catalog = FakeMainModelCatalog(global = "m1", options = listOf(MainModelOption(choice, "m2")),
+            labels = mapOf(choice to "m2"), allowed = setOf(choice))
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store, mainModels = catalog).also { runCurrent() }
+
+        vm.chooseMainModel(choice)
+        assertNull(vm.ui.value.conversationId)
+        assertEquals(choice, vm.ui.value.mainModel.override)
+        assertEquals("m2", vm.ui.value.mainModel.label)
+        assertFalse(vm.ui.value.mainModel.fallback)
+        assertTrue(tmp.root.listFiles().orEmpty().none { it.name.endsWith(".settings.json") })
+
+        assertTrue(vm.send("用新模型", ok))
+        val id = vm.ui.value.conversationId!!
+        assertEquals(choice, store.settings(id).main)
+        vm.chooseMainModel(null)
+        assertNull(store.settings(id).main)
+        assertNull(vm.ui.value.mainModel.override)
+        assertEquals("m1", vm.ui.value.mainModel.label)
+    }
+
+    @Test fun assignedButUnmaterializedConversationDoesNotGetEarlySidecar() = runTest {
+        val dir = tmp.newFolder()
+        val store = ConversationStore(dir)
+        val choice = ModelChoice.Group("group-2")
+        val catalog = FakeMainModelCatalog(global = "m1", options = listOf(MainModelOption(choice, "组", group = true)),
+            labels = mapOf(choice to "组"), allowed = setOf(choice))
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store,
+            parallelFlag = { true }, mainModels = catalog).also { runCurrent() }
+        vm.newConversation()
+        val id = vm.ui.value.conversationId!!
+        assertFalse(store.exists(id))
+
+        vm.chooseMainModel(choice)
+        assertFalse(java.io.File(dir, "$id.settings.json").exists())
+        assertTrue(vm.send("第一句话", ok))
+        assertEquals(choice, store.settings(id).main)
+    }
+
+    @Test fun unavailableChoiceIsRetainedWhileChipShowsGlobalFallback() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val id = store.newConversation()
+        store.append(id, Turn("一", "甲", "succeeded"))
+        val gone = ModelChoice.Model("gone")
+        store.setSettings(id, com.wangzan101.mika.chat.ConversationSettings(gone))
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store,
+            mainModels = FakeMainModelCatalog(global = "m1")).also { runCurrent() }
+
+        vm.openConversation(id)
+        runCurrent()
+        assertTrue(vm.ui.value.mainModel.fallback)
+        assertEquals("m1", vm.ui.value.mainModel.label)
+        assertEquals(gone, vm.ui.value.mainModel.override)
+        assertEquals(gone, store.settings(id).main)
+    }
+
+    @Test fun catalogChangesRefreshChipWithoutChangingStoredChoice() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val catalog = FakeMainModelCatalog(global = "m1")
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store, mainModels = catalog).also { runCurrent() }
+        assertEquals("m1", vm.ui.value.mainModel.label)
+
+        catalog.global = "m3"
+        catalog.changes.emit(Unit)
+        runCurrent()
+        assertEquals("m3", vm.ui.value.mainModel.label)
+        assertNull(vm.ui.value.mainModel.override)
+    }
+
+    @Test fun switchingConversationsDoesNotCarryPendingChoice() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val choice = ModelChoice.Model("cfg-2")
+        val catalog = FakeMainModelCatalog(global = "m1", labels = mapOf(choice to "m2"), allowed = setOf(choice))
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store, mainModels = catalog).also { runCurrent() }
+        vm.chooseMainModel(choice)
+        vm.newConversation()
+        assertNull(vm.ui.value.mainModel.override)
+        assertEquals("m1", vm.ui.value.mainModel.label)
+        assertTrue(vm.send("跟随全局", ok))
+        assertNull(store.settings(vm.ui.value.conversationId!!).main)
+    }
+
+    @Test fun abandonedUnnumberedChoiceDoesNotReturnAfterOpeningExistingAndStartingNew() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val existing = store.newConversation()
+        store.append(existing, Turn("已有", "回答", "succeeded"))
+        val choice = ModelChoice.Model("cfg-2")
+        val catalog = FakeMainModelCatalog(global = "m1", labels = mapOf(choice to "m2"), allowed = setOf(choice))
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store, mainModels = catalog).also { runCurrent() }
+
+        vm.chooseMainModel(choice)
+        vm.openConversation(existing)
+        vm.newConversation()
+
+        assertNull(vm.ui.value.conversationId)
+        assertNull(vm.ui.value.mainModel.override)
+        assertEquals("m1", vm.ui.value.mainModel.label)
+        assertTrue(vm.send("跟随全局", ok))
+        assertNull(store.settings(vm.ui.value.conversationId!!).main)
+    }
+
+    @Test fun assignedDraftChoiceDoesNotLeakIntoAnotherConversation() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val existing = store.newConversation()
+        store.append(existing, Turn("已有", "回答", "succeeded"))
+        val choice = ModelChoice.Model("cfg-2")
+        val catalog = FakeMainModelCatalog(global = "m1", labels = mapOf(choice to "m2"), allowed = setOf(choice))
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, store,
+            parallelFlag = { true }, mainModels = catalog).also { runCurrent() }
+
+        vm.chooseMainModel(choice)
+        val draft = vm.claimConversation()
+        vm.openConversation(existing)
+        assertTrue(vm.send("不动旧对话", ok))
+
+        assertNull(store.settings(existing).main)
+        assertFalse(java.io.File(tmp.root, "$draft.settings.json").exists())
+    }
+}
+
+private class FakeMainModelCatalog(
+    var global: String? = null,
+    private val options: List<MainModelOption> = emptyList(),
+    private val labels: Map<ModelChoice, String> = emptyMap(),
+    private val allowed: Set<ModelChoice> = emptySet(),
+) : MainModelCatalog {
+    override val changes = MutableSharedFlow<Unit>()
+    override fun options(): List<MainModelOption> = options
+    override fun usable(choice: ModelChoice?): ModelChoice? = choice?.takeIf { it in allowed }
+    override fun label(choice: ModelChoice): String? = labels[choice]
+    override fun globalLabel(): String? = global
+    override fun isGroup(choice: ModelChoice): Boolean = choice is ModelChoice.Group
 }

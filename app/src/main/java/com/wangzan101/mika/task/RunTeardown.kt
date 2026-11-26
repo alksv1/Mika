@@ -21,7 +21,6 @@ import com.wangzan101.mika.core.learn.memory.MemoryStore
 import com.wangzan101.mika.core.learn.memory.TaskMemoryRecorder
 import com.wangzan101.mika.core.learn.memory.UserUtterances
 import com.wangzan101.mika.core.model.ChatModel
-import com.wangzan101.mika.core.model.ModelSession
 import com.wangzan101.mika.core.proactive.NoticeRuns
 import com.wangzan101.mika.core.run.record.RunEvent
 import com.wangzan101.mika.core.learn.replay.RouteRecorder
@@ -59,8 +58,8 @@ internal class RunTeardown(
     private val state: TaskRunState,
     private val kit: () -> LearnKit?,
     private val env: TaskEnvironment,
-    private val session: ModelSession,
     private val memoryRuntime: MemoryRuntime,
+    private val snapshot: () -> TaskModelSnapshot?,
     private val routeStore: FileRouteStore,
     private val workflowAttemptId: () -> String?,
     private val noticeTainted: () -> Boolean,
@@ -98,10 +97,8 @@ internal class RunTeardown(
         val recorded = withContext(Dispatchers.IO) { runId?.let { id -> runCatching { k?.runStore?.events(id) }.getOrNull() } }
         val events = recorded?.takeIf { e -> e.any { it is RunEvent.Activity } } ?: synchronized(state.activityLog) { state.activityLog.toList() }
         if (!StopSummary.worthSaying(events, draft)) return null
-        // 还没开出模型就停下的(准备阶段):按设置现取
-        val (main, light) = if (k != null) k.model to k.light else withContext(Dispatchers.IO) {
-            runCatching { env.modelFactory(service, session) }.getOrNull() to runCatching { env.lightModelFactory(service, session) }.getOrNull()
-        }
+        // 还没完成装配就停下的也用开局快照，绝不在收尾时重读已经改变的设置。
+        val (main, light) = if (k != null) k.model to k.light else snapshot()?.let { it.main to it.light } ?: (null to null)
         val lang = com.wangzan101.mika.i18n.AppLanguage.resolved(service).tag
         val labels = ToolLabels(knownTools())
         return StopSummary(light ?: main, main, language = lang).summarize(k?.agent?.taskText ?: goal, events, draft, labels::label) {
