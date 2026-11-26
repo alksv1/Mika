@@ -254,7 +254,7 @@ internal fun FileLibraryScreen(
         selecting = false
         selectedList = emptyList()
     }
-    BackHandler { if (selecting && !working) exitSelection() else onBack() }
+    BackHandler(enabled = selecting || working) { if (selecting && !working) exitSelection() }
     fun add(item: LibraryRow, id: String) {
         scope.launch {
             working = true

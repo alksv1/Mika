@@ -4,7 +4,6 @@ import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.i18n.trPlural
 import android.content.Context
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -69,7 +68,6 @@ import com.wangzan101.mika.settings.ui.models.refresh
  */
 @Composable
 fun PlansScreen(context: Context, onBack: () -> Unit, onOpenConversation: (String) -> Unit) {
-    BackHandler(onBack = onBack)
     var snapshot by remember { mutableStateOf(TriggerRuntime.snapshot(context)) }
     var creating by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<TriggerDefinition?>(null) }

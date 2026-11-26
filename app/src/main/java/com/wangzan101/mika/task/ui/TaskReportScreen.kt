@@ -1,6 +1,5 @@
 package com.wangzan101.mika.task.ui
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -65,7 +64,6 @@ internal fun rememberReport(vm: TaskReportViewModel): Pair<Boolean, TaskReport?>
 
 @Composable
 fun TaskReportScreen(vm: TaskReportViewModel, onBack: () -> Unit, onReplay: (Int?) -> Unit, onTimeline: () -> Unit) {
-    BackHandler(onBack = onBack)
     val (loaded, report) = rememberReport(vm)
     val c = MikaTheme.colors
     PageBackground {

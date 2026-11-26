@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import android.graphics.BitmapFactory
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -55,7 +54,6 @@ import com.wangzan101.mika.ui.theme.MikaShapes
 /** 一次答复的来源:每条是「第几步 · 在哪 · 标题」,下面是当时的画面;没有画面的(后台读的网页正文、文件、命令输出)是摘录原文。 */
 @Composable
 fun SourceScreen(vm: SourceViewModel, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
     val ui by produceState<SourceUi?>(null, vm) { value = withContext(Dispatchers.IO) { vm.load() } }
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val c = MikaTheme.colors

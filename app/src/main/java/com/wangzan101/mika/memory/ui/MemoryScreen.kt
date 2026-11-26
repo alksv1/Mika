@@ -7,7 +7,6 @@ import com.wangzan101.mika.i18n.uiLocale
 import androidx.compose.ui.res.stringResource
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import com.wangzan101.mika.ui.components.KeyboardDismissArea
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.snap
@@ -89,7 +88,7 @@ private val SEGMENT_TAGS = Segment.entries.map { "segment-${it.name}" }
 private val KIND_GROUPS get() = listOf(MemoryKind.fact to tr(R.string.memory_about_you), MemoryKind.preference to tr(R.string.memory_preferences), MemoryKind.procedure to tr(R.string.memory_procedures))
 private val KIND_NAMES get() = listOf(tr(R.string.memory_fact), tr(R.string.memory_preferences), tr(R.string.memory_procedures))
 
-private enum class MemoryDataPage { Home, WebSites, Routes }
+private enum class MemoryDataPage { Home, WebSites, Routes, SkillMarket }
 
 /** 记忆和个人技能的首次加载会读盘解密。 */
 @Composable
@@ -111,7 +110,7 @@ internal fun rememberMemoryViewModel(runtime: MemoryRuntime): State<MemoryViewMo
     }
 }
 
-/** 记忆与数据:保留原来的记忆 / 技能 / 待确认主页,网站登录和操作路线从这里各进一层。 */
+/** 记忆与数据:保留原来的记忆 / 技能 / 待确认主页,网站登录、操作路线和技能市场从这里各进一层。 */
 @Composable
 fun MemoryDataScreen(
     vm: MemoryViewModel,
@@ -133,9 +132,11 @@ fun MemoryDataScreen(
                 vm, onBack,
                 webSitesCount = webSites.sites.size, onOpenWebSites = { page = MemoryDataPage.WebSites },
                 routes = routes, onOpenRoutes = { page = MemoryDataPage.Routes },
+                onOpenMarket = { page = MemoryDataPage.SkillMarket },
             )
             MemoryDataPage.WebSites -> WebSitesScreen(webSites, onBack = toHome)
             MemoryDataPage.Routes -> RoutesScreen(routes, onClear = onClearRoutes, onBack = toHome)
+            MemoryDataPage.SkillMarket -> SkillMarketScreen(onBack = toHome, onImport = vm::importSkill)
         }
     }
 }
@@ -149,10 +150,10 @@ fun MemoryScreen(
     onOpenWebSites: () -> Unit = {},
     routes: Int? = null,
     onOpenRoutes: () -> Unit = {},
+    onOpenMarket: (() -> Unit)? = null,
 ) {
-    BackHandler(onBack = onBack)
     var market by rememberSaveable { mutableStateOf(false) }
-    if (market) {
+    if (onOpenMarket == null && market) {
         SkillMarketScreen(onBack = { market = false }, onImport = vm::importSkill)
         return
     }
@@ -206,7 +207,7 @@ fun MemoryScreen(
         Column(Modifier.fillMaxWidth()) {
         when (segment) {
             Segment.Memories -> MemoryEntries(vm, ui)
-            Segment.Skills -> SkillsSection(vm, ui.skills, pending = false, onMarket = { market = true })
+            Segment.Skills -> SkillsSection(vm, ui.skills, pending = false, onMarket = { onOpenMarket?.invoke() ?: run { market = true } })
             Segment.Pending -> {
                 if (ui.pendingCount == 0) {
                     GroupLabel("")

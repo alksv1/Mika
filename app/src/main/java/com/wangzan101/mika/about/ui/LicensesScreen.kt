@@ -2,7 +2,6 @@ package com.wangzan101.mika.about.ui
 
 import com.wangzan101.mika.R
 import androidx.compose.ui.res.stringResource
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -85,7 +84,6 @@ object Licenses {
  */
 @Composable
 fun LicensesScreen(onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
     val context = LocalContext.current
     val licenseText = remember {
         runCatching { context.assets.open(LICENSE_ASSET).use { it.readBytes().decodeToString() } }.getOrDefault("")

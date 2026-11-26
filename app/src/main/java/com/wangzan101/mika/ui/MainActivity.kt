@@ -682,8 +682,13 @@ private fun MikaRoot(
     val phoneSetupNeed by phoneSetup.needed.collectAsState()
     // 页面有自己的返回处理时(设置页里的子页、侧栏)由它们先接;全局返回与预测性返回交给外层 NavSlide
     val back: () -> Unit = { nav.back() }
-    // 聊天页离开组合树时保留列表位置和输入内容，返回设置页等子页面后原样恢复。
+    // 聊天页、设置页离开组合树时保留列表位置和输入内容，从子页面返回后原样恢复。
     val screenStates = rememberSaveableStateHolder()
+    LaunchedEffect(nav.stack) {
+        if (Route.Settings !in nav.stack) {
+            screenStates.removeState(Route.Settings.name)
+        }
+    }
     val sidebarPage = nav.current in setOf(Route.Chat, Route.Personal, Route.Plans, Route.Memory, Route.Browser)
     // 通话页不在最上面时,顶上一条「通话中 · 回到通话」;下面的页面从它下面开始
     val liveCall = voiceCall.liveCall()
@@ -794,7 +799,7 @@ private fun MikaRoot(
                     }
                 }
         }
-        Route.Settings -> {
+        Route.Settings -> screenStates.SaveableStateProvider(route.name) {
             val autonomous by app.approvals.autonomous.collectAsState()
             // 设置用简约列表:浅灰页面、纯白分组、图标不垫底块
             com.wangzan101.mika.ui.components.PlainListTheme { SettingsScreen(store, status, release, onFix, onBack = back, onOpenMemory = { nav.push(Route.Memory) },
@@ -868,6 +873,9 @@ private fun MikaRoot(
             opened
         }) }
         Route.Memory -> com.wangzan101.mika.ui.components.PlainListTheme {
+            DisposableEffect(Unit) {
+                onDispose { memoryRuntime.requestOpen(null) }
+            }
             val registry = remember { WebSites.registry(context) }
             val sites by registry.entries.collectAsState()
             val webSites = WebSitesState(
@@ -896,7 +904,14 @@ private fun MikaRoot(
                     )
                 }
             }
-            vm?.let { m ->
+            val m = vm
+            if (m == null) {
+                // 首次读盘解密期间先画同骨架底板,让 NavSlide 推入动画从第一帧就完整滑入,不闪空白。
+                com.wangzan101.mika.ui.components.SubPage(
+                    androidx.compose.ui.res.stringResource(R.string.settings_memory_data),
+                    onBack = { memoryRuntime.requestOpen(null); nav.back() },
+                ) {}
+            } else {
                 // 从结果卡片的「看看」进来:直接看技能分段
                 LaunchedEffect(m) {
                     val open = memoryRuntime.openRequest.value

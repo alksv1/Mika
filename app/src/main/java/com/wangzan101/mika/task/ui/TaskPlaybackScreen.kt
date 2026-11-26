@@ -1,7 +1,6 @@
 package com.wangzan101.mika.task.ui
 
 import android.graphics.BitmapFactory
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -63,7 +62,6 @@ private fun stepLabel(step: PlaybackStep): String {
 
 @Composable
 fun TaskPlaybackScreen(vm: TaskReportViewModel, initialScreenshotId: Int?, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
     val (loaded, report) = rememberReport(vm)
     val c = MikaTheme.colors
     var position by rememberSaveable(vm.runId, initialScreenshotId) { mutableIntStateOf(-1) }

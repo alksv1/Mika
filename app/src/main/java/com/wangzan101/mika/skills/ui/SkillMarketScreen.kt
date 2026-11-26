@@ -40,7 +40,7 @@ internal fun SkillMarketScreen(onBack: () -> Unit, onImport: (String) -> String?
     var refresh by remember { mutableIntStateOf(0) }
     val entry = selected
     val back = { if (selected != null) selected = null else onBack() }
-    BackHandler(onBack = back)
+    BackHandler(enabled = selected != null) { selected = null }
 
     // Keep the list and filter while reading a skill. Changing source discards both requests and previews.
     val index = key(repo, refresh) { marketLoad { market.list(repo) } }

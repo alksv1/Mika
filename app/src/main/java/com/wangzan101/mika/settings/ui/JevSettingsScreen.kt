@@ -1,6 +1,5 @@
 package com.wangzan101.mika.settings.ui
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -81,7 +80,6 @@ fun JevSettingsScreen(settings: DecisionSettings, onBack: () -> Unit) {
     var preset by remember(settings) { mutableStateOf(JevPreset.of(config)) }
     var busy by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<Int?>(null) }
-    BackHandler(onBack = onBack)
 
     fun edit(next: DecisionConfig) {
         if (!busy) {

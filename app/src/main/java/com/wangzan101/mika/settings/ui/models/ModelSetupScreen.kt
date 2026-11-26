@@ -186,10 +186,21 @@ fun ModelSetupScreen(
     // 换页动画期间旧页还在渲染:服务商刚删掉时详情页也能从缓存里拿到数据画完退出
     var heldProviders by remember { mutableStateOf(ui.providers) }
     if (ui.providers.isNotEmpty()) heldProviders = ui.providers
-    NavSlide(subPage, depth = { it.depth }) { page ->
+    val popSubPage: (() -> Unit)? = when (subPage) {
+        is ModelSubPage.AddProvider -> vm::closeForm
+        is ModelSubPage.Decision -> ({ openDecision = false })
+        is ModelSubPage.AllModels -> ({ allModels = false })
+        is ModelSubPage.Detail -> ({ openProvider = null })
+        is ModelSubPage.Groups -> ({ groupsOpen = false })
+        is ModelSubPage.GroupEdit -> ({ groupEditing = null })
+        is ModelSubPage.Providers -> ({ showProviders = false })
+        is ModelSubPage.FallbackPick -> ({ pickingFallbackSlot = null; pickingFallbackRole = null })
+        is ModelSubPage.RolePick -> ({ picking = null })
+        is ModelSubPage.Main -> null
+    }
+    NavSlide(subPage, depth = { it.depth }, canGoBack = popSubPage != null, onBack = popSubPage) { page ->
     when (page) {
         is ModelSubPage.AddProvider -> {
-            BackHandler(onBack = vm::closeForm)
             Page(ModelsCopy.ADD_PROVIDER, onBack = vm::closeForm) {
                 AddProviderForm(ui, actions, standalone = true)
             }
@@ -231,16 +242,13 @@ fun ModelSetupScreen(
                     setDailyBudget = { vm.setDailyTokenBudget(p.id, it) },
                 )
                 if (page is ModelSubPage.AllModels) {
-                    BackHandler { allModels = false }
                     AllModelsContent(ui, p, detailActions, onBack = { allModels = false })
                 } else {
-                    BackHandler { openProvider = null }
                     ProviderDetailContent(ui, p, detailActions, onBack = { openProvider = null })
                 }
             }
         }
         is ModelSubPage.Groups -> {
-            BackHandler { groupsOpen = false }
             ModelGroupsScreen(
                 ui, onBack = { groupsOpen = false },
                 onNew = { groupEditing = "" },
@@ -248,7 +256,6 @@ fun ModelSetupScreen(
             )
         }
         is ModelSubPage.GroupEdit -> {
-            BackHandler { groupEditing = null }
             ModelGroupEditorScreen(
                 ui, page.id.takeIf { it.isNotEmpty() },
                 onBack = { groupEditing = null },
@@ -259,7 +266,6 @@ fun ModelSetupScreen(
             )
         }
         is ModelSubPage.Providers -> {
-            BackHandler { showProviders = false }
             Page(ModelsCopy.PROVIDERS, onBack = { showProviders = false }) {
                 ProvidersSection(ui, actions)
                 // 各服务商的当前额度跟着服务商走,不放在 Token 用量页
@@ -269,7 +275,6 @@ fun ModelSetupScreen(
         is ModelSubPage.FallbackPick -> {
             val role = page.role
             val slot = page.slot
-            BackHandler { pickingFallbackSlot = null; pickingFallbackRole = null }
             LaunchedEffect(role, slot) { vm.ensureListed(); vm.clearManualPick() }
             RolePickerContent(
                 ui, role,
@@ -305,7 +310,6 @@ fun ModelSetupScreen(
         }
         is ModelSubPage.RolePick -> {
             val role = page.role
-            BackHandler { picking = null }
             LaunchedEffect(role) { vm.ensureListed(); vm.clearManualPick() }
             RolePickerContent(
                 ui, role,
@@ -322,7 +326,7 @@ fun ModelSetupScreen(
         }
         is ModelSubPage.Main -> {
             if (ui.chatGptWelcome) ChatGptWelcome(vm::dismissChatGptWelcome)
-            BackHandler(onBack = onBack)
+            BackHandler(enabled = onboarding, onBack = onBack)
             ModelSetupContent(ui, onboarding, actions, voiceChoice = voiceChoice, readAloudOn = voiceState?.enabled ?: false,
                 liveVoiceCatalog = liveVoiceCatalog, onBack = onBack)
         }

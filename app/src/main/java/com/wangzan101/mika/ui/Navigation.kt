@@ -143,18 +143,21 @@ class NavStack(initial: List<Route> = listOf(Route.Chat), fromDrawer: Boolean = 
 fun rememberNavStack(first: Route = Route.Chat): NavStack =
     rememberSaveable(saver = NavStack.Saver) { NavStack(listOf(first)) }
 
-/** 页面切换的动效参数:视差比例(底层页挪四分之一)及预测性返回交接参数。 */
+/** 页面切换的动效参数:视差比例(底层页挪四分之一)及统一退场交接参数。 */
 private object NavAnim {
     const val PARALLAX = 4
+    const val PUSH_MS = 280
+    const val POP_EXIT_MS = 220
+    const val POP_ENTER_MS = 240
     /** 预测性返回拖动时的最大水平偏移占屏宽比例。 */
     const val BACK_DRAG_SHIFT = 0.08f
     /** 预测性返回拖动时的最大缩放收缩量(最多缩至 0.94)。 */
     const val BACK_DRAG_SCALE = 0.06f
     /** 预测性返回松手后在拖动方向继续滑出的额外距离比例。 */
-    const val BACK_EXIT_SHIFT = 0.30f
-    const val BACK_COMMIT_EXIT_MS = 210
-    const val BACK_COMMIT_FADE_MS = 170
-    const val BACK_COMMIT_ENTER_MS = 240
+    const val BACK_EXIT_SHIFT = 0.34f
+    const val BACK_COMMIT_EXIT_MS = 200
+    const val BACK_COMMIT_FADE_MS = 160
+    const val BACK_COMMIT_ENTER_MS = 220
 }
 
 /** 预测性返回松手瞬间冻结的姿态:让退场页从手指松开的位置顺势离场,不再先弹回原位。 */
@@ -193,14 +196,16 @@ fun <T> NavSlide(
     }
     PredictiveBackHandler(enabled = !reduce && backEnabled) { progress ->
         val cancelSpring = spring<Float>(dampingRatio = 0.92f, stiffness = 520f)
+        var receivedDragEvent = false
         try {
             progress.collect { event ->
+                receivedDragEvent = true
                 backPhysicalSign = if (event.swipeEdge == BackEventCompat.EDGE_RIGHT) -1f else 1f
                 backProgress.snapTo(event.progress)
             }
             val p = backProgress.value.coerceIn(0f, 1f)
             val committedFrom = latestTargetState.value
-            val pose = if (p > 0.01f) PredictiveBackPose(p, backPhysicalSign) else null
+            val pose = if (receivedDragEvent || p > 0.01f) PredictiveBackPose(p, backPhysicalSign) else null
             if (pose != null) frozenBack[committedFrom] = pose
             latestOnBack?.invoke()
             backProgress.snapTo(0f)
@@ -210,7 +215,8 @@ fun <T> NavSlide(
                     withFrameNanos { }
                     if (latestTargetState.value == committedFrom &&
                         frozenBack.remove(committedFrom) != null &&
-                        backProgress.value == 0f
+                        backProgress.value == 0f &&
+                        pose.progress > 0f
                     ) {
                         backProgress.snapTo(pose.progress)
                         backProgress.animateTo(0f, cancelSpring)
@@ -239,12 +245,12 @@ fun <T> NavSlide(
             if (reduce) {
                 fadeIn(snap()) togetherWith fadeOut(snap())
             } else {
-                val slide = MikaMotion.spatialOffset(false)
-                val underFade = tween<Float>(240, easing = MikaMotion.EmphasizedDecelerate)
-                val underScale = tween<Float>(280, easing = MikaMotion.EmphasizedDecelerate)
+                val pushMove = tween<IntOffset>(NavAnim.PUSH_MS, easing = MikaMotion.EmphasizedDecelerate)
+                val underFade = tween<Float>(220, easing = MikaMotion.EmphasizedDecelerate)
+                val underScale = tween<Float>(NavAnim.PUSH_MS, easing = MikaMotion.EmphasizedDecelerate)
                 if (depth(targetState) >= depth(initialState)) {
-                    (slideInHorizontally(slide) { it } togetherWith
-                        (slideOutHorizontally(slide) { -it / NavAnim.PARALLAX } +
+                    (slideInHorizontally(pushMove) { it } togetherWith
+                        (slideOutHorizontally(pushMove) { -it / NavAnim.PARALLAX } +
                             scaleOut(underScale, targetScale = 0.96f) +
                             fadeOut(underFade, targetAlpha = 0.78f)))
                         .apply { targetContentZIndex = nextZ }
@@ -258,7 +264,7 @@ fun <T> NavSlide(
                         val exitFade = tween<Float>(NavAnim.BACK_COMMIT_FADE_MS, easing = MikaMotion.Decelerate)
                         val enterMove = tween<IntOffset>(NavAnim.BACK_COMMIT_ENTER_MS, easing = MikaMotion.EmphasizedDecelerate)
                         val enterScale = tween<Float>(NavAnim.BACK_COMMIT_ENTER_MS, easing = MikaMotion.EmphasizedDecelerate)
-                        val enterFade = tween<Float>(200, easing = MikaMotion.EmphasizedDecelerate)
+                        val enterFade = tween<Float>(180, easing = MikaMotion.EmphasizedDecelerate)
                         ((slideInHorizontally(enterMove) { (-layoutSign * it / 8f).roundToInt() } +
                             scaleIn(enterScale, initialScale = 0.96f) +
                             fadeIn(enterFade, initialAlpha = 0.72f)) togetherWith
@@ -267,10 +273,14 @@ fun <T> NavSlide(
                                 fadeOut(exitFade)))
                             .apply { targetContentZIndex = nextZ }
                     } else {
-                        ((slideInHorizontally(slide) { -it / NavAnim.PARALLAX } +
-                            scaleIn(underScale, initialScale = 0.96f) +
-                            fadeIn(underFade, initialAlpha = 0.78f)) togetherWith
-                            slideOutHorizontally(slide) { it })
+                        val popExit = tween<IntOffset>(NavAnim.POP_EXIT_MS, easing = MikaMotion.Decelerate)
+                        val popEnter = tween<IntOffset>(NavAnim.POP_ENTER_MS, easing = MikaMotion.EmphasizedDecelerate)
+                        val popEnterScale = tween<Float>(NavAnim.POP_ENTER_MS, easing = MikaMotion.EmphasizedDecelerate)
+                        val popEnterFade = tween<Float>(200, easing = MikaMotion.EmphasizedDecelerate)
+                        ((slideInHorizontally(popEnter) { -it / NavAnim.PARALLAX } +
+                            scaleIn(popEnterScale, initialScale = 0.96f) +
+                            fadeIn(popEnterFade, initialAlpha = 0.78f)) togetherWith
+                            slideOutHorizontally(popExit) { it })
                             .apply { targetContentZIndex = nextZ }
                     }
                 }
@@ -293,7 +303,7 @@ fun <T> NavSlide(
                     scaleY = s
                     shape = RoundedCornerShape(24.dp * p)
                     clip = true
-                    shadowElevation = 12.dp.toPx() * p
+                    shadowElevation = if (pose == null) 8.dp.toPx() * p else 0f
                 }
             },
         ) {

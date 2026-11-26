@@ -6,7 +6,6 @@ import androidx.compose.ui.res.stringResource
 import android.content.ActivityNotFoundException
 import android.graphics.BitmapFactory
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.compose.foundation.Image
@@ -90,7 +89,6 @@ private const val LIVE_REFRESH_MS = 1_000L
 
 @Composable
 fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
     // 还在跑就每秒再读一次运行记录(不自动滚到底:用户翻到哪就停在哪)
     val ui by produceState<TimelineUi>(TimelineUi.Loading, vm) {
         while (true) {
