@@ -63,8 +63,8 @@ data class RequestComposition(
                                                 runtime += size
                                             }
                                         }
-                                        part.text.startsWith("[update] ") -> runtime += size
-                                        part.text.startsWith("[") && " result arrived] " in part.text -> toolsAndMedia += size
+                                        part.text.startsWith(LlmBrain.UPDATE_PREFIX) -> runtime += size
+                                        LlmBrain.isLateResultNote(part.text) -> toolsAndMedia += size
                                         else -> dialogue += size
                                     }
                                 }
