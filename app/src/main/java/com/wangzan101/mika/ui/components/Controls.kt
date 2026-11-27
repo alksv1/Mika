@@ -190,7 +190,7 @@ fun SegmentedControl(
         options.forEachIndexed { i, label ->
             val on = i == selected
             Box(
-                Modifier.weight(1f).heightIn(min = 32.dp)
+                Modifier.weight(1f).height(32.dp)
                     .then(
                         if (on) Modifier.shadow(1.dp, SegmentInner, clip = false, ambientColor = c.cardShadow, spotColor = c.cardShadow)
                             .background(c.surface, SegmentInner)
@@ -198,7 +198,7 @@ fun SegmentedControl(
                     )
                     .clip(SegmentInner)
                     .selectable(on, role = Role.Tab) { onSelect(i) }
-                    .padding(horizontal = 4.dp, vertical = 5.dp)
+                    .padding(horizontal = 4.dp)
                     .then(if (tags != null) Modifier.testTag(tags[i]) else Modifier),
                 contentAlignment = Alignment.Center,
             ) {

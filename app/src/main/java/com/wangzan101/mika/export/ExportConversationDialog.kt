@@ -82,6 +82,7 @@ import com.wangzan101.mika.ui.components.CapabilityTag
 import com.wangzan101.mika.ui.components.Hairline
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaDialog
+import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.SegmentedControl
 import com.wangzan101.mika.ui.theme.MikaIcons
@@ -355,12 +356,12 @@ internal fun ExportConversationDialog(
                         item(key = "options") {
                             Spacer(Modifier.height(14.dp))
                             Column(Modifier.fillMaxWidth().clip(MikaShapes.Card).background(c.fill)) {
-                                ExportOptionRow(stringResource(R.string.export_include_tool_steps), toolSteps, first = true) { toolSteps = it }
-                                ExportOptionRow(stringResource(R.string.export_include_attachments), attachments) { attachments = it }
-                                ExportOptionRow(stringResource(R.string.export_include_screens), screens) { screens = it }
-                                ExportOptionRow(stringResource(R.string.export_include_timestamps), timestamps) { timestamps = it }
-                                ExportOptionRow(stringResource(R.string.export_include_model), model) { model = it }
-                                ExportOptionRow(stringResource(R.string.export_redact_pii), pii) { pii = it }
+                                ListRow(null, stringResource(R.string.export_include_tool_steps), first = true, onClick = { toolSteps = !toolSteps }) { MikaSwitch(toolSteps, { toolSteps = it }) }
+                                ListRow(null, stringResource(R.string.export_include_attachments), first = false, onClick = { attachments = !attachments }) { MikaSwitch(attachments, { attachments = it }) }
+                                ListRow(null, stringResource(R.string.export_include_screens), first = false, onClick = { screens = !screens }) { MikaSwitch(screens, { screens = it }) }
+                                ListRow(null, stringResource(R.string.export_include_timestamps), first = false, onClick = { timestamps = !timestamps }) { MikaSwitch(timestamps, { timestamps = it }) }
+                                ListRow(null, stringResource(R.string.export_include_model), first = false, onClick = { model = !model }) { MikaSwitch(model, { model = it }) }
+                                ListRow(null, stringResource(R.string.export_redact_pii), first = false, onClick = { pii = !pii }) { MikaSwitch(pii, { pii = it }) }
                             }
                             if (bundle) {
                                 Spacer(Modifier.height(8.dp))
@@ -638,25 +639,6 @@ internal fun ExportPreviewDialog(preview: ExportPreview, onDismiss: () -> Unit) 
                 }
                 is ExportPreview.Html -> HtmlPreview(preview, Modifier.weight(1f).fillMaxWidth())
             }
-        }
-    }
-}
-
-@Composable
-private fun ExportOptionRow(label: String, checked: Boolean, first: Boolean = false, onChange: (Boolean) -> Unit) {
-    val c = MikaTheme.colors
-    Column(Modifier.fillMaxWidth()) {
-        if (!first) Hairline(start = 12.dp)
-        Row(
-            Modifier.fillMaxWidth()
-                .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(label, Modifier.weight(1f), style = MikaType.Body, color = c.ink)
-            MikaSwitch(checked = checked, onCheckedChange = null)
         }
     }
 }
