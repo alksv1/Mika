@@ -74,6 +74,7 @@ fun Modifier.settingsFocusTarget(id: String): Modifier {
     val requester = remember { BringIntoViewRequester() }
     var size by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
+    val reduceMotion = MikaTheme.reduceMotion
     LaunchedEffect(activeNonce) {
         if (activeNonce == 0L) return@LaunchedEffect
         // 等两帧,让首次测量和简约列表延后一帧展开的卡片脚注都排完版再滚
@@ -84,10 +85,17 @@ fun Modifier.settingsFocusTarget(id: String): Modifier {
             Rect(0f, -padPx, size.width.toFloat(), size.height.toFloat() + padPx)
         } else null
         requester.bringIntoView(rect)
-        highlight.snapTo(0f)
-        highlight.animateTo(1f, tween(durationMillis = 180, easing = FastOutSlowInEasing))
-        delay(650L)
-        highlight.animateTo(0f, tween(durationMillis = 600, easing = FastOutSlowInEasing))
+        if (reduceMotion) {
+            // 系统关了动画:直接亮起、停留后直接熄灭,不做淡入淡出
+            highlight.snapTo(1f)
+            delay(650L)
+            highlight.snapTo(0f)
+        } else {
+            highlight.snapTo(0f)
+            highlight.animateTo(1f, tween(durationMillis = 180, easing = FastOutSlowInEasing))
+            delay(650L)
+            highlight.animateTo(0f, tween(durationMillis = 600, easing = FastOutSlowInEasing))
+        }
     }
     val colors = MikaTheme.colors
     val peakAlpha = if (colors.isDark) 0.28f else 0.16f
