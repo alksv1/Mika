@@ -49,6 +49,14 @@ class CapsuleDockTest {
         assertEquals(400, CapsuleDocking.dragX(400, area, 200))
     }
 
+    @Test fun tuckedBallStartsAtThePhysicalEdge() {
+        // 从半圆拖出来的一颗贴着实边(看得见的从 0 起、到 1000 为止),之后从这儿跟手
+        assertEquals(-10, CapsuleDocking.tuckedX(DockSide.Left, area, 56))
+        assertEquals(1010 - 56, CapsuleDocking.tuckedX(DockSide.Right, area, 56))
+        assertEquals(-10, CapsuleDocking.dragX(CapsuleDocking.tuckedX(DockSide.Left, area, 56) - 400, area, 56))
+        assertEquals(1010 - 56, CapsuleDocking.dragX(CapsuleDocking.tuckedX(DockSide.Right, area, 56) + 400, area, 56))
+    }
+
     @Test fun releaseSnapsToTheNearestSide() {
         assertEquals(CapsuleDock(DockSide.Left, 0f), CapsuleDocking.release(250, 90, 200, 100, area))
         assertEquals(DockSide.Right, CapsuleDocking.release(450, 500, 200, 100, area).side)

@@ -72,6 +72,9 @@ import kotlinx.coroutines.launch
  * 发出、没听清、用不了时胶囊上闪一句([note])。面板在一颗那个窗口下面的另一个窗口里,不接触摸。
  * 卡片展开时才收那件事的画面(每秒至多 [PREVIEW_FPS] 张,没变不推)。平时是一颗图标,有事要说时展开成胶囊(模型定);
  * 可以拖,松手贴到最近的左边或右边;停的位置按边和高度比例记在 [FeatureFlags],转屏后按比例重新摆。
+ * 开了贴边自动隐藏([CapsuleEdge])时缩成贴边半圆:窗口**一直是一颗那么大**,只是整块挪到屏幕外只留 [SLIVER_DP],
+ * 换状态时只挪窗口、不改窗口尺寸(系统不会跑窗口缩放过渡)。收起先放收起动效([CapsuleOverlays]),点一下半圆照常
+ * 展开,只有**从半圆拖出来**这一下直接到位、从第一帧就跟手。
  * 卡片左右居中(对话卡片固定高,任务卡片按内容高、最多一样高),按着标题栏上下拖,上边的比例另记一份,换卡片时上边不动;
  * 对话卡片的来回从 [ConversationStore] 读(和对话页同一份),
  * 操作过的 App 从那一轮的运行记录([RunStore])里读。
@@ -190,6 +193,13 @@ class CapsuleController(
     /** 「你来处理」那一条的高度比例(只在这次运行里记着)。 */
     internal var barFraction = 0f
     internal var dragging = false
+    /** 这一次是从贴边半圆拖出来的:一颗直接到位(见 [CapsuleOverlay]),不走展开动效,从第一帧就跟手。 */
+    internal var revealInstant by mutableStateOf(false)
+    /** 正在放收起动效:这一颗正朝边上缩小淡出,播完([finishTuck])才换成贴边半圆。 */
+    internal var tucking by mutableStateOf(false)
+    /** 收起动效放完、窗口已经挪到屏幕外,等下一帧再换成半圆(这一帧画面上什么都没有,不闪)。 */
+    internal var tuckPending by mutableStateOf(false)
+    internal var tuckJob: Job? = null
     internal var dragStartX = 0
     internal var dragStartY = 0
     internal var placedY = 0
@@ -396,11 +406,18 @@ class CapsuleController(
             val a = area() ?: return
             resetTaps()
             snap?.cancel()
-            val wasHidden = edgeHidden
-            wake()
+            val wasHidden = edgeHidden || tuckPending
+            // 刚收起、还差一帧换半圆时抓住它:就当作已经藏起来了
+            tuckPending = false
+            // 先立起 dragging:紧接着的 wake() 里会 fade,那里看见正在拖就不再 place,窗口不先跳回停靠位。
+            // 从半圆拖出来这一下直接到位(拖动要跟手),点开、自动隐藏仍照常放动效
             dragging = true
-            // The revealed ball is 40dp plus its shadow room; its layout resize arrives next frame.
-            dragStartX = CapsuleDocking.dockedX(dock.side, a, if (wasHidden) dp(PILL_DP) else w.width)
+            revealInstant = wasHidden
+            wake()
+            // 窗口一直是能拖的那颗那么大(藏起来时也一样,见 [CapsuleEdge.tuckedOffset]):
+            // 拖出来只是挪位置、不改窗口尺寸,系统不会跑缩放过渡,从第一帧就跟手
+            dragStartX = if (wasHidden) CapsuleDocking.tuckedX(dock.side, a, w.width)
+                else CapsuleDocking.dockedX(dock.side, a, w.width)
             dragStartY = placedY
         }
 
@@ -418,9 +435,11 @@ class CapsuleController(
             val a = area()
             if (!dragging || w == null || a == null) {
                 dragging = false
+                revealInstant = false
                 return
             }
             dragging = false
+            revealInstant = false
             val y = CapsuleDocking.fitY(dragStartY + dy.toInt(), a, w.height)
             if (isBar()) {
                 barFraction = CapsuleDocking.fraction(y, a, dp(BAR_DP))
@@ -532,8 +551,17 @@ class CapsuleController(
         const val TOP_GAP_DP = 8
         /** 胶囊、那一条连同阴影边的窗口高度(按比例摆高度时用)。 */
         const val PILL_DP = 40 + 16
+        /**
+         * 一颗(圆形图标)连同四周阴影边的窗口宽高:胶囊窗口平时就是这个大小,**藏起来时也不变小**,
+         * 只是整块挪到屏幕外只留 [SLIVER_DP];出来时窗口尺寸不变,系统不会跑缩放过渡,拖动第一帧就跟手。
+         */
+        const val BALL_DP = 40 + 16
+        /** 藏起来时露在屏幕边上的半圆宽度。 */
+        const val SLIVER_DP = 20
         const val BAR_DP = 48 + 16
         const val SNAP_MS = 220L
+        /** 收起动效放完后等下一帧才换半圆;超过这么久还没等到帧(浮层帧停了)就直接换。 */
+        const val TUCK_COMMIT_MS = 50L
 
         const val ROTATE_SETTLE_MS = 300L
         /**

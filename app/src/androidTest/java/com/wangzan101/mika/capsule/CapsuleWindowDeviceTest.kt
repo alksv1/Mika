@@ -152,9 +152,11 @@ class CapsuleWindowDeviceTest {
             val (initialHidden, initialAlpha) = readTuckState()
             assertTrue("capsule should appear tucked at edge without waiting 3s", initialHidden)
             assertEquals(CapsuleIdleOpacity.P40.alpha, initialAlpha, 0.001f)
-            val edgeBounds = pollUntil(5_000) { windowBounds(service) { it.contentDescription?.toString() == revealLabel } }
+            // 贴边半圆和一颗共用同一块窗口(整块在屏幕外,只露半圆),所以量的是半圆自己的节点,不是窗口
+            val edgeNode = pollUntil(5_000) { find(service, revealLabel) }
                 ?: error("edge capsule reveal node not found on appear")
-            assertTrue("edge window should be narrower than tall: $edgeBounds", edgeBounds.width() < edgeBounds.height())
+            val edgeBounds = android.graphics.Rect().also(edgeNode::getBoundsInScreen)
+            assertTrue("half-circle should be narrower than tall: $edgeBounds", edgeBounds.width() < edgeBounds.height())
             assertNull("full idle ball should not appear on start", find(service, CapsuleCopy.IDLE))
 
             assertTrue("edge capsule was not clickable", click(service, revealLabel))

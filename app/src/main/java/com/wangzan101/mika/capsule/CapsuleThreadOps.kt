@@ -1,5 +1,6 @@
 package com.wangzan101.mika.capsule
 
+import android.view.Choreographer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.wangzan101.mika.chat.ConversationStore
@@ -146,9 +147,20 @@ internal fun CapsuleController.fade() {
     fadeJob?.cancel()
     val v = view ?: return
     val idleFor = if (lastActive == 0L) CapsuleFade.IDLE_MS else (System.currentTimeMillis() - lastActive).coerceAtLeast(0L)
-    val before = edgeHidden
-    edgeHidden = CapsuleEdge.hidden(last?.hideAtEdge == true, v.kind, v.pill, v.needCount,
+    val wantHidden = CapsuleEdge.hidden(last?.hideAtEdge == true, v.kind, v.pill, v.needCount,
         expanded || capturing, dragging, talk.active, note != null, idleFor)
+    // 收起:先让一颗放一遍收起动效([OverlayMotion] 的 open=false),播完由 [finishTuck] 挪窗口、下一帧换半圆;
+    // 收起过程中又醒了(点它、拖它、来了新事项)就把动效放回去
+    if (tucking && !wantHidden) tucking = false
+    if (tuckPending && !wantHidden) {
+        // 刚好在换半圆之前那一帧醒了:窗口挪回停靠位,不换半圆
+        tuckJob?.cancel()
+        tuckPending = false
+        place()
+    }
+    val before = edgeHidden
+    if (!wantHidden && edgeHidden) edgeHidden = false
+    if (wantHidden && !edgeHidden && !tucking && !tuckPending) tucking = true
     alpha = if (expanded || dragging) 1f else CapsuleFade.alpha(v.kind, v.needCount, v.pill, idleFor, last?.opacity?.alpha ?: CapsuleIdleOpacity.DEFAULT.alpha)
     if (before != edgeHidden) {
         applyDrag()
@@ -158,6 +170,40 @@ internal fun CapsuleController.fade() {
         delay(CapsuleFade.IDLE_MS - idleFor)
         fade()
     }
+}
+
+/**
+ * 收起动效播完:一颗已经淡到看不见了。先把窗口挪到屏幕外(这一帧画面上什么都没有),
+ * **下一帧**才换成半圆([commitTuck]):半圆一出来就在实边上,不会先在停靠位闪一下。
+ * 窗口尺寸不变(半圆和一颗共用一块窗口,见 [CapsuleEdge.tuckedOffset])。
+ */
+internal fun CapsuleController.finishTuck() {
+    if (!tucking) return
+    tucking = false
+    tuckPending = true
+    place()
+    tuckJob?.cancel()
+    // 浮层收不到下一帧时也要换过去:不能一直停在"一颗已经淡没了、半圆还没出来"
+    tuckJob = scope.launch {
+        delay(CapsuleController.TUCK_COMMIT_MS)
+        commitTuck()
+    }
+    Choreographer.getInstance().postFrameCallback { commitTuck() }
+}
+
+/** [finishTuck] 之后的那一帧:窗口已经在屏幕外了,换成贴边半圆。 */
+internal fun CapsuleController.commitTuck() {
+    if (!tuckPending) return
+    tuckJob?.cancel()
+    if (dragging || view == null) {
+        tuckPending = false
+        place()
+        return
+    }
+    tuckPending = false
+    edgeHidden = true
+    applyDrag()
+    place()
 }
 
 /** 只给展开的那件事收画面;换了一件或收起就停。 */

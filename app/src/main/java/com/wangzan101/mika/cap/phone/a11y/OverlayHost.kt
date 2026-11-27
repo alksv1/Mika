@@ -151,6 +151,8 @@ class OverlayHost internal constructor(private val service: ScreenAccessibility)
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                // 允许窗口摆到屏幕外:贴边半圆把整块窗口挪出去只留半圆,不让系统把窗口夹回屏内
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
                 (if (touchable && !injectedGestures.isolated) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE) or
                 (if (secure) WindowManager.LayoutParams.FLAG_SECURE else 0),
             PixelFormat.TRANSLUCENT,

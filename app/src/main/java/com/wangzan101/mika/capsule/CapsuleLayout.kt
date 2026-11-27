@@ -10,6 +10,8 @@ import com.wangzan101.mika.ui.theme.animationsOff
 import com.wangzan101.mika.capsule.CapsuleController.Companion.EDGE_MARGIN_DP
 import com.wangzan101.mika.capsule.CapsuleController.Companion.TOP_GAP_DP
 import com.wangzan101.mika.capsule.CapsuleController.Companion.PILL_DP
+import com.wangzan101.mika.capsule.CapsuleController.Companion.BALL_DP
+import com.wangzan101.mika.capsule.CapsuleController.Companion.SLIVER_DP
 import com.wangzan101.mika.capsule.CapsuleController.Companion.BAR_DP
 import com.wangzan101.mika.capsule.CapsuleController.Companion.SNAP_MS
 
@@ -50,7 +52,10 @@ internal fun CapsuleController.place() {
     val natural = CapsuleDocking.fitY(CapsuleDocking.y(d.fraction, base, dp(PILL_DP)), base, h)
     placedY = CapsuleDocking.fitY(natural, a, h)
     val side = if (d.side == DockSide.Left) Gravity.LEFT else Gravity.RIGHT
-    val offset = if (edgeHidden) CapsuleEdge.offset(d.side, a, room()) else CapsuleDocking.edgeOffset(d.side, a)
+    // 藏起来时窗口还是一颗那么大,整块挪到屏幕外只留半圆(见 [CapsuleEdge.tuckedOffset]):换状态时窗口尺寸不变。
+    // [tuckPending]:收起动效刚放完、内容还是淡没了的一颗,窗口已经先挪过去,下一帧才换半圆
+    val offset = if (edgeHidden || tuckPending) CapsuleEdge.tuckedOffset(d.side, a, room(), dp(BALL_DP - SLIVER_DP))
+        else CapsuleDocking.edgeOffset(d.side, a)
     w.place(OverlayPlacement(Gravity.TOP or side, offset, placedY))
 }
 

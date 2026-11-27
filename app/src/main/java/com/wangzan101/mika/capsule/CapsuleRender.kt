@@ -137,6 +137,10 @@ internal fun CapsuleController.hide(clearLastLook: Boolean = false) {
     imeTop = null
     cardImeTop = null
     dragging = false
+    tucking = false
+    tuckJob?.cancel()
+    tuckPending = false
+    revealInstant = false
     edgeHidden = false
     talk.abort()
     talkIdle = null

@@ -205,9 +205,12 @@ fun CapsuleCard(
  */
 @Composable
 fun OverlayMotion(
-    open: Boolean, origin: (Size) -> TransformOrigin, onClosed: () -> Unit, onOpened: () -> Unit = {}, content: @Composable () -> Unit,
+    open: Boolean, origin: (Size) -> TransformOrigin, onClosed: () -> Unit, onOpened: () -> Unit = {},
+    /** 这一下直接到位、不动效:从贴边半圆出来的一颗要跟手,等它淡入、放大看着像卡住。 */
+    instant: Boolean = false,
+    content: @Composable () -> Unit,
 ) {
-    val still = MikaTheme.reduceMotion
+    val still = MikaTheme.reduceMotion || instant
     val shown = remember { Animatable(if (still) 1f else 0f) }
     val closed by rememberUpdatedState(onClosed)
     val opened by rememberUpdatedState(onOpened)

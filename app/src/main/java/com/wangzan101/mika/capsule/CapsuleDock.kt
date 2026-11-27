@@ -74,6 +74,12 @@ object CapsuleDocking {
     /** 停靠在 [side] 时窗口的左边。 */
     fun dockedX(side: DockSide, area: DockArea, w: Int): Int = if (side == DockSide.Left) area.left else area.right - w
 
+    /**
+     * 从贴边半圆拖出来的一颗从哪儿开始:看得见的一颗贴着半圆所在的那条实边,宽出来的部分全朝屏幕里长,
+     * 拖起来不先跳一下。[w] 是一颗的窗口宽(含四周阴影边)。
+     */
+    fun tuckedX(side: DockSide, area: DockArea, w: Int): Int = if (side == DockSide.Left) area.edgeLeft else area.edgeRight - w
+
     /** 停靠在 [side] 时离那条边的距离(窗口按左边或右边对齐时的 x)。 */
     fun edgeOffset(side: DockSide, area: DockArea): Int = if (side == DockSide.Left) area.left else area.width - area.right
 

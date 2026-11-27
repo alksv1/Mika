@@ -1,12 +1,17 @@
 package com.wangzan101.mika.capsule
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.TransformOrigin
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
@@ -69,17 +74,27 @@ internal fun CapsuleController.CapsuleOverlay() {
         else shown.copy(kind = n.kind, text = n.text, detail = null, count = 0, needCount = 0, pill = true, widthEpoch = -n.id)
     if (edgeHidden) {
         MikaTheme(reduceMotion = animationsOff(context)) {
-            CapsuleEdgeContent(dock.side, alpha) {
-                resetTaps()
-                wake()
-                place()
+            // 窗口和一颗一样大,藏起来时整块挪到屏幕外,只留下贴着实边的那 20dp 半圆:
+            // 换状态时窗口尺寸不变,系统就不会跑窗口缩放过渡(那会让胶囊先钉在边上、过一会儿才跟手)
+            Box(
+                Modifier.size(CapsuleController.BALL_DP.dp),
+                contentAlignment = if (dock.side == DockSide.Right) Alignment.CenterStart else Alignment.CenterEnd,
+            ) {
+                CapsuleEdgeContent(dock.side, alpha) {
+                    resetTaps()
+                    wake()
+                    place()
+                }
             }
         }
         return
     }
     val talking = talk.active && !talk.released
     MikaTheme(reduceMotion = animationsOff(context)) {
-        OverlayMotion(open = true, origin = { TransformOrigin(if (dock.side == DockSide.Right) 1f else 0f, 0.5f) }, onClosed = {}) {
+        // 收起时放收起动效,播完才换成贴边半圆([finishTuck]);[tuckPending] 那一帧也别把一颗再放出来。
+        // 从半圆拖出来这一下直接到位(instant)
+        OverlayMotion(open = !tucking && !tuckPending, origin = { TransformOrigin(if (dock.side == DockSide.Right) 1f else 0f, 0.5f) },
+            onClosed = { finishTuck() }, instant = revealInstant) {
             CapsuleContent(
                 v,
                 onTap = ::tapCapsule,

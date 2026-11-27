@@ -40,6 +40,18 @@ class CapsuleControlsTest {
         assertEquals(0, CapsuleEdge.offset(DockSide.Right, plain, 8))
     }
 
+    @Test fun tuckedWindowKeepsTheHalfCircleOnTheSafeEdge() {
+        // 窗口一直是一颗那么大(56),藏起来时整块往屏幕外挪出宽出来的 36,只留 20 的半圆贴在实边上
+        val area = DockArea.of(com.wangzan101.mika.cap.phone.a11y.OverlayArea(1000, 2000, insetLeft = 30, insetRight = 10), 12, 8, 8)
+        val extra = 56 - 20
+        // 左:窗口左边在 -6(屏幕外),看得见的半圆仍从实边 30 起
+        assertEquals(-6, CapsuleEdge.tuckedOffset(DockSide.Left, area, 8, extra))
+        assertEquals(30, CapsuleEdge.tuckedOffset(DockSide.Left, area, 8, extra) + extra)
+        // 右:窗口右边在 1026(屏幕外),看得见的半圆到实边 990 为止
+        assertEquals(-26, CapsuleEdge.tuckedOffset(DockSide.Right, area, 8, extra))
+        assertEquals(1000 - 10, 1000 - CapsuleEdge.tuckedOffset(DockSide.Right, area, 8, extra) - extra)
+    }
+
     @Test fun fullscreenNeedsHiddenStatusBarAndAFullWidthForegroundApp() {
         val full = CapsuleAppBounds(0, 0, 1080, 2400)
         assertTrue(CapsuleFullscreen.matches(1080, 2400, false, full))
