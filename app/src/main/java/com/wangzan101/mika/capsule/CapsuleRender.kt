@@ -80,7 +80,7 @@ internal fun CapsuleController.openWindows(service: ScreenAccessibility): Overla
     val overlays = service.overlays()
     // 面板先加,在一颗下面:按着说话时压暗的那层不盖住胶囊
     val panel = overlays.open(OverlayPlacement(Gravity.TOP or Gravity.LEFT), touchable = false) { VoicePanelOverlay() }
-    val ball = overlays.open(OverlayPlacement(Gravity.TOP or Gravity.RIGHT)) { CapsuleOverlay() }
+    val ball = overlays.open(OverlayPlacement(Gravity.TOP or Gravity.RIGHT), allowOffscreen = true) { CapsuleOverlay() }
     val cardW = ball?.let { overlays.open(OverlayPlacement(Gravity.TOP or Gravity.CENTER_HORIZONTAL), ::outside) { CardOverlay() } }
     if (ball == null || cardW == null) {
         ball?.close()

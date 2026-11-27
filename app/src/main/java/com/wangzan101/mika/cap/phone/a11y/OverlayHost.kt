@@ -126,6 +126,7 @@ class OverlayHost internal constructor(private val service: ScreenAccessibility)
     /**
      * 加一个包住内容大小的浮层窗口。平时不抢焦点、点不到的地方照常交给下面的 App;
      * [onOutside] 给了时,在窗口外面按下会通知它(收起卡片用)。[touchable] 为 false 时窗口只画、不接触摸(按在上面等于按在下面的 App 上)。
+     * [allowOffscreen] 为 true 时窗口可以摆到屏幕外、系统不再把它夹回屏内;只给确实要半露在屏外的窗口(胶囊贴边)用,其余浮层保留这层保护。
      * 加不上(服务已断开、系统不让)时返回 null,不抛错。
      */
     fun open(
@@ -133,6 +134,7 @@ class OverlayHost internal constructor(private val service: ScreenAccessibility)
         onOutside: (() -> Unit)? = null,
         touchable: Boolean = true,
         secure: Boolean = false,
+        allowOffscreen: Boolean = false,
         content: @Composable () -> Unit,
     ): OverlayWindow? {
         val owners = OverlayOwners()
@@ -151,8 +153,8 @@ class OverlayHost internal constructor(private val service: ScreenAccessibility)
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                // 允许窗口摆到屏幕外:贴边半圆把整块窗口挪出去只留半圆,不让系统把窗口夹回屏内
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                // 胶囊贴边时把整块窗口挪出去只留半圆,要系统别把它夹回屏内
+                (if (allowOffscreen) WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS else 0) or
                 (if (touchable && !injectedGestures.isolated) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE) or
                 (if (secure) WindowManager.LayoutParams.FLAG_SECURE else 0),
             PixelFormat.TRANSLUCENT,
