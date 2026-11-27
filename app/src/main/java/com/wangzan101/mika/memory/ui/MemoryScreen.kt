@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import com.wangzan101.mika.ui.NavSlide
+import com.wangzan101.mika.ui.rememberPageStates
 import com.wangzan101.mika.ui.theme.MikaMotion
 import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.MikaNoticeDialog
@@ -121,9 +122,11 @@ fun MemoryDataScreen(
 ) {
     var page by rememberSaveable { mutableStateOf(MemoryDataPage.Home) }
     val toHome = { page = MemoryDataPage.Home }
+    val pageStates = rememberPageStates()
     NavSlide(
         targetState = page,
         depth = { if (it == MemoryDataPage.Home) 0 else 1 },
+        states = pageStates,
         canGoBack = page != MemoryDataPage.Home,
         onBack = toHome,
     ) { current ->

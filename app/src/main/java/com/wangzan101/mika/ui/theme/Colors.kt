@@ -1,7 +1,7 @@
 package com.wangzan101.mika.ui.theme
 
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import com.wangzan101.mika.settings.ThemeAccent
@@ -204,4 +204,4 @@ fun accentTone(accent: ThemeAccent, dark: Boolean): Pair<Color, Color> = when (a
 }
 
 /** 没有包在 [MikaTheme] 里时(比如界面测试)按浅色。 */
-val LocalMikaColors = staticCompositionLocalOf { LightColors }
+val LocalMikaColors = compositionLocalOf { LightColors }

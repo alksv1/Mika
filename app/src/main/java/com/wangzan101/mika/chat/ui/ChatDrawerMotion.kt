@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
-import com.wangzan101.mika.ui.theme.MikaMotion
 import kotlin.math.roundToInt
 import kotlin.math.abs
 import kotlin.math.max
