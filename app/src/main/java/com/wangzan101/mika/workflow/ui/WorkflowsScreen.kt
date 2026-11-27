@@ -1,5 +1,6 @@
 package com.wangzan101.mika.workflow.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import com.wangzan101.mika.core.run.PauseFlag
 import androidx.compose.foundation.layout.*
@@ -16,8 +17,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
+import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.core.trigger.CONDITION_PLAN_EDITED
+import com.wangzan101.mika.core.trigger.newPlanDraft
 import com.wangzan101.mika.task.TriggerRuntime
+import com.wangzan101.mika.task.ui.PlanEditorDialog
 import com.wangzan101.mika.ui.components.*
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
@@ -53,6 +57,7 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
     var error by remember { mutableStateOf<WorkflowProblem?>(null) }
     var starting by remember { mutableStateOf<WorkflowTemplate?>(null) }
     var deleting by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    var scheduling by remember { mutableStateOf<WorkflowTemplate?>(null) }
     var resolving by remember { mutableStateOf<WorkflowRun?>(null) }
     var editingResult by remember { mutableStateOf<WorkflowRun?>(null) }
     var retrying by remember { mutableStateOf<WorkflowRun?>(null) }
@@ -192,7 +197,21 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                 TextButton({ deleting = run.id to true }, enabled = !busy) { Text(stringResource(R.string.workflow_delete_record)) }
             }
         } else if (template != null) {
-            MikaButton(stringResource(R.string.workflow_start), { starting = template }, enabled = !busy, modifier = Modifier.testTag("workflow-start"))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MikaButton(
+                    stringResource(R.string.workflow_start),
+                    { starting = template },
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f).testTag("workflow-start"),
+                )
+                MikaButton(
+                    stringResource(R.string.workflow_schedule),
+                    { scheduling = template },
+                    kind = ButtonKind.Secondary,
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f).testTag("workflow-schedule"),
+                )
+            }
             val fields = remember(template) { WorkflowParams.userFields(template.steps) }
             if (fields.isNotEmpty()) {
                 FooterNote(stringResource(R.string.workflow_fields_summary, fields.joinToString(", ")))
@@ -295,6 +314,31 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                 deleting = null
             }) { Text(stringResource(R.string.recommendations_delete)) } },
             dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } })
+    }
+    scheduling?.let { item ->
+        val threadId = remember(item.id) { ConversationStore.shared(context).newConversation() }
+        val initialDraft = remember(item.id) {
+            newPlanDraft(System.currentTimeMillis()).copy(content = item.title, workflowTemplateId = item.id)
+        }
+        PlanEditorDialog(
+            original = null,
+            newThreadId = threadId,
+            onDismiss = { scheduling = null },
+            onSave = { plan ->
+                scope.launch {
+                    runCatching { withContext(Dispatchers.IO) { TriggerRuntime.schedule(context, plan) } }
+                        .onSuccess {
+                            Toast.makeText(context, context.getString(R.string.workflow_scheduled_toast), Toast.LENGTH_SHORT).show()
+                            scheduling = null
+                        }
+                        .onFailure {
+                            Toast.makeText(context, it.message ?: context.getString(R.string.op_failed), Toast.LENGTH_SHORT).show()
+                        }
+                }
+            },
+            initialDraft = initialDraft,
+            isCopy = false,
+        )
     }
 }
 

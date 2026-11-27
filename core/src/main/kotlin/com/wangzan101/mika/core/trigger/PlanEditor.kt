@@ -15,6 +15,7 @@ enum class PlanExecutionWindow { Anytime, DeepSeekOffPeak, Custom }
 
 enum class PlanValidation {
     MissingContent,
+    MissingWorkflowTemplate,
     ContentTooLong,
     ConditionTooLong,
     ReminderWithCondition,
@@ -164,11 +165,11 @@ fun editedTrigger(
     nowMs: Long,
     source: TriggerSource = TriggerSource.User,
 ): TriggerDefinition {
+    val workflowTemplateId = if (draft.reminder) null else draft.workflowTemplateId?.trim()
+    if (workflowTemplateId != null && workflowTemplateId.isEmpty()) invalid(PlanValidation.MissingWorkflowTemplate)
     val content = draft.content.trim()
     if (content.isEmpty()) invalid(PlanValidation.MissingContent)
     if (content.length > if (draft.reminder) 2_000 else 4_000) invalid(PlanValidation.ContentTooLong)
-    val workflowTemplateId = if (draft.reminder) null else draft.workflowTemplateId?.trim()
-    if (workflowTemplateId != null && workflowTemplateId.isEmpty()) invalid(PlanValidation.MissingContent)
     val workflowParams = if (workflowTemplateId != null) {
         draft.workflowParams.mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }.also { clean ->
             if (clean.size > 16 || clean.values.any { it.length > 4_000 }) invalid(PlanValidation.ContentTooLong)

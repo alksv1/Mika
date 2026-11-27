@@ -198,6 +198,7 @@ internal fun ClockChips(
 @Composable
 internal fun planValidationText(reason: PlanValidation): String = tr(when (reason) {
     PlanValidation.MissingContent -> R.string.plans_error_content
+    PlanValidation.MissingWorkflowTemplate -> R.string.plans_error_workflow
     PlanValidation.ContentTooLong -> R.string.plans_error_content_long
     PlanValidation.ConditionTooLong -> R.string.plans_error_condition_long
     PlanValidation.ReminderWithCondition -> R.string.plans_error_reminder_condition

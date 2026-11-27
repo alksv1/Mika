@@ -314,6 +314,13 @@ class PlanEditorTest {
         assertFalse(copy.enabled)
     }
 
+    @Test fun rejectsBlankWorkflowTemplateSelection() {
+        assertInvalid(
+            draft().copy(content = " ", workflowTemplateId = "  "),
+            PlanValidation.MissingWorkflowTemplate,
+        )
+    }
+
     private fun assertInvalid(input: PlanDraft, expected: PlanValidation) {
         val error = runCatching { editedTrigger(input, null, "id", "thread", now) }.exceptionOrNull()
         assertTrue("expected $expected but got $error", error is PlanValidationException)

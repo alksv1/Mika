@@ -28,6 +28,9 @@ import com.wangzan101.mika.core.trigger.CONDITION_COOLDOWN
 import com.wangzan101.mika.core.run.PauseFlag
 import com.wangzan101.mika.core.trigger.CONDITION_NOT_MET
 import com.wangzan101.mika.core.trigger.CONDITION_PLAN_EDITED
+import com.wangzan101.mika.core.trigger.WORKFLOW_BUSY
+import com.wangzan101.mika.core.trigger.WORKFLOW_EARLY_STOP
+import com.wangzan101.mika.core.trigger.WORKFLOW_TEMPLATE_DELETED
 import com.wangzan101.mika.core.trigger.ConditionNotify
 import com.wangzan101.mika.core.trigger.TriggerDefinition
 import com.wangzan101.mika.core.trigger.TriggerSource
@@ -278,7 +281,8 @@ private fun PlanRow(plan: TriggerDefinition, last: TriggerWindow?, first: Boolea
         else -> c.ink3
     }
     ListRow(
-        null, plan.reminderText ?: plan.goal, sourceSubtitle, first = first,
+        if (plan.workflowTemplateId != null) MikaIcons.Route else null,
+        plan.reminderText ?: plan.goal, sourceSubtitle, first = first,
         detail = last?.let { lastResult(plan, it, is24Hour) } ?: tr(R.string.plans_never_run),
         detailColor = detailColor,
         onClick = onClick,
@@ -312,9 +316,11 @@ private fun windowLabel(w: TriggerWindow): String = when (w.state) {
         CONDITION_COOLDOWN -> tr(R.string.plans_cooldown)
         CONDITION_PLAN_EDITED -> tr(R.string.trace_cancelled)
         PauseFlag.REASON -> tr(R.string.plans_skipped_paused)
+        WORKFLOW_EARLY_STOP -> tr(R.string.plans_workflow_early_stop)
+        WORKFLOW_BUSY -> tr(R.string.plans_workflow_busy)
         else -> tr(R.string.plans_unchanged)
     }
-    TriggerWindowState.Failed -> tr(R.string.step_failed)
+    TriggerWindowState.Failed -> if (w.reason == WORKFLOW_TEMPLATE_DELETED) tr(R.string.plans_workflow_deleted) else tr(R.string.step_failed)
     TriggerWindowState.Unknown -> tr(R.string.plans_result_pending)
     TriggerWindowState.Claimed, TriggerWindowState.Dispatched, TriggerWindowState.ActionDispatched -> tr(R.string.plans_running_now)
 }

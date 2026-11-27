@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">工作區檔案</string>
     <string name="workflow_chip_today">今天 ({{today}})</string>
     <string name="workflow_chip_prev_step">第 %1$d 步結果</string>
+    <string name="plans_workflow_mode">流程任務</string>
+    <string name="plans_workflow_pick">選擇流程</string>
+    <string name="plans_workflow_empty">還沒有已儲存的流程，請先在「流程」中新建。</string>
+    <string name="plans_workflow_none_selected">請選擇一個流程</string>
+    <string name="plans_workflow_notes">本次要求（選填）</string>
+    <string name="plans_error_workflow">請選擇要執行的流程</string>
+    <string name="plans_error_workflow_params">請填寫此流程所需的全部參數</string>
+    <string name="plans_workflow_early_stop">未滿足條件（提前結束）</string>
+    <string name="plans_workflow_busy">已略過（另一流程正在執行）</string>
+    <string name="plans_workflow_deleted">關聯流程已被刪除</string>
+    <string name="workflow_schedule">定時執行</string>
+    <string name="workflow_scheduled_toast">已新增定時執行排程</string>
 </resources>

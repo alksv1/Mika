@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">ملفات مساحة العمل</string>
     <string name="workflow_chip_today">اليوم ({{today}})</string>
     <string name="workflow_chip_prev_step">نتيجة الخطوة %1$d</string>
+    <string name="plans_workflow_mode">مهمة متعددة الخطوات</string>
+    <string name="plans_workflow_pick">مهمة متعددة الخطوات</string>
+    <string name="plans_workflow_empty">لا توجد مهام متعددة الخطوات بعد. أنشئ واحدة أولًا من صفحة المهام متعددة الخطوات.</string>
+    <string name="plans_workflow_none_selected">اختر مهمة متعددة الخطوات</string>
+    <string name="plans_workflow_notes">ملاحظات التشغيل (اختياري)</string>
+    <string name="plans_error_workflow">اختر مهمة متعددة الخطوات</string>
+    <string name="plans_error_workflow_params">يرجى تعبئة جميع المعلمات المطلوبة</string>
+    <string name="plans_workflow_early_stop">لم يتحقق الشرط (توقف مبكر)</string>
+    <string name="plans_workflow_busy">تم التخطي (مهمة أخرى قيد التشغيل)</string>
+    <string name="plans_workflow_deleted">تم حذف المهمة المرتبطة</string>
+    <string name="workflow_schedule">جدولة</string>
+    <string name="workflow_scheduled_toast">تم حفظ المهمة المجدولة</string>
 </resources>

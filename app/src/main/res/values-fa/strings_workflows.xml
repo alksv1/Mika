@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">فایل‌های فضای کاری</string>
     <string name="workflow_chip_today">امروز ({{today}})</string>
     <string name="workflow_chip_prev_step">خروجی مرحله %1$d</string>
+    <string name="plans_workflow_mode">کار چندمرحله‌ای</string>
+    <string name="plans_workflow_pick">کار چندمرحله‌ای</string>
+    <string name="plans_workflow_empty">هنوز کار چندمرحله‌ای ندارید. ابتدا یکی در بخش کارهای چندمرحله‌ای بسازید.</string>
+    <string name="plans_workflow_none_selected">یک کار چندمرحله‌ای انتخاب کنید</string>
+    <string name="plans_workflow_notes">توضیحات اجرا (اختیاری)</string>
+    <string name="plans_error_workflow">یک کار چندمرحله‌ای انتخاب کنید</string>
+    <string name="plans_error_workflow_params">همه مقادیر ضروری گردش‌کار را وارد کنید</string>
+    <string name="plans_workflow_early_stop">شرط برقرار نشد (توقف زودهنگام)</string>
+    <string name="plans_workflow_busy">رد شد (گردش‌کار دیگری در حال اجرا بود)</string>
+    <string name="plans_workflow_deleted">گردش‌کار متصل حذف شد</string>
+    <string name="workflow_schedule">زمان‌بندی</string>
+    <string name="workflow_scheduled_toast">برنامه زمان‌بندی ذخیره شد</string>
 </resources>

@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">Arquivos do espaço de trabalho</string>
     <string name="workflow_chip_today">Hoje ({{today}})</string>
     <string name="workflow_chip_prev_step">Resultado da etapa %1$d</string>
+    <string name="plans_workflow_mode">Fluxo</string>
+    <string name="plans_workflow_pick">Tarefa com várias etapas</string>
+    <string name="plans_workflow_empty">Ainda não há tarefas com várias etapas. Crie uma primeiro em Tarefas com várias etapas.</string>
+    <string name="plans_workflow_none_selected">Escolha uma tarefa com várias etapas</string>
+    <string name="plans_workflow_notes">Observações da execução (opcional)</string>
+    <string name="plans_error_workflow">Escolha uma tarefa com várias etapas</string>
+    <string name="plans_error_workflow_params">Preencha todos os parâmetros obrigatórios</string>
+    <string name="plans_workflow_early_stop">Condição não atendida (encerrado antes)</string>
+    <string name="plans_workflow_busy">Ignorado (outro fluxo estava em execução)</string>
+    <string name="plans_workflow_deleted">O fluxo vinculado foi excluído</string>
+    <string name="workflow_schedule">Agendar</string>
+    <string name="workflow_scheduled_toast">Agendamento salvo</string>
 </resources>

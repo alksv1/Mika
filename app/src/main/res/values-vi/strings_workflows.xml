@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">Tệp không gian làm việc</string>
     <string name="workflow_chip_today">Hôm nay ({{today}})</string>
     <string name="workflow_chip_prev_step">Kết quả bước %1$d</string>
+    <string name="plans_workflow_mode">Quy trình</string>
+    <string name="plans_workflow_pick">Tác vụ nhiều bước</string>
+    <string name="plans_workflow_empty">Chưa có tác vụ nhiều bước. Hãy tạo trước trong mục Tác vụ nhiều bước.</string>
+    <string name="plans_workflow_none_selected">Chọn tác vụ nhiều bước</string>
+    <string name="plans_workflow_notes">Ghi chú lần chạy (tùy chọn)</string>
+    <string name="plans_error_workflow">Chọn tác vụ nhiều bước</string>
+    <string name="plans_error_workflow_params">Điền đầy đủ tất cả tham số bắt buộc</string>
+    <string name="plans_workflow_early_stop">Không đạt điều kiện (đã dừng sớm)</string>
+    <string name="plans_workflow_busy">Đã bỏ qua (một quy trình khác đang chạy)</string>
+    <string name="plans_workflow_deleted">Quy trình được liên kết đã bị xóa</string>
+    <string name="workflow_schedule">Đặt lịch</string>
+    <string name="workflow_scheduled_toast">Đã lưu lịch chạy</string>
 </resources>

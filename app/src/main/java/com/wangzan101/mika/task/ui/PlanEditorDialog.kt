@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.core.trigger.ConditionNotify
 import com.wangzan101.mika.core.trigger.PlanDraft
@@ -67,6 +69,8 @@ import com.wangzan101.mika.core.trigger.upcoming
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.i18n.uiLocale
 import com.wangzan101.mika.settings.DeviceAccessSettings
+import com.wangzan101.mika.settings.TaskTemplate
+import com.wangzan101.mika.ui.components.ActionSheet
 import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.GroupCard
@@ -78,6 +82,7 @@ import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.PageBackground
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.SegmentedControl
+import com.wangzan101.mika.ui.components.SheetAction
 import com.wangzan101.mika.ui.components.TopBar
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import com.wangzan101.mika.ui.theme.MikaIcons
@@ -85,6 +90,7 @@ import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaSpace
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
+import com.wangzan101.mika.workflow.WorkflowParams
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDateTime
@@ -105,20 +111,49 @@ fun PlanEditorDialog(
     deviceAccess: DeviceAccessSettings? = null,
     /** 小时制跟系统设置,编辑器里不另给开关;测试可固定成某一种。 */
     use24Hour: Boolean = systemUses24Hour(),
+    isCopy: Boolean = initialDraft != null,
 ) {
     val locale = uiLocale()
     // 时区选择器要用的本地化索引建起来较慢,编辑器一打开就在后台预热,点开选择器时直接有列表。
     LaunchedEffect(locale) { withContext(Dispatchers.Default) { PlanZoneIndex.get(locale) } }
 
+    val context = LocalContext.current
+    val wfStore = remember(context) { (context.applicationContext as? MikaApp)?.workflows?.store }
+    LaunchedEffect(wfStore) {
+        wfStore?.let { withContext(Dispatchers.IO) { runCatching { it.load() } } }
+    }
+    val wfDataState = wfStore?.data?.collectAsState()
+    val wfLoadedState = wfStore?.loaded?.collectAsState()
+    val templates = wfDataState?.value?.templates.orEmpty()
+    val wfLoaded = wfLoadedState?.value ?: false
+
     val newId = remember(original?.id) { original?.id ?: UUID.randomUUID().toString() }
     var draft by remember(original?.id) {
         mutableStateOf(original?.toPlanDraft() ?: initialDraft ?: newPlanDraft(System.currentTimeMillis()))
     }
+    var workflowMode by remember(original?.id) { mutableStateOf(draft.workflowTemplateId != null) }
+    var pickingWorkflow by remember(original?.id) { mutableStateOf(false) }
     var attempted by remember(original?.id) { mutableStateOf(false) }
     var pickingDate by remember(original?.id) { mutableStateOf(false) }
     var pickingTime by remember(original?.id) { mutableStateOf<TimeTarget?>(null) }
     var pickingZone by remember(original?.id) { mutableStateOf(false) }
     var conditionExpanded by remember(original?.id) { mutableStateOf(draft.condition.isNotBlank()) }
+
+    val selectedTemplate = remember(templates, draft.workflowTemplateId) {
+        templates.find { it.id == draft.workflowTemplateId }
+    }
+    val requiredFields = remember(selectedTemplate) {
+        selectedTemplate?.let { WorkflowParams.userFields(it.steps) }.orEmpty()
+    }
+    val missingWorkflowParams = workflowMode && selectedTemplate != null &&
+        (requiredFields.size > TaskTemplate.MAX_FIELDS || requiredFields.any { draft.workflowParams[it].isNullOrBlank() })
+
+    LaunchedEffect(workflowMode, templates) {
+        if (workflowMode && draft.workflowTemplateId.isNullOrBlank() && templates.isNotEmpty()) {
+            val first = templates.first()
+            draft = draft.copy(workflowTemplateId = first.id, content = first.title)
+        }
+    }
 
     val nowMs = System.currentTimeMillis()
     val pickerZone = runCatching { ZoneId.of(draft.zone.trim()) }.getOrElse { ZoneId.systemDefault() }
@@ -180,9 +215,31 @@ fun PlanEditorDialog(
         )
     }
 
+    if (pickingWorkflow) {
+        ActionSheet(
+            title = tr(R.string.plans_workflow_pick),
+            actions = templates.map { t ->
+                SheetAction(t.title, MikaIcons.Route) {
+                    val nextFields = WorkflowParams.userFields(t.steps)
+                    val nextParams = buildMap {
+                        nextFields.forEach { f -> draft.workflowParams[f]?.let { put(f, it) } }
+                        draft.workflowParams[""]?.takeIf { it.isNotBlank() }?.let { put("", it) }
+                    }
+                    draft = draft.copy(
+                        workflowTemplateId = t.id,
+                        content = t.title,
+                        workflowParams = nextParams,
+                    )
+                    pickingWorkflow = false
+                }
+            },
+            onDismiss = { pickingWorkflow = false },
+        )
+    }
+
     val titleRes = when {
         original != null -> R.string.plans_edit_title
-        initialDraft != null -> R.string.plans_copy
+        isCopy -> R.string.plans_copy
         else -> R.string.plans_create_title
     }
 
@@ -201,11 +258,15 @@ fun PlanEditorDialog(
                         MikaButton(
                             tr(R.string.save),
                             onClick = {
-                                val saved = runCatching {
-                                    editedTrigger(draft, original, newId, newThreadId, System.currentTimeMillis())
+                                if (missingWorkflowParams) {
+                                    attempted = true
+                                } else {
+                                    val saved = runCatching {
+                                        editedTrigger(draft, original, newId, newThreadId, System.currentTimeMillis())
+                                    }
+                                    if (saved.isFailure) attempted = true
+                                    else onSave(saved.getOrThrow())
                                 }
-                                if (saved.isFailure) attempted = true
-                                else onSave(saved.getOrThrow())
                             },
                             modifier = Modifier.testTag("plan-editor-save"),
                             kind = ButtonKind.Primary,
@@ -222,30 +283,140 @@ fun PlanEditorDialog(
                     ) {
                         Spacer(Modifier.height(MikaSpace.S8))
                         SegmentedControl(
-                            listOf(tr(R.string.plans_task_mode), tr(R.string.plans_reminder_mode)),
-                            if (draft.reminder) 1 else 0,
-                            onSelect = { selected ->
-                                val isReminder = selected == 1
-                                draft = draft.copy(
-                                    reminder = isReminder,
-                                    condition = if (isReminder) "" else draft.condition,
-                                    cooldownMinutes = if (isReminder) "" else draft.cooldownMinutes,
-                                )
-                                if (isReminder) conditionExpanded = false
+                            listOf(
+                                tr(R.string.plans_task_mode),
+                                tr(R.string.plans_workflow_mode),
+                                tr(R.string.plans_reminder_mode),
+                            ),
+                            when {
+                                draft.reminder -> 2
+                                workflowMode -> 1
+                                else -> 0
                             },
-                            tags = listOf("plan-editor-task", "plan-editor-reminder"),
+                            onSelect = { selected ->
+                                when (selected) {
+                                    0 -> {
+                                        val clearTitle = original == null && draft.workflowTemplateId != null &&
+                                            draft.content == selectedTemplate?.title
+                                        workflowMode = false
+                                        draft = draft.copy(
+                                            reminder = false,
+                                            workflowTemplateId = null,
+                                            workflowParams = emptyMap(),
+                                            content = if (clearTitle) "" else draft.content,
+                                        )
+                                    }
+                                    1 -> {
+                                        workflowMode = true
+                                        conditionExpanded = false
+                                        val pickedId = draft.workflowTemplateId?.takeIf { it.isNotBlank() }
+                                            ?: templates.firstOrNull()?.id.orEmpty()
+                                        val picked = templates.find { it.id == pickedId }
+                                        draft = draft.copy(
+                                            reminder = false,
+                                            condition = "",
+                                            cooldownMinutes = "",
+                                            workflowTemplateId = pickedId,
+                                            content = picked?.title ?: draft.content.takeIf { pickedId.isNotBlank() }.orEmpty(),
+                                        )
+                                    }
+                                    else -> {
+                                        val clearTitle = original == null && draft.workflowTemplateId != null &&
+                                            draft.content == selectedTemplate?.title
+                                        workflowMode = false
+                                        conditionExpanded = false
+                                        draft = draft.copy(
+                                            reminder = true,
+                                            condition = "",
+                                            cooldownMinutes = "",
+                                            workflowTemplateId = null,
+                                            workflowParams = emptyMap(),
+                                            content = if (clearTitle) "" else draft.content,
+                                        )
+                                    }
+                                }
+                            },
+                            tags = listOf("plan-editor-task", "plan-editor-workflow", "plan-editor-reminder"),
                         )
                         Spacer(Modifier.height(MikaSpace.S12))
-                        GroupCard {
-                            Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                                OutlinedTextField(
-                                    value = draft.content,
-                                    onValueChange = { draft = draft.copy(content = it) },
-                                    modifier = Modifier.fillMaxWidth().testTag("plan-editor-content").keepsKeyboard(),
-                                    label = { Text(tr(if (draft.reminder) R.string.plans_content_reminder else R.string.plans_content_task)) },
-                                    minLines = 2,
-                                    maxLines = 5,
-                                )
+                        if (workflowMode) {
+                            if (templates.isEmpty() && draft.workflowTemplateId.isNullOrBlank()) {
+                                GroupCard {
+                                    Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                                        Text(
+                                            tr(R.string.plans_workflow_empty),
+                                            style = MikaType.Caption,
+                                            color = MikaTheme.colors.ink3,
+                                        )
+                                    }
+                                }
+                            } else {
+                                GroupCard {
+                                    ListRow(
+                                        icon = MikaIcons.Route,
+                                        title = tr(R.string.plans_workflow_pick),
+                                        subtitle = selectedTemplate?.title
+                                            ?: draft.content.ifBlank { tr(R.string.plans_workflow_none_selected) },
+                                        first = true,
+                                        onClick = if (templates.isNotEmpty()) ({ pickingWorkflow = true }) else null,
+                                        modifier = Modifier.testTag("plan-editor-workflow-pick"),
+                                    ) {
+                                        if (templates.isNotEmpty()) RowChevron()
+                                    }
+                                }
+                                if (!draft.workflowTemplateId.isNullOrBlank() && selectedTemplate == null && wfLoaded) {
+                                    Text(
+                                        tr(R.string.plans_workflow_deleted),
+                                        Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                                        style = MikaType.Caption,
+                                        color = MikaTheme.colors.bad,
+                                    )
+                                }
+                                if (selectedTemplate != null) {
+                                    GroupCard {
+                                        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                                            requiredFields.forEachIndexed { index, field ->
+                                                OutlinedTextField(
+                                                    value = draft.workflowParams[field].orEmpty(),
+                                                    onValueChange = { value ->
+                                                        draft = draft.copy(workflowParams = draft.workflowParams + (field to value))
+                                                    },
+                                                    modifier = Modifier.fillMaxWidth()
+                                                        .padding(bottom = 8.dp)
+                                                        .testTag("plan-editor-workflow-param-$index")
+                                                        .keepsKeyboard(),
+                                                    label = { Text(field) },
+                                                    singleLine = true,
+                                                )
+                                            }
+                                            OutlinedTextField(
+                                                value = draft.workflowParams[""].orEmpty(),
+                                                onValueChange = { value ->
+                                                    val next = if (value.isBlank()) draft.workflowParams - ""
+                                                    else draft.workflowParams + ("" to value)
+                                                    draft = draft.copy(workflowParams = next)
+                                                },
+                                                modifier = Modifier.fillMaxWidth().keepsKeyboard(),
+                                                label = { Text(tr(R.string.plans_workflow_notes)) },
+                                                minLines = 2,
+                                                maxLines = 4,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            GroupCard {
+                                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                                    OutlinedTextField(
+                                        value = draft.content,
+                                        onValueChange = { draft = draft.copy(content = it) },
+                                        modifier = Modifier.fillMaxWidth().testTag("plan-editor-content").keepsKeyboard(),
+                                        label = { Text(tr(if (draft.reminder) R.string.plans_content_reminder else R.string.plans_content_task)) },
+                                        minLines = 2,
+                                        maxLines = 5,
+                                    )
+                                }
                             }
                         }
 
@@ -407,7 +578,7 @@ fun PlanEditorDialog(
                             ScreenOffSetupCard(deviceAccess)
                         }
 
-                        if (!draft.reminder) {
+                        if (!draft.reminder && !workflowMode) {
                             GroupLabel(tr(R.string.plans_smart_condition))
                             GroupCard {
                                 ListRow(
@@ -611,11 +782,16 @@ fun PlanEditorDialog(
                             }
                         }
 
-                        if (attempted && preview == null) {
+                        if (attempted && (preview == null || missingWorkflowParams)) {
                             val reason = (candidate.exceptionOrNull() as? PlanValidationException)?.reason
+                            val errorText = when {
+                                reason != null -> planValidationText(reason)
+                                missingWorkflowParams -> tr(R.string.plans_error_workflow_params)
+                                else -> tr(R.string.op_failed)
+                            }
                             Spacer(Modifier.height(MikaSpace.S8))
                             Text(
-                                reason?.let { planValidationText(it) } ?: tr(R.string.op_failed),
+                                errorText,
                                 Modifier.testTag("plan-editor-error"),
                                 style = MikaType.Caption,
                                 color = MikaTheme.colors.bad,

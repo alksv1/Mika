@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">ワークスペースのファイル</string>
     <string name="workflow_chip_today">今日 ({{today}})</string>
     <string name="workflow_chip_prev_step">ステップ %1$d の結果</string>
+    <string name="plans_workflow_mode">複数ステップ</string>
+    <string name="plans_workflow_pick">複数ステップタスクを選択</string>
+    <string name="plans_workflow_empty">保存された複数ステップタスクがありません。先に「複数ステップタスク」から作成してください。</string>
+    <string name="plans_workflow_none_selected">複数ステップタスクを選択してください</string>
+    <string name="plans_workflow_notes">実行メモ（任意）</string>
+    <string name="plans_error_workflow">複数ステップタスクを選択してください</string>
+    <string name="plans_error_workflow_params">必須パラメータをすべて入力してください</string>
+    <string name="plans_workflow_early_stop">条件を満たさなかったため早期終了</string>
+    <string name="plans_workflow_busy">スキップ（別の複数ステップタスクを実行中）</string>
+    <string name="plans_workflow_deleted">関連付けられた複数ステップタスクが削除されました</string>
+    <string name="workflow_schedule">スケジュール設定</string>
+    <string name="workflow_scheduled_toast">スケジュールタスクを保存しました</string>
 </resources>

@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">작업 공간 파일</string>
     <string name="workflow_chip_today">오늘 ({{today}})</string>
     <string name="workflow_chip_prev_step">%1$d단계 결과</string>
+    <string name="plans_workflow_mode">여러 단계 작업</string>
+    <string name="plans_workflow_pick">여러 단계 작업</string>
+    <string name="plans_workflow_empty">아직 여러 단계 작업이 없습니다. 먼저 여러 단계 작업에서 새로 만드세요.</string>
+    <string name="plans_workflow_none_selected">여러 단계 작업을 선택하세요</string>
+    <string name="plans_workflow_notes">실행 요청 사항(선택)</string>
+    <string name="plans_error_workflow">여러 단계 작업을 선택하세요</string>
+    <string name="plans_error_workflow_params">필수 워크플로 매개변수를 모두 입력하세요</string>
+    <string name="plans_workflow_early_stop">조건 미충족(조기 종료)</string>
+    <string name="plans_workflow_busy">건너뜀(다른 워크플로가 실행 중)</string>
+    <string name="plans_workflow_deleted">연결된 워크플로가 삭제되었습니다</string>
+    <string name="workflow_schedule">예약 실행</string>
+    <string name="workflow_scheduled_toast">예약 작업이 저장되었습니다</string>
 </resources>

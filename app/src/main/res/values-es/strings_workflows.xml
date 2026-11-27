@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">Archivos del espacio de trabajo</string>
     <string name="workflow_chip_today">Hoy ({{today}})</string>
     <string name="workflow_chip_prev_step">Resultado del paso %1$d</string>
+    <string name="plans_workflow_mode">Tarea múltiple</string>
+    <string name="plans_workflow_pick">Tarea de varios pasos</string>
+    <string name="plans_workflow_empty">Aún no hay tareas de varios pasos. Crea una primero en Tareas de varios pasos.</string>
+    <string name="plans_workflow_none_selected">Elige una tarea de varios pasos</string>
+    <string name="plans_workflow_notes">Notas de ejecución (opcional)</string>
+    <string name="plans_error_workflow">Elige una tarea de varios pasos</string>
+    <string name="plans_error_workflow_params">Completa todos los parámetros obligatorios</string>
+    <string name="plans_workflow_early_stop">No se cumplió la condición (detenido antes)</string>
+    <string name="plans_workflow_busy">Omitido (otro flujo estaba en ejecución)</string>
+    <string name="plans_workflow_deleted">Se eliminó el flujo vinculado</string>
+    <string name="workflow_schedule">Programar</string>
+    <string name="workflow_scheduled_toast">Tarea programada guardada</string>
 </resources>

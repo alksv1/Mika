@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">Файлы рабочей области</string>
     <string name="workflow_chip_today">Сегодня ({{today}})</string>
     <string name="workflow_chip_prev_step">Результат шага %1$d</string>
+    <string name="plans_workflow_mode">Сценарий</string>
+    <string name="plans_workflow_pick">Многошаговая задача</string>
+    <string name="plans_workflow_empty">Пока нет многошаговых задач. Сначала создайте одну в разделе многошаговых задач.</string>
+    <string name="plans_workflow_none_selected">Выберите многошаговую задачу</string>
+    <string name="plans_workflow_notes">Примечания к запуску (необязательно)</string>
+    <string name="plans_error_workflow">Выберите многошаговую задачу</string>
+    <string name="plans_error_workflow_params">Заполните все обязательные параметры</string>
+    <string name="plans_workflow_early_stop">Условие не выполнено (остановлено досрочно)</string>
+    <string name="plans_workflow_busy">Пропущено (другой сценарий ещё выполнялся)</string>
+    <string name="plans_workflow_deleted">Связанный сценарий был удалён</string>
+    <string name="workflow_schedule">Запланировать</string>
+    <string name="workflow_scheduled_toast">Расписание сохранено</string>
 </resources>

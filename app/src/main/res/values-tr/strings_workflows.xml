@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">Çalışma alanı dosyaları</string>
     <string name="workflow_chip_today">Bugün ({{today}})</string>
     <string name="workflow_chip_prev_step">%1$d. adım çıktısı</string>
+    <string name="plans_workflow_mode">Çok adımlı</string>
+    <string name="plans_workflow_pick">Çok adımlı görev</string>
+    <string name="plans_workflow_empty">Henüz çok adımlı görev yok. Önce Çok adımlı görevler bölümünde bir tane oluşturun.</string>
+    <string name="plans_workflow_none_selected">Bir çok adımlı görev seçin</string>
+    <string name="plans_workflow_notes">Çalıştırma notları (isteğe bağlı)</string>
+    <string name="plans_error_workflow">Bir çok adımlı görev seçin</string>
+    <string name="plans_error_workflow_params">Gerekli tüm iş akışı parametrelerini doldurun</string>
+    <string name="plans_workflow_early_stop">Koşul sağlanmadı (erken durduruldu)</string>
+    <string name="plans_workflow_busy">Atlandı (başka bir iş akışı çalışıyordu)</string>
+    <string name="plans_workflow_deleted">Bağlı iş akışı silindi</string>
+    <string name="workflow_schedule">Zamanla</string>
+    <string name="workflow_scheduled_toast">Zamanlanmış görev kaydedildi</string>
 </resources>

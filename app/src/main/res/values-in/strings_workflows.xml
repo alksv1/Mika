@@ -64,4 +64,16 @@
     <string name="workflow_workspace_files">File ruang kerja</string>
     <string name="workflow_chip_today">Hari ini ({{today}})</string>
     <string name="workflow_chip_prev_step">Hasil langkah %1$d</string>
+    <string name="plans_workflow_mode">Alur</string>
+    <string name="plans_workflow_pick">Tugas beberapa langkah</string>
+    <string name="plans_workflow_empty">Belum ada tugas beberapa langkah. Buat terlebih dahulu di Tugas beberapa langkah.</string>
+    <string name="plans_workflow_none_selected">Pilih tugas beberapa langkah</string>
+    <string name="plans_workflow_notes">Catatan eksekusi (opsional)</string>
+    <string name="plans_error_workflow">Pilih tugas beberapa langkah</string>
+    <string name="plans_error_workflow_params">Isi semua parameter wajib</string>
+    <string name="plans_workflow_early_stop">Syarat tidak terpenuhi (berhenti lebih awal)</string>
+    <string name="plans_workflow_busy">Dilewati (alur lain sedang berjalan)</string>
+    <string name="plans_workflow_deleted">Alur tertaut telah dihapus</string>
+    <string name="workflow_schedule">Jadwalkan</string>
+    <string name="workflow_scheduled_toast">Jadwal disimpan</string>
 </resources>
