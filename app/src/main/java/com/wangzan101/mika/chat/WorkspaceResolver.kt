@@ -14,8 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
 class WorkspaceResolver(
     private val conversations: ConversationStore,
     private val projects: ProjectStore,
-    private val draftProject: (String) -> String? = { null },
     private val workflowRunIdOf: (String) -> String? = { null },
+    private val draftProject: (String) -> String? = { null },
 ) {
     private val draftProjects = ConcurrentHashMap<String, String>()
 
