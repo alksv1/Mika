@@ -8,10 +8,12 @@ import com.wangzan101.mika.core.model.Part
 import com.wangzan101.mika.core.model.Role
 import com.wangzan101.mika.core.model.StreamingChatModel
 import com.wangzan101.mika.core.model.ToolSpec
+import com.wangzan101.mika.core.model.usage.ConversationMeter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -19,6 +21,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** What a brain may do during one reply: speak, and call a tool whose result comes back through the session. */
 interface ReplyContext {
@@ -64,6 +68,8 @@ class LlmBrain(
     private val background: DeskBackground? = null,
     /** Where a dropped background note's error goes; the app wires its own logger. */
     private val log: (String) -> Unit = { System.err.println(it) },
+    /** Whether requests from this brain update [ConversationUsage.latest]. */
+    private val recordRequest: Boolean = true,
 ) : DeskBrain {
     private val history = mutableListOf<Message>()
     private val opening = StringBuilder()
@@ -123,8 +129,8 @@ class LlmBrain(
     }
 
     private suspend fun run(ctx: ReplyContext) {
-        repeat(maxToolRounds) {
-            val reply = complete(ctx)
+        repeat(maxToolRounds) { round ->
+            val reply = complete(ctx, step = round + 1)
             val calls = reply.filterIsInstance<Part.ToolCall>()
             add(Message(Role.Assistant, reply.filterNot { it is Part.Thinking }.ifEmpty { listOf(Part.Text("")) }, Author.Mika))
             if (calls.isEmpty()) return
@@ -148,7 +154,7 @@ class LlmBrain(
         }
     }
 
-    private suspend fun complete(ctx: ReplyContext): List<Part> {
+    private suspend fun complete(ctx: ReplyContext, step: Int): List<Part> {
         val (prompt, past) = synchronized(lock) {
             val prompt = if (opening.isEmpty()) system else "$system\n\nYou opened the conversation by saying:\n$opening"
             prompt to history.toList()
@@ -158,8 +164,11 @@ class LlmBrain(
                 ?.parts?.filterIsInstance<Part.Text>()?.joinToString("") { it.text }.orEmpty()
             renderBackground(source, lastUserText)?.let { past + Message(Role.User, listOf(Part.Text(BACKGROUND_PREFIX + it)), Author.Mika, uncached = true) }
         } ?: past
+        val requestContext: CoroutineContext =
+            if (recordRequest && currentCoroutineContext()[ConversationMeter] != null) ConversationMeter.MainRequest(step)
+            else EmptyCoroutineContext
         if (model !is StreamingChatModel) {
-            val reply = model.complete(prompt, messages, tools)
+            val reply = withContext(requestContext) { model.complete(prompt, messages, tools) }
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf { it.isNotBlank() }?.let { ctx.say(it) }
             return reply.parts
         }
@@ -178,7 +187,9 @@ class LlmBrain(
                 }
             }
             val reply = try {
-                model.completeStreaming(prompt, messages, tools) { full -> texts.trySend(full) }
+                withContext(requestContext) {
+                    model.completeStreaming(prompt, messages, tools) { full -> texts.trySend(full) }
+                }
             } finally {
                 texts.close()
             }

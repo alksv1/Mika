@@ -9,6 +9,7 @@ import com.wangzan101.mika.core.model.ChatModel
 import com.wangzan101.mika.core.model.ToolSpec
 import com.wangzan101.mika.core.model.TtsCapabilities
 import com.wangzan101.mika.core.model.TtsRequest
+import com.wangzan101.mika.core.model.usage.ConversationMeter
 import com.wangzan101.mika.frontdesk.deskModel
 import com.wangzan101.mika.settings.VoiceSettings
 import com.wangzan101.mika.voice.Pcm16
@@ -91,6 +92,7 @@ class CascadeEngine(private val context: Context, private val environment: Voice
         language: String?,
         prior: List<Turn> = emptyList(),
         background: DeskBackground? = null,
+        meter: ConversationMeter? = null,
     ): CascadeVoiceSession {
         blocker(use)?.let { throw VoiceModelError.IncompleteConfig("Standard call is not ready: $it") }
         val listen = listenRef(use)!!
@@ -103,7 +105,7 @@ class CascadeEngine(private val context: Context, private val environment: Voice
         val speed = VoiceSettings.get(context).state.value.speed.takeIf { it > 0f && it != 1f }
         // 口语说明只放一次:前台的口语提示词自己已经带着。
         val system = if (instructions.startsWith(LlmBrain.SPOKEN_STYLE)) instructions else LlmBrain.SPOKEN_STYLE + "\n\n" + instructions
-        val brain = LlmBrain(think, system, tools, background = background, log = { Log.w(TAG, it) })
+        val brain = LlmBrain(think, system, tools, background = background, log = { Log.w(TAG, it) }, recordRequest = use == CallUse.InApp)
         brain.seed(prior)
         val s = selections
         return CascadeVoiceSession(
@@ -117,6 +119,7 @@ class CascadeEngine(private val context: Context, private val environment: Voice
             },
             silenceMs = s.silenceMs.coerceIn(VoiceSelections.MIN_SILENCE_MS, VoiceSelections.MAX_SILENCE_MS),
             bargeIn = s.bargeIn,
+            meter = meter,
         )
     }
 

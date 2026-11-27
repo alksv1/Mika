@@ -600,6 +600,7 @@ private fun MikaRoot(
             liveRun = { id -> app.taskState.runs.value.firstOrNull { it.conversationId == id }?.runId?.value },
             screens = app.taskState.screenConversations(app.appScope),
             frames = { id -> app.taskState.runs.value.firstOrNull { it.conversationId == id }?.frames },
+            meter = { ConversationStore.shared(context).meter(it) },
         )
     }
     val voiceCall = rememberVoiceCallController(voiceCallDeps)

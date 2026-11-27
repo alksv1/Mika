@@ -3,7 +3,22 @@ package com.wangzan101.mika.voice.cascade
 import com.wangzan101.mika.calls.VolcRealtimeEvent
 import com.wangzan101.mika.core.agent.Turn
 import com.wangzan101.mika.core.frontdesk.DeskBrain
+import com.wangzan101.mika.core.frontdesk.LlmBrain
 import com.wangzan101.mika.core.frontdesk.ReplyContext
+import com.wangzan101.mika.core.model.Capabilities
+import com.wangzan101.mika.core.model.Message
+import com.wangzan101.mika.core.model.ModelReply
+import com.wangzan101.mika.core.model.Part
+import com.wangzan101.mika.core.model.StopReason
+import com.wangzan101.mika.core.model.StreamingChatModel
+import com.wangzan101.mika.core.model.ToolSpec
+import com.wangzan101.mika.core.model.Usage
+import com.wangzan101.mika.core.model.usage.ConversationMeter
+import com.wangzan101.mika.core.model.usage.ConversationUsage
+import com.wangzan101.mika.core.model.usage.UsagePurpose
+import com.wangzan101.mika.core.model.usage.UsageSink
+import com.wangzan101.mika.core.model.usage.UsageSource
+import com.wangzan101.mika.core.model.usage.metered
 import com.wangzan101.mika.voice.Pcm16
 import com.wangzan101.mika.voice.SpeechEvent
 import com.wangzan101.mika.voice.SpeechSession
@@ -336,6 +351,44 @@ class CascadeVoiceSessionTest {
         assertTrue(session.sendUserText("hello"))
         advanceUntilIdle()
         assertEquals("You typed hello.", events.filterIsInstance<VolcRealtimeEvent.AssistantTranscript>().single().delta)
+        session.close()
+    }
+
+    @Test
+    fun `metered brain inside session records tokens and latest request when meter is supplied`() = runTest {
+        var totals = ConversationUsage()
+        val meter = ConversationMeter { change -> totals = change(totals) }
+        val model = object : StreamingChatModel {
+            override val name = "voice-main"
+            override val capabilities = Capabilities(toolCalls = true, vision = false, contextTokens = 16_000, reasoning = false)
+            override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>) = error("unused")
+            override suspend fun completeStreaming(
+                system: String, messages: List<Message>, tools: List<ToolSpec>, onText: (String) -> Unit,
+            ): ModelReply {
+                onText("Hi there.")
+                return ModelReply(listOf(Part.Text("Hi there.")), StopReason.EndTurn, Usage(90, 10, 45, cacheReported = true))
+            }
+        }.metered(UsageSource("p1", "Provider", "voice-main", UsagePurpose.Main), UsageSink { _, _ -> })
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val session = CascadeVoiceSession(
+            brain = LlmBrain(model, "You are Mika", emptyList()),
+            listen = FakeListen("hello"),
+            speak = { CascadeVoiceSession.PcmAudioOut(ByteArray(16_000 * 2), 16_000) },
+            silenceMs = 500,
+            bargeIn = true,
+            dispatcher = dispatcher,
+            clock = { testScheduler.currentTime },
+            meter = meter,
+        )
+        session.talk(400)
+        advanceUntilIdle()
+        assertEquals(90L, totals.input)
+        assertEquals(10L, totals.output)
+        assertEquals(45L, totals.cached)
+        assertEquals("voice-main", totals.latest?.model)
+        assertEquals(1, totals.latest?.step)
+        assertTrue(totals.latest!!.instructions > 0)
+        assertTrue(totals.latest!!.dialogue > 0)
         session.close()
     }
 }

@@ -351,7 +351,9 @@ internal class DeskChatOps(
             val tasks = mutableListOf(taskId)
             try {
                 prepare(brain)
-                brain.notice(noticeText(report), context(runId, reply, tasks, executor(DeskWords.None)))
+                withContext(vm.store.meter(conversationId)) {
+                    brain.notice(noticeText(report), context(runId, reply, tasks, executor(DeskWords.None)))
+                }
             } catch (e: CancellationException) {
                 val text = reply.toString()
                 if (e is Stopped && text.isNotBlank()) {
@@ -403,7 +405,9 @@ internal class DeskChatOps(
         try {
             prepare(brain)
             current = UserWords.saidToDesk(text).ifBlank { null }
-            brain.reply(text, context(runId, reply, tasks, executor(words)))
+            withContext(vm.store.meter(conversationId)) {
+                brain.reply(text, context(runId, reply, tasks, executor(words)))
+            }
         } catch (e: CancellationException) {
             current = null
             // 被停下:已经说出来的留着,这一轮收尾

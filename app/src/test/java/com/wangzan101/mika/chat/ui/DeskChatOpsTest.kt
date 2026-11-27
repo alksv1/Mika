@@ -21,11 +21,25 @@ import com.wangzan101.mika.core.frontdesk.DeskSurface
 import com.wangzan101.mika.core.frontdesk.DeskTaskPhase
 import com.wangzan101.mika.core.frontdesk.DeskTaskPort
 import com.wangzan101.mika.core.frontdesk.DeskToolExecutor
+import com.wangzan101.mika.core.frontdesk.DeskToolSet
 import com.wangzan101.mika.core.frontdesk.DeskTools
 import com.wangzan101.mika.core.frontdesk.DispatchOutcome
 import com.wangzan101.mika.core.frontdesk.FrontDesk
+import com.wangzan101.mika.core.frontdesk.LlmBrain
 import com.wangzan101.mika.core.frontdesk.ReplyContext
 import com.wangzan101.mika.core.frontdesk.ReportPolicy
+import com.wangzan101.mika.core.model.Capabilities
+import com.wangzan101.mika.core.model.Message
+import com.wangzan101.mika.core.model.ModelReply
+import com.wangzan101.mika.core.model.Part
+import com.wangzan101.mika.core.model.StopReason
+import com.wangzan101.mika.core.model.StreamingChatModel
+import com.wangzan101.mika.core.model.ToolSpec
+import com.wangzan101.mika.core.model.Usage
+import com.wangzan101.mika.core.model.usage.UsagePurpose
+import com.wangzan101.mika.core.model.usage.UsageSink
+import com.wangzan101.mika.core.model.usage.UsageSource
+import com.wangzan101.mika.core.model.usage.metered
 import com.wangzan101.mika.i18n.ChineseTexts
 import com.wangzan101.mika.settings.AccessibilityState
 import com.wangzan101.mika.settings.ModelChoice
@@ -932,5 +946,58 @@ class DeskChatOpsTest {
         h.vm.openConversation("child-9")
         runCurrent()
         assertEquals("c", h.vm.ui.value.conversationId)
+    }
+
+    @Test fun deskReplyAndNoticeMeterTokensAndContextIntoConversation() = runTest {
+        var stepCall = 0
+        val model = object : StreamingChatModel {
+            override val name = "desk-model"
+            override val capabilities = Capabilities(toolCalls = true, vision = false, contextTokens = 64_000, reasoning = false)
+            override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>) = error("unused")
+            override suspend fun completeStreaming(
+                system: String, messages: List<Message>, tools: List<ToolSpec>, onText: (String) -> Unit,
+            ): ModelReply = when (++stepCall) {
+                1 -> ModelReply(
+                    listOf(Part.ToolCall("call-1", DeskTools.DISPATCH, """{"words":"帮我订票","title":"订票"}""")),
+                    StopReason.ToolUse, Usage(100, 12, 80, cacheReported = true),
+                )
+                2 -> {
+                    onText("好，我让后面去订。")
+                    ModelReply(listOf(Part.Text("好，我让后面去订。")), StopReason.EndTurn, Usage(120, 10, 100, cacheReported = true))
+                }
+                else -> {
+                    onText("没订成，缺少时间。")
+                    ModelReply(listOf(Part.Text("没订成，缺少时间。")), StopReason.EndTurn, Usage(80, 8, 20, cacheReported = true))
+                }
+            }
+        }.metered(UsageSource("p1", "Provider", "desk-model", UsagePurpose.Main), UsageSink { _, _ -> })
+        val specs = DeskTools.specs(DeskToolSet.User).map(LlmBrain::toolSpec)
+        val h = harness(null, brains = { LlmBrain(model, "You are Mika", specs) })
+        h.vm.pageShown(true)
+        h.vm.openConversation("c")
+        runCurrent()
+
+        assertTrue(h.vm.send("帮我订票", ok))
+        runCurrent()
+        val afterReply = h.store.usageSnapshot("c")
+        assertEquals(220L, afterReply.input)
+        assertEquals(22L, afterReply.output)
+        assertEquals(180L, afterReply.cached)
+        assertEquals("desk-model", afterReply.latest?.model)
+        assertEquals(2, afterReply.latest?.step)
+        assertEquals(64_000, afterReply.latest?.window)
+        assertTrue(afterReply.latest!!.instructions > 0)
+        assertTrue(afterReply.latest!!.dialogue > 0)
+        assertTrue(afterReply.latest!!.toolsAndMedia > 0)
+
+        h.port.states.getValue("child-1").value = TaskState.Failed("缺少时间", com.wangzan101.mika.core.agent.FailKind.GaveUp)
+        runCurrent()
+        val afterNotice = h.store.usageSnapshot("c")
+        assertEquals(300L, afterNotice.input)
+        assertEquals(30L, afterNotice.output)
+        assertEquals(200L, afterNotice.cached)
+        assertEquals(200.0 / 300.0, afterNotice.cacheRate!!, 0.0001)
+        assertEquals(1, afterNotice.latest?.step)
+        assertTrue(afterNotice.latest!!.runtime > 0)
     }
 }
