@@ -148,4 +148,109 @@ class WorkflowStoreTest {
         fails(WorkflowProblem.Read) { template(broken) }
         assertArrayEquals(byteArrayOf(1, 2, 3), file.readBytes())
     }
+
+    @Test fun checkpointPauseAllowsEditingResultBeforeResume() {
+        val store = store()
+        val t = store.saveTemplate("ckpt", 0, "Review Flow", listOf(
+            WorkflowStep(title = "Gather", instruction = "Gather info"),
+            WorkflowStep(title = "Draft", instruction = "Draft message", pauseAfter = true),
+            WorkflowStep(title = "Send", instruction = "Send message"),
+        ))
+        val launched = mutableListOf<WorkflowDispatch>()
+        val transitions = mutableListOf<WorkflowPhase>()
+        val stepOutputs = mutableListOf<Triple<String, Int, String>>()
+        val runtime = WorkflowRuntime(
+            store,
+            onStepDone = { runId, idx, res -> stepOutputs += Triple(runId, idx, res) },
+            onTransition = { transitions += it.phase },
+        ) { launched += it }
+
+        val id = runtime.start(t, "weekly")
+        val s1 = launched.single(); store.claim(s1.attemptId)
+        runtime.complete(s1.attemptId, true, "Raw notes")
+        assertEquals(2, launched.size)
+
+        val s2 = launched.last(); store.claim(s2.attemptId)
+        runtime.complete(s2.attemptId, true, "Initial draft")
+        val pausedRun = store.data.value.runs.single()
+        assertEquals(WorkflowPhase.Paused, pausedRun.phase)
+        assertTrue(pausedRun.checkpointPaused)
+        assertEquals(2, launched.size)
+        assertEquals(listOf(WorkflowPhase.Paused), transitions)
+
+        runtime.editPausedResult(id, 1, "Edited draft")
+        assertEquals(Triple(id, 1, "Edited draft"), stepOutputs.last())
+
+        runtime.resume(id)
+        assertEquals(3, launched.size)
+        val s3 = launched.last()
+        assertEquals("Edited draft", s3.previous)
+        assertEquals(listOf("Raw notes", "Edited draft"), s3.priorResults)
+        assertFalse(store.data.value.runs.single().checkpointPaused)
+
+        store.claim(s3.attemptId)
+        runtime.complete(s3.attemptId, true, "Sent!")
+        assertEquals(WorkflowPhase.Completed, store.data.value.runs.single().phase)
+        assertEquals("Sent!", store.data.value.runs.single().result)
+    }
+
+    @Test fun earlyStopCompletesCleanlyAndSurvivesReload() {
+        val store = store()
+        val t = store.saveTemplate("early", 0, "Monitor", listOf(
+            WorkflowStep(title = "Check", instruction = "Check {{group}}", continueIf = "has updates"),
+            WorkflowStep(title = "Summarize", instruction = "Summarize {{step.1}}"),
+            WorkflowStep(title = "Notify", instruction = "Send summary"),
+        ))
+        val launched = mutableListOf<WorkflowDispatch>()
+        val runtime = WorkflowRuntime(store) { launched += it }
+        val id = runtime.start(t, "", mapOf("group" to "R&D"))
+        val first = launched.single()
+        assertEquals("Check R&D", first.step.instruction)
+        assertEquals(id, store.runIdForConversation(first.conversationId))
+        store.claim(first.attemptId)
+        runtime.complete(first.attemptId, true, "No new messages.", earlyStop = true, earlyStopReason = "本周群内无新消息")
+
+        assertEquals(1, launched.size)
+        val run = store.data.value.runs.single()
+        assertEquals(WorkflowPhase.Completed, run.phase)
+        assertTrue(run.earlyStopped)
+        assertEquals("本周群内无新消息", run.earlyStopReason)
+        assertEquals(1, run.completed)
+        assertEquals("No new messages.", run.result)
+
+        val reloaded = store().also { it.load() }
+        assertEquals(run, reloaded.data.value.runs.single())
+    }
+
+    @Test fun scheduledStartSnapshotsLatestTemplateAndCleansWorkspaceOnRemove() {
+        val removed = mutableListOf<List<String>>()
+        val store = WorkflowStore(file, cipher, clock = { 1000L }, onRunsRemoved = { removed += it })
+        val t = store.saveTemplate("sched", 0, "Daily", listOf(
+            WorkflowStep(title = "Fetch", instruction = "Fetch {{topic}}", readOnly = true),
+            WorkflowStep(title = "Save", instruction = "Write {{step.1}}"),
+        ))
+        val updated = store.saveTemplate(t.id, t.revision, "Daily v2", listOf(
+            WorkflowStep(title = "Fetch", instruction = "Fetch v2 {{topic}}", readOnly = true),
+            WorkflowStep(title = "Save", instruction = "Write {{step.1}}"),
+        ))
+        assertEquals(2, updated.revision)
+
+        val run = store.startScheduled(t.id, "notes", mapOf("topic" to "AI"), "sched:1000", "origin-thread")
+        assertTrue(run.unattended)
+        assertEquals("sched:1000", run.triggerKey)
+        assertEquals("origin-thread", run.originThreadId)
+        assertEquals("Fetch v2 AI", run.template.steps[0].instruction)
+        assertTrue(run.template.steps[0].readOnly)
+
+        val d = store.prepare(run.id)!!
+        assertTrue(d.unattended)
+        assertEquals("sched:1000", d.triggerKey)
+        fails(WorkflowProblem.Busy) { store.startScheduled(t.id, "", mapOf("topic" to "AI"), "sched:2000", "origin-thread") }
+
+        store.claim(d.attemptId)
+        store.finish(d.attemptId, true, "Data", earlyStop = true, earlyStopReason = "nothing new")
+        store.deleteRun(run.id)
+        assertEquals(listOf(listOf(run.id)), removed)
+        fails(WorkflowProblem.Changed) { store.startScheduled("deleted-id", "", mapOf("topic" to "AI"), "sched:3000", "origin-thread") }
+    }
 }
