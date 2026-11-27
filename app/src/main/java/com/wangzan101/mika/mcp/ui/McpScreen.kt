@@ -36,13 +36,16 @@ import com.wangzan101.mika.ui.components.FooterNote
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.components.LocalFocusTarget
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RadioRow
 import com.wangzan101.mika.ui.components.RowActions
 import com.wangzan101.mika.ui.components.SegmentedControl
+import com.wangzan101.mika.ui.components.SettingsFocusKey
 import com.wangzan101.mika.ui.components.TileTone
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import com.wangzan101.mika.ui.components.MikaTextField
@@ -93,8 +96,11 @@ fun McpScreen(runtime: McpRuntime, onBack: () -> Unit) {
         deviceSettings = {
             val historyEnabled by runtime.settings.historyEnabled.collectAsState()
             GroupCard {
-                ListRow(MikaIcons.Desktop, stringResource(R.string.mcp_history_title), note = stringResource(R.string.mcp_history_detail),
-                    first = true, onClick = { runtime.settings.setHistoryEnabled(!historyEnabled) }) {
+                ListRow(
+                    MikaIcons.Desktop, stringResource(R.string.mcp_history_title), note = stringResource(R.string.mcp_history_detail),
+                    first = true, onClick = { runtime.settings.setHistoryEnabled(!historyEnabled) },
+                    modifier = Modifier.settingsFocusTarget(SettingsFocusKey.MCP_HISTORY),
+                ) {
                     MikaSwitch(historyEnabled, runtime.settings::setHistoryEnabled, Modifier.testTag("computer-history"))
                 }
             }
@@ -139,6 +145,12 @@ internal fun ComputerAccessPage(
 ) {
     var client by remember { mutableStateOf(0) }
     var advanced by remember { mutableStateOf(false) }
+    val focusTarget = LocalFocusTarget.current?.current
+    LaunchedEffect(focusTarget) {
+        if (focusTarget?.id == SettingsFocusKey.MCP_HISTORY || focusTarget?.id == SettingsFocusKey.REMOTE_DEVICE_ACCESS) {
+            advanced = true
+        }
+    }
     var editingPort by remember { mutableStateOf(false) }
     var transport by remember { mutableStateOf(0) }
     PageScaffold(stringResource(R.string.mcp_title), onBack) {

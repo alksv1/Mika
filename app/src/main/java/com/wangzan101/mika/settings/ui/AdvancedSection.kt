@@ -38,6 +38,8 @@ import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.ui.components.RowValue
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.GroupLabel
+import com.wangzan101.mika.ui.components.SettingsFocusKey
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.cap.sandbox.SandboxUsage
@@ -178,13 +180,20 @@ fun AdvancedSection(
     var clearingAll by remember { mutableStateOf(false) }
 
     GroupCard {
-        ListRow(MikaIcons.Link, SandboxCopy.NETWORK_TITLE, first = true) {
+        ListRow(
+            MikaIcons.Link, SandboxCopy.NETWORK_TITLE, first = true,
+            modifier = Modifier.settingsFocusTarget(SettingsFocusKey.SANDBOX_NETWORK),
+        ) {
             MikaSwitch(networkAllowed, onNetworkChange, Modifier.testTag("sandbox-network"))
         }
         Note(SandboxCopy.NETWORK_EXPLAIN, if (networkAllowed) MikaTheme.colors.warn else MikaTheme.colors.ink3)
         if (isolationIssue) Note(SandboxCopy.ISOLATION_UNAVAILABLE, MikaTheme.colors.bad)
-        ListRow(MikaIcons.Close, tr(R.string.sandbox_reset), SandboxCopy.resetSubtitle(status), titleColor = MikaTheme.colors.bad, tone = TileTone.Bad,
-            onClick = if (status is SandboxStatus.Installing) null else ({ confirming = true }))
+        ListRow(
+            MikaIcons.Close, tr(R.string.sandbox_reset), SandboxCopy.resetSubtitle(status),
+            titleColor = MikaTheme.colors.bad, tone = TileTone.Bad,
+            onClick = if (status is SandboxStatus.Installing) null else ({ confirming = true }),
+            modifier = Modifier.settingsFocusTarget(SettingsFocusKey.SANDBOX_RESET),
+        )
     }
 
     usage?.let { u -> UsageGroup(u, onOpenTerminal, onClear = { clearing = it }, onClearAll = { clearingAll = true }) }
@@ -238,8 +247,10 @@ private fun UsageGroup(
     val c = MikaTheme.colors
     GroupLabel(SandboxCopy.USAGE_TITLE)
     GroupCard {
-        SandboxCopy.usageRows(u).forEachIndexed { i, (name, bytes) ->
-            ListRow(null, name, first = i == 0) { RowValue(SandboxCopy.size(bytes)) }
+        Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.SANDBOX_USAGE)) {
+            SandboxCopy.usageRows(u).forEachIndexed { i, (name, bytes) ->
+                ListRow(null, name, first = i == 0) { RowValue(SandboxCopy.size(bytes)) }
+            }
         }
     }
     if (u.workspaces.isNotEmpty()) {

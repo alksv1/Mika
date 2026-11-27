@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -57,6 +58,8 @@ import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RadioRow
+import com.wangzan101.mika.ui.components.SettingsFocusKey
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
@@ -83,40 +86,46 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
         // 语言和外观放在同一页:都是「界面长什么样」
         GroupLabel(stringResource(R.string.appearance_group))
         GroupCard {
-            ThemeMode.entries.forEachIndexed { idx, m ->
-                RadioRow(
-                    appearanceLabel(m), selected = m == themeMode, first = idx == 0,
-                    note = if (m == ThemeMode.System) stringResource(R.string.appearance_system_detail) else null,
-                    onClick = {
-                        // 界面跟着设置当场换颜色,不重建,页面和滚动位置都不丢
-                        if (m != themeMode) flags.setThemeMode(m)
-                    },
-                )
+            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.APPEARANCE)) {
+                ThemeMode.entries.forEachIndexed { idx, m ->
+                    RadioRow(
+                        appearanceLabel(m), selected = m == themeMode, first = idx == 0,
+                        note = if (m == ThemeMode.System) stringResource(R.string.appearance_system_detail) else null,
+                        onClick = {
+                            // 界面跟着设置当场换颜色,不重建,页面和滚动位置都不丢
+                            if (m != themeMode) flags.setThemeMode(m)
+                        },
+                    )
+                }
             }
         }
         GroupLabel(stringResource(R.string.accent_group))
         GroupCard {
-            val dark = MikaTheme.colors.isDark
-            // 背景图片的颜色在当强调色时,这里选的暂时不用,行变灰
-            val followingImage = skin.accentHue != null
-            ThemeAccent.entries.forEachIndexed { idx, a ->
-                RadioRow(
-                    accentLabel(a), selected = a == themeAccent, first = idx == 0, enabled = !followingImage,
-                    subtitle = if (a == ThemeAccent.Blue) stringResource(R.string.accent_default) else null,
-                    onClick = { if (a != themeAccent) flags.setThemeAccent(a) },
-                ) {
-                    // 色块按此刻的深浅色画,和选上以后看到的一样
-                    Box(Modifier.size(18.dp).background(accentTone(a, dark).first, CircleShape))
+            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.ACCENT_COLOR)) {
+                val dark = MikaTheme.colors.isDark
+                // 背景图片的颜色在当强调色时,这里选的暂时不用,行变灰
+                val followingImage = skin.accentHue != null
+                ThemeAccent.entries.forEachIndexed { idx, a ->
+                    RadioRow(
+                        accentLabel(a), selected = a == themeAccent, first = idx == 0, enabled = !followingImage,
+                        subtitle = if (a == ThemeAccent.Blue) stringResource(R.string.accent_default) else null,
+                        onClick = { if (a != themeAccent) flags.setThemeAccent(a) },
+                    ) {
+                        // 色块按此刻的深浅色画,和选上以后看到的一样
+                        Box(Modifier.size(18.dp).background(accentTone(a, dark).first, CircleShape))
+                    }
                 }
             }
         }
         GroupLabel(stringResource(R.string.skin_group))
         GroupCard {
-            ListRow(
-                null, stringResource(if (skin.active) R.string.skin_change else R.string.skin_pick), first = true,
-                onClick = { pickSkin.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-            )
-            if (skin.active) SkinControls(skin, flags::setSkin, onClear = { SkinImage.clear(context) })
+            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.BACKGROUND_SKIN)) {
+                ListRow(
+                    null, stringResource(if (skin.active) R.string.skin_change else R.string.skin_pick), first = true,
+                    onClick = { pickSkin.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                )
+                if (skin.active) SkinControls(skin, flags::setSkin, onClear = { SkinImage.clear(context) })
+            }
         }
         GroupLabel(stringResource(R.string.language_title))
         var langQuery by remember { mutableStateOf("") }
@@ -172,26 +181,28 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
             }
         }
         GroupCard(Modifier.animateContentSize()) {
-            if (filteredLanguages.isEmpty()) {
-                Box(
-                    Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        stringResource(R.string.file_library_empty),
-                        style = MikaType.Caption,
-                        color = c.ink3,
-                    )
-                }
-            } else {
-                filteredLanguages.forEachIndexed { i, l ->
-                    RadioRow(
-                        languageLabel(l), selected = l == language, onClick = {
-                            if (l != language) onLanguage(l)
-                            focusManager.clearFocus()
-                        },
-                        first = i == 0,
-                    )
+            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.APP_LANGUAGE)) {
+                if (filteredLanguages.isEmpty()) {
+                    Box(
+                        Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(R.string.file_library_empty),
+                            style = MikaType.Caption,
+                            color = c.ink3,
+                        )
+                    }
+                } else {
+                    filteredLanguages.forEachIndexed { i, l ->
+                        RadioRow(
+                            languageLabel(l), selected = l == language, onClick = {
+                                if (l != language) onLanguage(l)
+                                focusManager.clearFocus()
+                            },
+                            first = i == 0,
+                        )
+                    }
                 }
             }
         }

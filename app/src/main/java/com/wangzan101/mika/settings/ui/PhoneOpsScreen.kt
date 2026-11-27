@@ -4,6 +4,7 @@ import com.wangzan101.mika.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -36,8 +37,10 @@ import com.wangzan101.mika.ui.components.SegmentedControl
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.RowValue
+import com.wangzan101.mika.ui.components.SettingsFocusKey
 import com.wangzan101.mika.ui.components.TileTone
 import com.wangzan101.mika.ui.components.ValueTone
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.memory.ui.Link
@@ -67,6 +70,7 @@ fun PhoneOpsScreen(
             ListRow(
                 MikaIcons.Hand, stringResource(R.string.settings_a11y), first = true,
                 onClick = check.problems.firstOrNull { it is Problem.Accessibility }?.let { { onProblem(it) } },
+                modifier = Modifier.settingsFocusTarget(SettingsFocusKey.ACCESSIBILITY),
             ) { RowValue(a11yText, a11yTone) }
             // 安卓 12 以下手机功能不可用,不列这一行(系统版本那一行已说明)
             if (status.sdkInt >= Prerequisites.MIN_SDK) {
@@ -99,7 +103,7 @@ fun PhoneOpsScreen(
                     stringResource(R.string.phone_shizuku_group),
                     null,
                     onClick = if (shizuku.installed || shizuku.running) onGrantShizuku else onOpenShizukuGuide,
-                    modifier = Modifier.testTag("phone-shizuku-status"),
+                    modifier = Modifier.testTag("phone-shizuku-status").settingsFocusTarget(SettingsFocusKey.SHIZUKU),
                 ) { RowValue(shizukuValue, shizukuTone) }
             }
             val tooOld = status.sdkInt < Prerequisites.MIN_SDK
@@ -127,19 +131,21 @@ fun PhoneOpsScreen(
         if (status.sdkInt >= Prerequisites.MIN_SDK) {
             GroupLabel(stringResource(R.string.phone_transport_title))
             GroupCard {
-                // 固定三选一,和其它页面一样用分段控件
-                val options = listOf(
-                    ShellTransport.Auto to stringResource(R.string.phone_transport_auto),
-                    ShellTransport.WirelessDebugging to stringResource(R.string.phone_transport_wireless),
-                    ShellTransport.Shizuku to stringResource(R.string.phone_transport_shizuku),
-                )
-                SegmentedControl(
-                    options.map { it.second },
-                    options.indexOfFirst { it.first == status.shellTransport },
-                    { onSelectTransport(options[it].first) },
-                    Modifier.padding(12.dp),
-                    tags = options.map { "phone-transport-${it.first.name}" },
-                )
+                Box(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.SHELL_TRANSPORT)) {
+                    // 固定三选一,和其它页面一样用分段控件
+                    val options = listOf(
+                        ShellTransport.Auto to stringResource(R.string.phone_transport_auto),
+                        ShellTransport.WirelessDebugging to stringResource(R.string.phone_transport_wireless),
+                        ShellTransport.Shizuku to stringResource(R.string.phone_transport_shizuku),
+                    )
+                    SegmentedControl(
+                        options.map { it.second },
+                        options.indexOfFirst { it.first == status.shellTransport },
+                        { onSelectTransport(options[it].first) },
+                        Modifier.padding(12.dp),
+                        tags = options.map { "phone-transport-${it.first.name}" },
+                    )
+                }
             }
             FooterNote(stringResource(R.string.phone_transport_sub))
 

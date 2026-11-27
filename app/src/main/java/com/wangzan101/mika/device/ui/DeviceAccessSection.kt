@@ -32,7 +32,9 @@ import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.RadioRow
 import com.wangzan101.mika.ui.components.RowActions
+import com.wangzan101.mika.ui.components.SettingsFocusKey
 import com.wangzan101.mika.ui.components.TileTone
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import com.wangzan101.mika.ui.theme.MikaIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,9 +76,13 @@ fun DeviceAccessSection(settings: DeviceAccessSettings, localTasks: Boolean = fa
 
     GroupLabel(stringResource(if (localTasks) R.string.device_local_group else R.string.device_access_group))
     GroupCard {
-        ListRow(if (localTasks) MikaIcons.Phone else MikaIcons.Desktop,
+        ListRow(
+            if (localTasks) MikaIcons.Phone else MikaIcons.Desktop,
             stringResource(if (localTasks) R.string.device_local_title else R.string.device_access_title),
-            note = stringResource(if (localTasks) R.string.device_local_sub else R.string.device_access_sub), first = true) {
+            note = stringResource(if (localTasks) R.string.device_local_sub else R.string.device_access_sub),
+            first = true,
+            modifier = Modifier.settingsFocusTarget(if (localTasks) SettingsFocusKey.LOCK_SCREEN_TASKS else SettingsFocusKey.REMOTE_DEVICE_ACCESS),
+        ) {
             MikaSwitch(if (localTasks) config.localEnabled else config.enabled,
                 { on -> change({ if (localTasks) settings.setLocalEnabled(on) else settings.setEnabled(on) }) },
                 Modifier.testTag(if (localTasks) "device-access-local-enabled" else "device-access-enabled"), enabled = !busy)
@@ -87,9 +93,12 @@ fun DeviceAccessSection(settings: DeviceAccessSettings, localTasks: Boolean = fa
             config.kind == CredentialKind.Password -> R.string.device_access_password_saved
             else -> R.string.device_access_no_credential
         }
-        ListRow(MikaIcons.Key, stringResource(R.string.device_access_credential), stringResource(subtitle),
+        ListRow(
+            MikaIcons.Key, stringResource(R.string.device_access_credential), stringResource(subtitle),
             tone = if (config.blocked) TileTone.Bad else TileTone.Neutral,
-            onClick = { if (!busy) { kind = config.kind ?: CredentialKind.Pin; editing = true } })
+            onClick = { if (!busy) { kind = config.kind ?: CredentialKind.Pin; editing = true } },
+            modifier = if (localTasks) Modifier.settingsFocusTarget(SettingsFocusKey.LOCK_SCREEN_CREDENTIAL) else Modifier,
+        )
         if (config.kind != null && !editing) RowActions {
             MikaButton(stringResource(R.string.device_access_clear), { change({ settings.clearCredential() }) }, kind = ButtonKind.Tonal, size = ButtonSize.Small, enabled = !busy)
         }

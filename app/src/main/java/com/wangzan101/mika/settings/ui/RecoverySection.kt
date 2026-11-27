@@ -33,6 +33,8 @@ import java.time.format.DateTimeFormatter
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.RowChevron
+import com.wangzan101.mika.ui.components.SettingsFocusKey
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.components.MikaSwitch
@@ -183,7 +185,10 @@ fun RecoverySection(
             val copy = RecoveryCopy.switch(cap)
             val on = consent.wants(cap)
             val icon = iconOf(cap)
-            ListRow(icon, copy.title, if (busy == cap) RecoveryCopy.WORKING else null, first = i == 0) {
+            ListRow(
+                icon, copy.title, if (busy == cap) RecoveryCopy.WORKING else null, first = i == 0,
+                modifier = Modifier.settingsFocusTarget(focusKeyOf(cap)),
+            ) {
                 MikaSwitch(on, { want -> onToggle(cap, want) }, Modifier.testTag("recovery-${cap.name}"), enabled = busy == null)
             }
             notes[cap]?.let { Note(it, MikaTheme.colors.bad) }
@@ -213,6 +218,7 @@ fun RecentsExclusionSection(excluded: Boolean, onSet: (Boolean) -> Boolean) {
             tr(R.string.rec_exclude_recents),
             tr(R.string.rec_exclude_recents_sub),
             first = true,
+            modifier = Modifier.settingsFocusTarget(SettingsFocusKey.RECENTS_EXCLUSION),
         ) {
             MikaSwitch(
                 current,
@@ -236,6 +242,13 @@ private fun iconOf(c: RecoveryCapability): ImageVector = when (c) {
     RecoveryCapability.BatteryWhitelist -> MikaIcons.Sun
     RecoveryCapability.RestoreAfterReboot -> MikaIcons.Wrench
     RecoveryCapability.AutoWirelessDebugging -> MikaIcons.Refresh
+}
+
+private fun focusKeyOf(c: RecoveryCapability): String = when (c) {
+    RecoveryCapability.Accessibility -> SettingsFocusKey.RECOVERY_A11Y
+    RecoveryCapability.BatteryWhitelist -> SettingsFocusKey.RECOVERY_BATTERY
+    RecoveryCapability.RestoreAfterReboot -> SettingsFocusKey.RECOVERY_BOOT
+    RecoveryCapability.AutoWirelessDebugging -> SettingsFocusKey.RECOVERY_AUTO_WIRELESS
 }
 
 @Composable

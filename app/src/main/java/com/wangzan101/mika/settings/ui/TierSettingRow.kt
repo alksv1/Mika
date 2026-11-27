@@ -32,9 +32,10 @@ internal fun TierSettingRow(
     @PluralsRes label: Int,
     current: Int,
     onPick: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var editing by remember { mutableStateOf(false) }
-    ListRow(MikaIcons.Clock, stringResource(title), onClick = { editing = true }) {
+    ListRow(MikaIcons.Clock, stringResource(title), onClick = { editing = true }, modifier = modifier) {
         RowValue(trPlural(label, current))
         RowChevron()
     }

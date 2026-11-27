@@ -1,23 +1,38 @@
 package com.wangzan101.mika.settings.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wangzan101.mika.ChineseUi
 import com.wangzan101.mika.core.device.shell.BuiltinShellStatus
 import com.wangzan101.mika.settings.AccessibilityState
 import com.wangzan101.mika.settings.SystemStatus
+import com.wangzan101.mika.ui.components.FocusTargetHost
+import com.wangzan101.mika.ui.components.GroupCard
+import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.components.LocalFocusTarget
+import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.SettingsFocusKey
+import com.wangzan101.mika.ui.components.settingsFocusTarget
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -126,5 +141,33 @@ class SettingsSearchScreenTest {
             ),
             opened,
         )
+    }
+
+    @Test
+    fun focusTargetScrollsOffscreenRowIntoViewAndConsumesRequest() {
+        val host = FocusTargetHost()
+        val scrollState = ScrollState(0)
+        host.request("target_bottom")
+        compose.setContent {
+            CompositionLocalProvider(LocalFocusTarget provides host) {
+                Box(Modifier.height(240.dp)) {
+                    PageScaffold("测试", onBack = {}, scrollState = scrollState) {
+                        GroupCard {
+                            repeat(20) { i ->
+                                ListRow(null, "条目 $i", first = i == 0)
+                            }
+                            ListRow(
+                                null, "目标设置项",
+                                modifier = Modifier.testTag("focus-target-row").settingsFocusTarget("target_bottom"),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+        assertTrue("目标行应自动滚入视野", scrollState.value > 0)
+        compose.onNodeWithTag("focus-target-row").assertIsDisplayed()
+        assertNull(host.current)
     }
 }
