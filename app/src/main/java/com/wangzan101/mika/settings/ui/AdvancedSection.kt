@@ -72,10 +72,14 @@ object SandboxCopy {
 
     fun clearBody(w: WorkspaceUsage): String = tr(R.string.sandbox_usage_clear_body, workspaceTitle(w))
 
-    /** 工作区那一行的名字:项目工作区标明项目共用;普通对话用标题,删了的写明。 */
+    /** 工作区那一行的名字:项目工作区标明项目共用,工作流标明流程;普通对话用标题,删了的写明。 */
     fun workspaceTitle(w: WorkspaceUsage): String {
         val name = w.title?.let(ChatCopy::plainTitle)?.takeIf(String::isNotBlank) ?: tr(R.string.sandbox_usage_deleted_chat)
-        return if (w.projectId != null) "${tr(R.string.chat_project_shared)} · $name" else name
+        return when {
+            w.projectId != null -> "${tr(R.string.chat_project_shared)} · $name"
+            w.workflowRunId != null -> "${tr(R.string.workflows_title)} · $name"
+            else -> name
+        }
     }
 
     fun usageRows(u: SandboxUsage): List<Pair<String, Long>> = listOf(
@@ -122,6 +126,7 @@ fun AdvancedSettings() {
             { app.taskState.activeConversations.value },
             { app.projects.projects.value },
             WorkspaceResolver.resolver(context),
+            { app.workflows.store.data.value.runs.map { it.id to it.template.title } },
         )
     }
     var usage by remember { mutableStateOf<SandboxUsage?>(null) }

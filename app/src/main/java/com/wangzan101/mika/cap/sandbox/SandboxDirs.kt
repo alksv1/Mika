@@ -33,7 +33,7 @@ class SandboxDirs internal constructor(
     /** 各工作区共享、沙箱可写的 MCP 包缓存(装好的 npm/pypi 包,非用户数据)。 */
     val mcpCache: File get() = File(root, "mcp-cache")
 
-    /** 一个工作区对应一个目录:项目为 `p-<ID>`,对话为 `c-<ID>` 或 `h-<哈希>`(与 `p-` 永不撞名)。 */
+    /** 一个工作区对应一个目录:项目为 `p-<ID>`,工作流为 `w-<ID>`,对话为 `c-<ID>` 或 `h-<哈希>`(互不撞名)。 */
     fun workspace(key: WorkspaceKey): File = File(work, dirName(key))
 
     fun lib(name: String): File = File(nativeDir, name)
@@ -70,6 +70,7 @@ class SandboxDirs internal constructor(
 
     private fun dirName(key: WorkspaceKey): String = when (key) {
         is WorkspaceKey.Project -> "p-${key.id}"
+        is WorkspaceKey.Workflow -> "w-${key.runId}"
         is WorkspaceKey.Conversation -> conversationDirName(key.id)
     }
 

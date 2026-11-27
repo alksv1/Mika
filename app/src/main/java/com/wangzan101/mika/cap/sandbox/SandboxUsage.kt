@@ -15,6 +15,7 @@ data class WorkspaceUsage(
     val bytes: Long,
     val busy: Boolean,
     val projectId: String? = null,
+    val workflowRunId: String? = null,
 )
 
 /** 文件与计算环境占的空间:运行环境、技能、各工作区(大的在前)。 */
@@ -37,12 +38,17 @@ class SandboxUsageReader(
     /** 存着的项目列表(编号和名字)。 */
     private val projects: () -> List<Project> = { emptyList() },
     private val resolveWorkspace: ((String) -> WorkspaceKey)? = null,
+    /** 存着的工作流运行(运行编号和模板标题)。 */
+    private val workflowRuns: () -> List<Pair<String, String>> = { emptyList() },
 ) {
     /** 读一遍磁盘;工作区可能有很多文件,要在后台线程调。 */
     fun read(): SandboxUsage {
         val projList = projects()
         val projIds = projList.map { it.id }.toSet()
         val projByDir = projList.associateBy { dirs.workspace(WorkspaceKey.Project(it.id)).name }
+        val wfByDir = workflowRuns()
+            .filter { WorkspaceKey.isValidWorkflowId(it.first) }
+            .associateBy { dirs.workspace(WorkspaceKey.Workflow(it.first)).name }
         val convList = conversations()
         val convByDir = convList
             .filter { it.projectId == null || it.projectId !in projIds }
@@ -50,11 +56,14 @@ class SandboxUsageReader(
         val busy = busyDirs(convList, projIds)
         val workspaces = dirs.work.listFiles().orEmpty().filter { !Files.isSymbolicLink(it.toPath()) && it.isDirectory }.map { dir ->
             val p = projByDir[dir.name]
-            if (p != null) {
-                WorkspaceUsage(dir.name, conversationId = null, p.name, AndroidSandbox.treeBytes(dir.toPath()), dir.name in busy, projectId = p.id)
-            } else {
-                val c = convByDir[dir.name]
-                WorkspaceUsage(dir.name, c?.id, c?.title, AndroidSandbox.treeBytes(dir.toPath()), dir.name in busy)
+            val wf = wfByDir[dir.name]
+            when {
+                p != null -> WorkspaceUsage(dir.name, conversationId = null, p.name, AndroidSandbox.treeBytes(dir.toPath()), dir.name in busy, projectId = p.id)
+                wf != null -> WorkspaceUsage(dir.name, conversationId = null, wf.second, AndroidSandbox.treeBytes(dir.toPath()), dir.name in busy, workflowRunId = wf.first)
+                else -> {
+                    val c = convByDir[dir.name]
+                    WorkspaceUsage(dir.name, c?.id, c?.title, AndroidSandbox.treeBytes(dir.toPath()), dir.name in busy)
+                }
             }
         }.sortedByDescending { it.bytes }
         return SandboxUsage(AndroidSandbox.treeBytes(dirs.rootfs.toPath()), AndroidSandbox.treeBytes(dirs.skills.toPath()), workspaces)

@@ -58,6 +58,29 @@ class WorkspaceResolverTest {
 
         val malicious = WorkspaceKey.parse("p:../escape")
         assertEquals(WorkspaceKey.Conversation("p:../escape"), malicious)
+
+        val wf = WorkspaceKey.Workflow("run-123_abc")
+        assertEquals("w:run-123_abc", wf.wire)
+        assertEquals(wf, WorkspaceKey.parse(wf.wire))
+
+        val maliciousWf = WorkspaceKey.parse("w:../escape")
+        assertEquals(WorkspaceKey.Conversation("w:../escape"), maliciousWf)
+    }
+
+    @Test fun workflowResolutionTakesPrecedenceOverProjectAndConversation() {
+        val conversations = ConversationStore(tmp.newFolder("chats-wf"))
+        val projects = ProjectStore(tmp.newFolder("projects-wf"))
+        val project = projects.create("科研").getOrThrow()
+        assertTrue(conversations.setProject("step-conv", project.id))
+        val resolver = WorkspaceResolver(
+            conversations,
+            projects,
+            workflowRunIdOf = { id -> if (id == "step-conv") "run-99" else null },
+        )
+        assertEquals(WorkspaceKey.Workflow("run-99"), resolver.resolve("step-conv"))
+        assertNull(resolver.projectIdOf("step-conv"))
+        assertEquals("run-99", resolver.workflowRunOf("step-conv"))
+        assertTrue(resolver.isShared("step-conv"))
     }
 
     @Test fun setDraftProjectTracksAndClearsPendingDraft() {

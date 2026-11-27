@@ -102,4 +102,29 @@ class SandboxUsageReaderTest {
         assertFalse(projDir.exists())
         assertTrue(soloDir.exists())
     }
+
+    @Test fun workflowWorkspacesReportTitleAndRespectActiveSteps() = runBlocking {
+        val wfDir = dirs.workspace(WorkspaceKey.Workflow("wf-1")).apply {
+            mkdirs()
+            File(this, "steps/step-1/result.md").apply { parentFile?.mkdirs(); writeText("ok") }
+        }
+        val activeConv = mutableListOf("step-conv-1")
+        val readerWithWorkflows = SandboxUsageReader(
+            dirs,
+            conversations = { emptyList() },
+            active = { activeConv },
+            resolveWorkspace = { id -> if (id == "step-conv-1") WorkspaceKey.Workflow("wf-1") else WorkspaceKey.Conversation(id) },
+            workflowRuns = { listOf("wf-1" to "Weekly Report") },
+        )
+
+        val u = readerWithWorkflows.read()
+        assertEquals(listOf("Weekly Report"), u.workspaces.map { it.title })
+        assertEquals(listOf("wf-1"), u.workspaces.map { it.workflowRunId })
+        assertEquals(listOf(true), u.workspaces.map { it.busy })
+        assertFalse(readerWithWorkflows.clear(wfDir.name))
+
+        activeConv.clear()
+        assertTrue(readerWithWorkflows.clear(wfDir.name))
+        assertFalse(wfDir.exists())
+    }
 }
