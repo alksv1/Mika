@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">حزم الصوت دون اتصال</string>
+    <string name="voice_packs_lead">بعد التنزيل يتحول الكلام إلى نص دون اتصال بالشبكة، ويبقى صوتك على الهاتف. عندما لا يمكن استخدام التعرّف المدمج في الهاتف، يستخدم الوضع التلقائي حزمة صوت مثبّتة.</string>
+    <string name="voice_packs_entry_sub">تحويل الكلام إلى نص دون شبكة</string>
+    <string name="voice_pack_recommended">موصى بها</string>
+    <string name="voice_pack_languages_count">%1$d لغة</string>
+    <string name="voice_pack_meta">%1$s · %2$s · ترخيص %3$s</string>
+    <string name="voice_pack_status_not_installed">غير منزّلة</string>
+    <string name="voice_pack_status_downloading">جارٍ التنزيل</string>
+    <string name="voice_pack_status_downloading_percent">جارٍ التنزيل %1$d%%</string>
+    <string name="voice_pack_status_installed">مثبّتة · الإصدار %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">تالفة، يجب تنزيلها مجددًا</string>
+    <string name="voice_pack_status_update">يتوفر إصدار جديد، والإصدار القديم ما زال يعمل</string>
+    <string name="voice_pack_status_importing">جارٍ الاستيراد…</string>
+    <string name="voice_pack_download">تنزيل</string>
+    <string name="voice_pack_redownload">تنزيل مجددًا</string>
+    <string name="voice_pack_update">تحديث</string>
+    <string name="voice_pack_cancel">إلغاء التنزيل</string>
+    <string name="voice_pack_delete">حذف</string>
+    <string name="voice_pack_import">استيراد من الملفات</string>
+    <string name="voice_pack_copy_urls">نسخ روابط التنزيل</string>
+    <string name="voice_pack_download_failed">لم يكتمل التنزيل. حاول مرة أخرى، أو نزّل الملفات على حاسوب ثم استوردها.</string>
+    <string name="voice_pack_metered_title">التنزيل عبر بيانات الجوال؟</string>
+    <string name="voice_pack_metered_body">حجم حزمة الصوت هذه نحو %1$s. أنت متصل بشبكة محدودة البيانات (مثل بيانات الجوال أو نقطة اتصال).</string>
+    <string name="voice_pack_metered_confirm">التنزيل على أي حال</string>
+    <string name="voice_pack_delete_title">حذف حزمة الصوت؟</string>
+    <string name="voice_pack_delete_body">ستُحذف %1$s من هذا الهاتف. إن كان الإدخال الصوتي يستخدمها، فسيعود إلى الوضع التلقائي.</string>
+    <string name="voice_pack_no_space">لا توجد مساحة كافية: المطلوب %1$s، والمتاح %2$s فقط.</string>
+    <string name="voice_pack_unsupported">لا يمكن لهذا الجهاز تشغيل حزمة الصوت هذه.</string>
+    <string name="voice_pack_not_started">تعذّر بدء التنزيل: قد يكون التنزيل أو الاستيراد جاريًا بالفعل، أو لا يوجد رابط تنزيل صالح.</string>
+    <string name="voice_pack_import_done">تم الاستيراد وهي جاهزة للاستخدام.</string>
+    <string name="voice_pack_import_missing">الملفات المحددة ينقصها: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s لا يطابق القائمة (الحجم أو المجموع الاختباري مختلف)، لذلك لم يُستورد شيء.</string>
+    <string name="voice_pack_import_busy">حزمة الصوت هذه قيد التنزيل أو الاستيراد. حاول مجددًا عند انتهائها.</string>
+    <string name="voice_pack_import_failed">تعذّر الاستيراد: لم يمكن قراءة الملفات أو حفظها على الهاتف.</string>
+    <string name="voice_pack_delete_failed">تعذّر حذف كل شيء. حاول لاحقًا.</string>
+    <string name="voice_pack_copied">نُسخت روابط التنزيل.</string>
+    <string name="voice_pack_needs_download">يلزم التنزيل</string>
+    <string name="voice_pack_corrupt_error">حزمة الصوت تالفة. يرجى تنزيلها مجددًا.</string>
+    <string name="voice_on_device_failed">فشل التعرّف دون اتصال. حاول مرة أخرى.</string>
+    <string name="voice_go_voice_packs">تنزيل حزمة صوت دون اتصال</string>
+</resources>

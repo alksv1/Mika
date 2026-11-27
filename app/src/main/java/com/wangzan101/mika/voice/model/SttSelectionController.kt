@@ -71,21 +71,23 @@ class SttSelectionController(private val environment: VoiceModelEnvironment) {
             (backups.isNotEmpty() || environment.accountResolver.pooled(model))
         if (!chained) return adapter.start(context, model, spokenLanguage(model, language), hooks)
         adapter.spec(model)
+        // 链头是本机语音包时,按下就开始加载模型(备援链不经它自己的 start)
+        adapter.prewarm(model)
         val candidates = listOf(ref) + backups.filter { it != ref }.take(VoiceFallbacks.MAX)
         val transcribe = transcribeChain(context, candidates, language, first = model)
+        // 链上有本机语音包时不设总上限:它按录音长短自己限时,慢机器上可能超过 30 秒;云端的每个仍各自限时
+        val timeoutMs = if (candidates.any { isOnDevice(it) }) Long.MAX_VALUE
+        else ProviderSpeech.TRANSCRIBE_TIMEOUT_MS * candidates.size
         return categorizedSession {
-            ProviderSpeech(
-                hooks.recorder ?: PcmRecorder(),
-                transcribe,
-                timeoutMs = ProviderSpeech.TRANSCRIBE_TIMEOUT_MS * candidates.size,
-            )
+            ProviderSpeech(hooks.recorder ?: PcmRecorder(), transcribe, timeoutMs = timeoutMs)
         }
     }
 
     /**
      * 同一段录音按 [candidates] 依次转写:每个模型走自己账号的密钥池([VoiceAccountResolver.withPooledKey]),
      * 失败了由 [VoiceFailover] 决定换不换下一个。每个模型最多等 [ProviderSpeech.TRANSCRIBE_TIMEOUT_MS],
-     * 超时当这个模型连不上,换下一个。只收整段上传识别的模型,别的跳过。
+     * 超时当这个模型连不上,换下一个。本机语音包不套这个上限:它自己按录音长短限时,超时记成本机失败,
+     * 不是网络错误。只收整段上传识别的模型,别的跳过。
      */
     internal fun transcribeChain(
         context: Context,
@@ -107,12 +109,20 @@ class SttSelectionController(private val environment: VoiceModelEnvironment) {
             environment.accountResolver.withPooledKey(resolved) { keyed ->
                 val transcribe = environment.registry.stt(keyed).utterance(context, keyed, spokenLanguage(keyed, language))
                     ?: throw VoiceModelError.Unsupported(VoiceCapability.STT, keyed.model.stt?.protocol?.name)
-                withTimeoutOrNull(attemptTimeoutMs) { transcribe(wav) }
-                    // 和网络超时同一种错误:界面照「连不上」处理,换不换下一个也按网络错误判断
-                    ?: throw ModelError.Network(SocketTimeoutException("transcription timed out"))
+                if (keyed.model.stt?.protocol == SttProtocol.OnDevice) {
+                    transcribe(wav)
+                } else {
+                    withTimeoutOrNull(attemptTimeoutMs) { transcribe(wav) }
+                        // 和网络超时同一种错误:界面照「连不上」处理,换不换下一个也按网络错误判断
+                        ?: throw ModelError.Network(SocketTimeoutException("transcription timed out"))
+                }
             }
         }
     }
+
+    private fun isOnDevice(ref: VoiceModelRef): Boolean =
+        environment.catalog.state.value.models.firstOrNull { it.serviceId == ref.serviceId && it.id == ref.modelId }
+            ?.stt?.protocol == SttProtocol.OnDevice
 
     /** 这次识别交给服务的语言。 */
     private fun spokenLanguage(model: ResolvedVoiceModel, language: String?): String? {

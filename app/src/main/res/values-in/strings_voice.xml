@@ -7,6 +7,7 @@
     <string name="voice_steer_to">Memberi tahu “%1$s”</string>
     <string name="voice_engine_phone">Ponsel</string>
     <string name="voice_engine_phone_offline">Ponsel · offline</string>
+    <string name="voice_engine_on_device">Di perangkat · offline</string>
     <string name="voice_say_now">Silakan bicara, saya mendengarkan…</string>
     <string name="voice_recording">Merekam. Lepaskan dan akan diubah menjadi teks…</string>
     <string name="voice_foot_live">Lepaskan · kata-katanya masuk ke kotak untuk diedit</string>
@@ -36,6 +37,8 @@
     <string name="voice_service_settings_failed">Halaman setelan “%1$s” tidak dapat dibuka. Cari aplikasi itu di daftar aplikasi sistem dan aktifkan mikrofon.</string>
     <string name="voice_unavailable_provider_gone">Penyedia model ucapan yang dipilih sudah dihapus. Pilih yang lain di Pengaturan › Model › Ucapan ke teks.</string>
     <string name="voice_unavailable_off">Ucapan ke teks dimatikan. Pilih salah satu di Pengaturan › Model › Ucapan ke teks.</string>
+    <string name="voice_unavailable_pack_missing">Paket suara perlu diunduh. Paket suara offline yang dipilih tidak ada di ponsel ini; unduh di Pengaturan › Model › Ucapan ke teks dan langsung bisa dipakai tanpa perlu memilih ulang.</string>
+    <string name="voice_unavailable_on_device_unsupported">Perangkat ini tidak mendukung pengenalan offline. Pilih metode pengenalan lain di Pengaturan › Model › Ucapan ke teks.</string>
     <string name="voice_go_pick">Pilih</string>
     <string name="voice_permission_title">Mika memerlukan mikrofon</string>
     <string name="voice_permission_body">Untuk mendengar Anda saat menahan untuk bicara, Mika perlu merekam audio. Izin ini pernah ditolak, jadi ponsel tidak akan bertanya lagi. Aktifkan mikrofon di halaman izin Mika pada setelan sistem.</string>

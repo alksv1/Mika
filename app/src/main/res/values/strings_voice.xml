@@ -8,6 +8,7 @@
     <string name="voice_steer_to">Telling “%1$s”</string>
     <string name="voice_engine_phone">Phone</string>
     <string name="voice_engine_phone_offline">Phone · offline</string>
+    <string name="voice_engine_on_device">On-device · offline</string>
     <string name="voice_say_now">Go ahead, I’m listening…</string>
     <string name="voice_recording">Recording. Let go and it turns into text…</string>
     <string name="voice_foot_live">Let go · the words go into the box to edit</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">Couldn’t open the settings page for “%1$s”. Find it in the system’s app list and turn on the microphone.</string>
     <string name="voice_unavailable_provider_gone">The provider of the chosen speech model has been removed. Pick another one in Settings › Models › Speech to text.</string>
     <string name="voice_unavailable_off">Speech to text is turned off. Pick one in Settings › Models › Speech to text.</string>
+    <string name="voice_unavailable_pack_missing">Voice pack needs downloading. The offline voice pack you picked isn’t on this phone; download it in Settings › Models › Speech to text and it works right away, no need to pick it again.</string>
+    <string name="voice_unavailable_on_device_unsupported">This device doesn’t support offline recognition. Pick another recognition method in Settings › Models › Speech to text.</string>
     <string name="voice_go_pick">Pick one</string>
     <string name="voice_permission_title">Mika needs the microphone</string>
     <string name="voice_permission_body">To hear you while you hold to talk, Mika needs to record audio. It was denied before, so the phone won’t ask again. Turn on the microphone on Mika’s permission page in system settings.</string>

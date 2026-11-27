@@ -116,7 +116,7 @@ internal suspend fun TaskRun.assembleAgent(a: RunAssembly, m: RunModels, ph: Run
         confirmTimeoutMs = TaskService.CONFIRM_TIMEOUT_MS,
         selfPackage = service.packageName,
         flags = speed,
-        // 只在 lightSteps 打开、轻量模型能调工具且与主模型不是同一份配置时生效
+        // 只在 lightSteps 打开、轻量模型能调工具且与主模型不是同一份配置或同一个模型组时生效
         modelFallbacks = chainModels, modelChainProviderIds = chainProviderIds,
         router = routedLight?.let { ModelRouter(model, it, fallbacks = lightFallbacks) },
         intentJudge = if (provenance.origin == RunOrigin.Ui) light ?: model else null,

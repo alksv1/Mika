@@ -120,4 +120,9 @@ class VoiceFallbacksTest {
         }
         assertEquals(1, calls)
     }
+
+    @Test fun onDeviceIsEligible() {
+        val pack = VoiceModel("on-device", "pack", "Pack", stt = SttBinding(SttProtocol.OnDevice, endpoint = "pack"))
+        assertTrue("本机语音包既能当链头也能当备援", VoiceFallbacks.eligible(pack, VoiceCapability.STT))
+    }
 }

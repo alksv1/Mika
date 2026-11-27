@@ -1,0 +1,168 @@
+{
+  "packs": [
+    {
+      "id": "sensevoice-small-int8",
+      "version": 1,
+      "backend": "sherpa-onnx",
+      "family": "sense_voice",
+      "displayName": "SenseVoice Small",
+      "languages": ["zh", "en", "ja", "ko", "yue"],
+      "recommendedFor": ["zh-Hans", "zh-Hant", "en", "ja", "ko"],
+      "hfRepo": "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17",
+      "commit": "2365baeacb507f821a0c8120fcee3d484dba7a07",
+      "files": [
+        {
+          "name": "model.int8.onnx",
+          "role": "model",
+          "size": 239233841,
+          "sha256": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51"
+        },
+        {
+          "name": "tokens.txt",
+          "role": "tokens",
+          "size": 315894,
+          "sha256": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc"
+        },
+        {
+          "name": "LICENSE",
+          "role": "license",
+          "size": 5306,
+          "sha256": "7dba975a2069691db4992b0592d70828b330d2f8a30a71450f4e152a554e84f8",
+          "url": "https://raw.githubusercontent.com/modelscope/FunASR/58830eca4012644aac0c3218c3ccc7d98f003fda/MODEL_LICENSE"
+        }
+      ],
+      "license": {
+        "name": "FunASR Model License 1.1",
+        "file": "LICENSE",
+        "attribution": "SenseVoice Small by FunAudioLLM (Tongyi Lab, Alibaba Group), https://github.com/FunAudioLLM/SenseVoice; ONNX export by k2-fsa/sherpa-onnx"
+      },
+      "note": "HF repo's own LICENSE (71 bytes) is only a pointer to FunASR; full text taken from modelscope/FunASR MODEL_LICENSE (the license_link in FunAudioLLM/SenseVoiceSmall model card). Not under `upstream`."
+    },
+    {
+      "id": "dolphin-base-ctc-int8",
+      "version": 1,
+      "backend": "sherpa-onnx",
+      "family": "dolphin",
+      "displayName": "Dolphin Base",
+      "languages": ["zh", "ja", "th", "ru", "ko", "id", "vi", "yue", "hi", "ur", "ms", "uz", "ar", "fa", "bn", "ta", "te", "ug", "gu", "my", "tl", "kk", "or", "ne", "mn", "km", "jv", "lo", "si", "fil", "ps", "pa", "kab", "ba", "ks", "tg", "su", "mr", "ky", "az"],
+      "recommendedFor": ["vi", "fa"],
+      "hfRepo": "csukuangfj/sherpa-onnx-dolphin-base-ctc-multi-lang-int8-2025-04-02",
+      "commit": "1f3a53d0ecf658f8b0974e2cfde368eee40732fa",
+      "files": [
+        {
+          "name": "model.int8.onnx",
+          "role": "model",
+          "size": 103729802,
+          "sha256": "a3aa46c97f3f60f135ff949793cb05fabe7a0b3c484dc2e3cc699d354ee11b76"
+        },
+        {
+          "name": "tokens.txt",
+          "role": "tokens",
+          "size": 504662,
+          "sha256": "c3788261a51df1899ea4b210b552cd42139204de72c0ad60f6cebb199078872e"
+        },
+        {
+          "name": "LICENSE",
+          "role": "license",
+          "size": 11341,
+          "sha256": "252bff52e32f4339afca6e035776043cb96cb611cd02f42eafa6758990cf4c71",
+          "url": "https://raw.githubusercontent.com/DataoceanAI/Dolphin/bb70b9c0cab1235b8458141819c0ba92773d3b41/LICENSE"
+        }
+      ],
+      "license": {
+        "name": "Apache-2.0",
+        "file": "LICENSE",
+        "attribution": "Dolphin by DataoceanAI and Tsinghua University, https://github.com/DataoceanAI/Dolphin (Copyright 2025 DataoceanAI); CTC branch, ONNX export by k2-fsa/sherpa-onnx"
+      },
+      "note": "HF repo has no LICENSE file (card says apache-2.0); text from DataoceanAI/Dolphin GitHub. Not under `upstream`."
+    },
+    {
+      "id": "whisper-base-int8",
+      "version": 1,
+      "backend": "sherpa-onnx",
+      "family": "whisper",
+      "displayName": "Whisper Base",
+      "languages": ["en", "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr", "pl", "ca", "nl", "ar", "sv", "it", "id", "hi", "fi", "vi", "iw", "uk", "el", "ms", "cs", "ro", "da", "hu", "ta", "no", "th", "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy", "sk", "te", "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk", "br", "eu", "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw", "gl", "mr", "pa", "si", "km", "sn", "yo", "so", "af", "oc", "ka", "be", "tg", "sd", "gu", "am", "yi", "lo", "uz", "fo", "ht", "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl", "mg", "as", "tt", "haw", "ln", "ha", "ba", "jw", "su"],
+      "recommendedFor": ["es", "pt", "ru", "id", "tr", "ar"],
+      "hfRepo": "csukuangfj/sherpa-onnx-whisper-base",
+      "commit": "bb53ee204431c90d314c1cc08d28d23e5b7927cc",
+      "files": [
+        {
+          "name": "base-encoder.int8.onnx",
+          "role": "encoder",
+          "size": 29120534,
+          "sha256": "0b8fb1304b6109976038efff5ace81720e00386f3ff6b54ee8c75291ca0a1e11"
+        },
+        {
+          "name": "base-decoder.int8.onnx",
+          "role": "decoder",
+          "size": 130672026,
+          "sha256": "9759d217388a01b3a4c7c15533201067b48ae819c4daafc8624e64b9409dc02d"
+        },
+        {
+          "name": "base-tokens.txt",
+          "role": "tokens",
+          "size": 816730,
+          "sha256": "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"
+        },
+        {
+          "name": "LICENSE",
+          "role": "license",
+          "size": 1063,
+          "sha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+          "url": "https://raw.githubusercontent.com/openai/whisper/6e3be77e1a105e59086e3e21ff5f609fd6fa89a5/LICENSE"
+        }
+      ],
+      "license": {
+        "name": "MIT",
+        "file": "LICENSE",
+        "attribution": "Whisper by OpenAI, https://github.com/openai/whisper (Copyright (c) 2022 OpenAI); ONNX export by k2-fsa/sherpa-onnx"
+      },
+      "note": "HF repo has no LICENSE file. Weights are released under MIT with openai/whisper code (the openai/whisper-base HF card says apache-2.0; we follow the original GitHub release, MIT). Not under `upstream`. Whisper language codes are Whisper's own: Hebrew=iw, Javanese=jw."
+    },
+    {
+      "id": "whisper-small-int8",
+      "version": 1,
+      "backend": "sherpa-onnx",
+      "family": "whisper",
+      "displayName": "Whisper Small",
+      "languages": ["en", "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr", "pl", "ca", "nl", "ar", "sv", "it", "id", "hi", "fi", "vi", "iw", "uk", "el", "ms", "cs", "ro", "da", "hu", "ta", "no", "th", "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy", "sk", "te", "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk", "br", "eu", "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw", "gl", "mr", "pa", "si", "km", "sn", "yo", "so", "af", "oc", "ka", "be", "tg", "sd", "gu", "am", "yi", "lo", "uz", "fo", "ht", "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl", "mg", "as", "tt", "haw", "ln", "ha", "ba", "jw", "su"],
+      "recommendedFor": [],
+      "hfRepo": "csukuangfj/sherpa-onnx-whisper-small",
+      "commit": "8f3c18b358db4d1f2fc1eae49d75cd20989e4309",
+      "files": [
+        {
+          "name": "small-encoder.int8.onnx",
+          "role": "encoder",
+          "size": 112442483,
+          "sha256": "4cbe7b22fa9026b843b60a68640c747de05bafb1a11b57edc0e66c232d9f33a9"
+        },
+        {
+          "name": "small-decoder.int8.onnx",
+          "role": "decoder",
+          "size": 262226114,
+          "sha256": "acad50b5c782696e91b55914cc5ab4f756f1532f76e22aa6fc615f39fb69a8ee"
+        },
+        {
+          "name": "small-tokens.txt",
+          "role": "tokens",
+          "size": 816730,
+          "sha256": "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"
+        },
+        {
+          "name": "LICENSE",
+          "role": "license",
+          "size": 1063,
+          "sha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+          "url": "https://raw.githubusercontent.com/openai/whisper/6e3be77e1a105e59086e3e21ff5f609fd6fa89a5/LICENSE"
+        }
+      ],
+      "license": {
+        "name": "MIT",
+        "file": "LICENSE",
+        "attribution": "Whisper by OpenAI, https://github.com/openai/whisper (Copyright (c) 2022 OpenAI); ONNX export by k2-fsa/sherpa-onnx"
+      },
+      "note": "Optional pack: more accurate, slower; recommendedFor empty until Task 10 on-device latency decides es/pt/ru/vi. Same MIT LICENSE as whisper-base. Not under `upstream`. Whisper language codes: Hebrew=iw, Javanese=jw."
+    }
+  ]
+}

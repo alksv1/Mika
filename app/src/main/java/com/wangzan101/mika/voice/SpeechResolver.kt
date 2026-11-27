@@ -20,26 +20,44 @@ sealed interface SpeechEngineSpec {
     data class Bailian(val model: String, val region: BailianRegion, val workspace: String = "", val language: AsrLanguage = AsrLanguage.Auto) : SpeechEngineSpec
     /** A vendor's own recognition API (upload per utterance). */
     data class Vendor(val model: String) : SpeechEngineSpec
+    /** 本机离线识别,用已安装的语音包 [packId]。 */
+    data class OnDevice(val packId: String) : SpeechEngineSpec
     data class Unavailable(val why: Why) : SpeechEngineSpec
     /**
      * [SystemNoResponse]:手机自带识别系统说有,但请求发过去一直没有回应(已记下,用户重新选它时清掉)。
      * [SystemFailed]:手机自带识别未能启动,可以重试;不据此认定服务不存在或麦克风被占用。
+     * [VoicePackMissing]:选中的本机语音包没装(比如从备份恢复后),下载后不用重新选就能用。
+     * [OnDeviceUnsupported]:这台设备跑不了本机识别(处理器架构不支持),或者是通话这种用不了它的场合。
      */
-    enum class Why { Off, NoSystemNoModel, SystemGone, SystemNoResponse, SystemFailed, ProviderGone, DoubaoNotConfigured, BailianNotConfigured }
+    enum class Why {
+        Off, NoSystemNoModel, SystemGone, SystemNoResponse, SystemFailed, ProviderGone, DoubaoNotConfigured, BailianNotConfigured,
+        VoicePackMissing, OnDeviceUnsupported,
+    }
 }
 
 /** 把用户的选择、手机能力和现有服务商对起来,得出这次用哪个引擎。纯函数,不碰系统。 */
 object SpeechResolver {
-    fun resolve(choice: SpeechChoice, system: SystemCapability, providers: List<Provider>): SpeechEngineSpec = when (choice) {
+    /**
+     * [autoPack] 是「自动」可以退到的已安装语音包(见 [com.wangzan101.mika.voice.ondevice.OnDeviceAuto]);
+     * 只有手机自带识别不能用时才用它,其他选择不看它。
+     */
+    fun resolve(
+        choice: SpeechChoice,
+        system: SystemCapability,
+        providers: List<Provider>,
+        autoPack: String? = null,
+    ): SpeechEngineSpec = when (choice) {
         SpeechChoice.Off -> SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.Off)
         is SpeechChoice.Doubao -> if (choice.resourceId in DoubaoProtocol.resources) SpeechEngineSpec.Doubao(choice.resourceId)
             else SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.DoubaoNotConfigured)
         is SpeechChoice.FunAsr -> SpeechEngineSpec.FunAsr(choice.url, choice.language)
         // 有没有存 Key 由 VoiceInput 开会话时再看(Key 不进选择),这里只按选择给
         is SpeechChoice.Bailian -> SpeechEngineSpec.Bailian(choice.model, choice.region, choice.workspace, choice.language)
-        // 自带识别不响应时照实说、指去设置,不悄悄改用要花钱的服务商模型
+        // 自带识别能用就用它(能边说边出字);不能用时退到装好的语音包;都没有就照实说、指去设置,
+        // 不悄悄改用要花钱的服务商模型
         SpeechChoice.Auto -> when {
             system.usable -> SpeechEngineSpec.System(system.onDevice)
+            autoPack != null -> SpeechEngineSpec.OnDevice(autoPack)
             system.available -> SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.SystemNoResponse)
             else -> SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.NoSystemNoModel)
         }

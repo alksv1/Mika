@@ -7,6 +7,7 @@
     <string name="voice_steer_to">插话给「%1$s」</string>
     <string name="voice_engine_phone">手机自带</string>
     <string name="voice_engine_phone_offline">手机自带 · 离线</string>
+    <string name="voice_engine_on_device">本机 · 离线</string>
     <string name="voice_say_now">说吧，我在听…</string>
     <string name="voice_recording">在录音，说完松开再转成文字…</string>
     <string name="voice_foot_live">松开 · 字填进输入框，可以再改</string>
@@ -36,6 +37,8 @@
     <string name="voice_service_settings_failed">没能打开「%1$s」的设置页。请到系统的应用管理里找到它，打开「麦克风」。</string>
     <string name="voice_unavailable_provider_gone">选的语音模型所在的服务商已经删掉了。到「设置 › 模型 › 语音转文字」重新选一个就能用。</string>
     <string name="voice_unavailable_off">语音转文字设成了不用。到「设置 › 模型 › 语音转文字」选一个就能用。</string>
+    <string name="voice_unavailable_pack_missing">需要下载语音包。选的离线语音包不在这台手机上，到「设置 › 模型 › 语音转文字」下载后就能直接用，不用重新选。</string>
+    <string name="voice_unavailable_on_device_unsupported">此设备不支持离线识别。到「设置 › 模型 › 语音转文字」换一种识别方式。</string>
     <string name="voice_go_pick">去选</string>
     <string name="voice_permission_title">要允许录音才能按住说话</string>
     <string name="voice_permission_body">按住说话时要录音才能听到你。之前没有允许，手机不会再问了：到系统设置里 Mika 的权限页，打开「麦克风」就能用。</string>

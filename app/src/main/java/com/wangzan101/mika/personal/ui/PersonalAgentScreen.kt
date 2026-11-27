@@ -127,6 +127,7 @@ fun PersonalAgentScreen(
     memoryRuntime: MemoryRuntime,
     onModels: () -> Unit,
     onPickSpeech: () -> Unit,
+    onOpenVoicePacks: () -> Unit = {},
 ) {
     val state by runtime.state.collectAsState()
     val actionError by runtime.error.collectAsState()
@@ -257,6 +258,7 @@ fun PersonalAgentScreen(
             voice = voice,
             onVoiceText = { draft = HoldToTalk.join(draft, it) },
             onPickSpeech = onPickSpeech,
+            onOpenVoicePacks = onOpenVoicePacks,
             onVoiceHolding = { voiceHolding = it },
             sendFromIme = true,
         )

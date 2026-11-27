@@ -1142,6 +1142,13 @@ class ProviderStoreTest {
         assertTrue(r.sameModel(ModelRole.Main, ModelRole.Vision))
         assertTrue(RoleChoices(main = "a").sameModel(ModelRole.Main, ModelRole.Light))
         assertFalse(RoleChoices().sameModel(ModelRole.Main, ModelRole.Light))
+        // 主模型是组:轻量用主模型时算同一个,轻量另选了模型或别的组不算
+        assertTrue(RoleChoices(mainGroup = "g").sameModel(ModelRole.Main, ModelRole.Light))
+        assertFalse(RoleChoices(mainGroup = "g", light = RoleChoice.Model("b")).sameModel(ModelRole.Main, ModelRole.Light))
+        assertFalse(RoleChoices(mainGroup = "g", light = RoleChoice.Group("h")).sameModel(ModelRole.Main, ModelRole.Light))
+        assertTrue(RoleChoices(mainGroup = "g", light = RoleChoice.Group("g")).sameModel(ModelRole.Main, ModelRole.Light))
+        assertFalse(RoleChoices(main = "a", light = RoleChoice.Group("g")).sameModel(ModelRole.Main, ModelRole.Light))
+        assertFalse(RoleChoices(mainGroup = "g").sameModel(ModelRole.Main, ModelRole.Vision))
         assertEquals(setOf("a", "b"), r.referenced)
         assertNull(RoleChoices().resolve(ModelRole.Light))
         assertNull(r.with(ModelRole.Light, RoleChoice.Off))

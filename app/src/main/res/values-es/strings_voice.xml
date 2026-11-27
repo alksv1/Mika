@@ -8,6 +8,7 @@
     <string name="voice_steer_to">Avisando a “%1$s”</string>
     <string name="voice_engine_phone">Teléfono</string>
     <string name="voice_engine_phone_offline">Teléfono · sin conexión</string>
+    <string name="voice_engine_on_device">En el dispositivo · sin conexión</string>
     <string name="voice_say_now">Adelante, te escucho…</string>
     <string name="voice_recording">Grabando. Suelta y se convertirá en texto…</string>
     <string name="voice_foot_live">Suelta · las palabras pasan al cuadro para editarlas</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">No se pudo abrir la página de ajustes de «%1$s». Búscala en la lista de apps del sistema y activa el micrófono.</string>
     <string name="voice_unavailable_provider_gone">Se eliminó el proveedor del modelo de voz elegido. Elige otro en Ajustes › Modelos › Voz a texto.</string>
     <string name="voice_unavailable_off">Voz a texto está desactivado. Elige uno en Ajustes › Modelos › Voz a texto.</string>
+    <string name="voice_unavailable_pack_missing">Hay que descargar el paquete de voz. El paquete de voz sin conexión que elegiste no está en este teléfono; descárgalo en Ajustes › Modelos › Voz a texto y funcionará enseguida, sin volver a elegirlo.</string>
+    <string name="voice_unavailable_on_device_unsupported">Este dispositivo no admite el reconocimiento sin conexión. Elige otro método de reconocimiento en Ajustes › Modelos › Voz a texto.</string>
     <string name="voice_go_pick">Elegir uno</string>
     <string name="voice_permission_title">Mika necesita el micrófono</string>
     <string name="voice_permission_body">Para oírte mientras mantienes pulsado para hablar, Mika necesita grabar audio. Se denegó antes, así que el teléfono no volverá a preguntar. Activa el micrófono en la página de permisos de Mika en los ajustes del sistema.</string>

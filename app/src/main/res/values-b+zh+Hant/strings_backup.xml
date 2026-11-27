@@ -6,7 +6,7 @@
     <string name="backup_warning_body">ZIP 檔案裡包含你的所有機密：API 金鑰、OAuth 權杖和服務憑證。請妥善保管、不要分享，匯入後即刪除。</string>
     <string name="backup_included_label">包含哪些內容</string>
     <string name="backup_included_body">服務商與金鑰、聊天、人格、技能、記憶、工作流程、任務執行記錄和設定。</string>
-    <string name="backup_excluded_body">不包含：無線偵錯配對（匯入後需重新配對）、無障礙服務開關（需在 Android 設定裡重新開啟）、沙箱工作區和檔案庫附件。</string>
+    <string name="backup_excluded_body">不包含：無線偵錯配對（匯入後需重新配對）、無障礙服務開關（需在 Android 設定裡重新開啟）、沙箱工作區和檔案庫附件。語音包體積大，不備份，還原後重新下載。</string>
     <string name="backup_export">匯出備份</string>
     <string name="backup_export_sub">把全部資料儲存為一個 ZIP 檔案</string>
     <string name="backup_import">匯入備份</string>

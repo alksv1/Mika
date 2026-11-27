@@ -88,4 +88,12 @@ class ProviderSpeechTest {
         assertTrue("got $out", out.none { it is SpeechEvent.Final || it is SpeechEvent.Failed })
         assertEquals(1, rec.cancelled)
     }
+
+    @Test
+    fun voiceModelErrorPassesThroughUnwrapped() {
+        val err = com.wangzan101.mika.voice.model.VoiceModelError.PackMissing("pack")
+        val s = ProviderSpeech(FakeRecorder(1_000), { throw err }, scope)
+        s.release()
+        assertEquals(listOf(SpeechEvent.Converting, SpeechEvent.Failed(SpeechFailure.Provider(err))), events(s))
+    }
 }

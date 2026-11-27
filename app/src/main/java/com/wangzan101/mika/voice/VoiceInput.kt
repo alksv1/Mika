@@ -11,11 +11,14 @@ import com.wangzan101.mika.settings.Provider
 import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.clientHeaders
 import com.wangzan101.mika.settings.providerKey
+import com.wangzan101.mika.voice.model.SttProtocol
 import com.wangzan101.mika.voice.model.SttSelection
 import com.wangzan101.mika.voice.model.SttSelectionController
 import com.wangzan101.mika.voice.model.VoiceModelEnvironment
 import com.wangzan101.mika.voice.model.VoiceModelError
 import com.wangzan101.mika.voice.model.adapters.SttHooks
+import com.wangzan101.mika.voice.ondevice.OnDeviceAuto
+import com.wangzan101.mika.voice.ondevice.OnDeviceCatalog
 import kotlinx.coroutines.CancellationException
 
 /** 界面(输入栏、悬浮胶囊)拿语音会话的地方;App 里是 [VoiceInput],界面测试换成假的。 */
@@ -38,6 +41,10 @@ class VoiceInput(
         SystemSpeech.capability(context, settings.systemSilent.value)
     },
     private val systemCompatibility: () -> Boolean = { SystemSpeech.serviceCompatibility() },
+    /** 「自动」在手机自带识别不能用时退到哪个已安装的语音包(按识别语言挑);没有为 null。 */
+    private val autoPack: (speechTag: String?) -> String? = { tag -> OnDeviceAuto.installedPack(voiceModels, tag) },
+    /** 没指定识别语言时用的语言:跟 App 界面语言。 */
+    private val appSpeechTag: () -> String = { SystemSpeech.speechTag(AppLanguage.current(context)) },
 ) : VoiceSource {
     private val context = context.applicationContext
 
@@ -45,21 +52,38 @@ class VoiceInput(
     override fun spec(): SpeechEngineSpec {
         if (!voiceModels.stt.migrated) return legacySpec()
         return try {
-            migratedSpec()
-        } catch (_: VoiceModelError) {
-            SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.ProviderGone)
+            migratedSpec(appSpeechTag)
+        } catch (error: VoiceModelError) {
+            SpeechEngineSpec.Unavailable(onDeviceWhy(error) ?: SpeechEngineSpec.Why.ProviderGone)
         }
+    }
+
+    /**
+     * 本机语音包用不了时界面该说的原因:没装是「需要下载」(下好后不用重新选),设备跑不了照实说;
+     * 别的错误返回 null,照原来的处理。
+     */
+    private fun onDeviceWhy(error: Throwable): SpeechEngineSpec.Why? = when {
+        error is VoiceModelError.PackMissing -> SpeechEngineSpec.Why.VoicePackMissing
+        error is VoiceModelError.Unsupported && error.protocol == SttProtocol.OnDevice.name ->
+            SpeechEngineSpec.Why.OnDeviceUnsupported
+        else -> null
     }
 
     private fun legacySpec(): SpeechEngineSpec =
         SpeechResolver.resolve(settings.choice.value, systemCapability(), providers.providers.value)
 
-    private fun migratedSpec(): SpeechEngineSpec {
+    /** [speechTag] 只在「自动」要挑语音包时才取(取界面语言要碰系统)。 */
+    private fun migratedSpec(speechTag: () -> String?): SpeechEngineSpec {
         if (voiceModels.stt.catalog.state.value.error != null) {
             throw VoiceModelError.IncompleteConfig("Voice catalog is not readable")
         }
         return when (val selection = voiceModels.stt.current()) {
-            SttSelection.Auto -> SpeechResolver.resolve(SpeechChoice.Auto, systemCapability(), emptyList())
+            SttSelection.Auto -> {
+                val system = systemCapability()
+                // 自带识别能用时不去看语音包:不让「自动」悄悄换成离线模型
+                val pack = if (system.usable) null else autoPack(speechTag())
+                SpeechResolver.resolve(SpeechChoice.Auto, system, emptyList(), pack)
+            }
             SttSelection.Off -> SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.Off)
             is SttSelection.Model -> if (selection.ref == SttSelectionController.SYSTEM_STT_REF) {
                 SpeechResolver.resolve(SpeechChoice.System, systemCapability(), emptyList())
@@ -77,21 +101,24 @@ class VoiceInput(
         if (voiceModels.stt.migrated) startMigrated(language) else startLegacy(language)
 
     private fun startMigrated(language: String?): SpeechSession {
+        val tag by lazy { language ?: appSpeechTag() }
         val spec = try {
-            migratedSpec()
+            migratedSpec { tag }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            onDeviceWhy(error)?.let { return FailedSession(SpeechFailure.Unavailable(it)) }
             return FailedSession(SpeechFailure.Provider(VoiceModelError.from(error)))
         }
         if (spec is SpeechEngineSpec.Unavailable) return FailedSession(SpeechFailure.Unavailable(spec.why))
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             return FailedSession(SpeechFailure.NoPermission)
         }
-        val tag = language ?: SystemSpeech.speechTag(AppLanguage.current(context))
         val selection = voiceModels.stt.current()
         val ref = when (selection) {
-            SttSelection.Auto -> SttSelectionController.SYSTEM_STT_REF
+            // 自动退到语音包时用 spec 挑好的那个(同一个识别语言挑的),否则是手机自带识别
+            SttSelection.Auto -> (spec as? SpeechEngineSpec.OnDevice)?.let { OnDeviceCatalog.ref(it.packId) }
+                ?: SttSelectionController.SYSTEM_STT_REF
             SttSelection.Off -> return FailedSession(SpeechFailure.Unavailable(SpeechEngineSpec.Why.Off))
             is SttSelection.Model -> selection.ref
         }
@@ -108,7 +135,9 @@ class VoiceInput(
             SttHooks()
         }
         return try {
-            voiceModels.stt.start(context, ref, tag, hooks, voiceModels.stt.backupsFor(ref))
+            // 自动不用备援链:它自己在自带识别和语音包之间挑
+            val backups = if (selection == SttSelection.Auto) emptyList() else voiceModels.stt.backupsFor(ref)
+            voiceModels.stt.start(context, ref, tag, hooks, backups)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -156,8 +185,9 @@ class VoiceInput(
                 })
             }
             is SpeechEngineSpec.Unavailable -> FailedSession(SpeechFailure.Unavailable(spec.why))
-            // Vendor recognition exists only in the catalog path; the legacy path never resolves to it.
-            is SpeechEngineSpec.Vendor -> FailedSession(SpeechFailure.Unavailable(SpeechEngineSpec.Why.SystemGone))
+            // Vendor and on-device recognition exist only in the catalog path; the legacy path never resolves to them.
+            is SpeechEngineSpec.Vendor, is SpeechEngineSpec.OnDevice ->
+                FailedSession(SpeechFailure.Unavailable(SpeechEngineSpec.Why.SystemGone))
         }
     }
 }

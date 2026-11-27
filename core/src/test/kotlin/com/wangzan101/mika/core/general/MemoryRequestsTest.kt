@@ -134,6 +134,9 @@ class MemoryRequestsTest {
             Sample("그 기억은 바꾸지 마세요", false, "那条记忆请不要改"),
             Sample("수정 화면은 어디서 열어?", false, "编辑页面从哪里打开"),
             Sample("만약 이사 가면 주소 기억을 바꿔 줘", true, "要是搬家了,就把地址那条记忆改掉"),
+            // 「안」空格不空格都算否定
+            Sample("그건 안 바꿔도 돼", false, "那个不改也行"),
+            Sample("그건안바꿔도 돼", false, "那个不改也行(没空格)"),
         )
         assertEdit(
             "delete",
@@ -149,6 +152,9 @@ class MemoryRequestsTest {
             Sample("그냥 냅둬요", false, "就那么放着吧"),
             Sample("삭제 버튼이 어디 있어?", false, "删除按钮在哪"),
             Sample("만약 제가 그 기억을 지우라고 하면 어떻게 할 거야?", false, "要是我让你删掉那条记忆,你会怎么做"),
+            // 「안」空格不空格都算否定
+            Sample("그 기억은 안 지워도 돼", false, "那条记忆不删也行"),
+            Sample("그건안지워도 돼", false, "那个不删也行(没空格)"),
         )
     }
 
@@ -185,6 +191,9 @@ class MemoryRequestsTest {
             Sample("Не хочу, чтобы ты запоминал мой адрес", false, "我不想让你记我的地址"),
             Sample("Не надо ничего запоминать", false, "什么都不用记"),
             Sample("Не забудь запомнить этот адрес", true, "别忘了记住这个地址"),
+            // 「мне」词尾的 не 不是否定
+            Sample("Запомни: мне нужно записать сына в школу", true, "记住:我得给儿子报名上学"),
+            Sample("Этот адрес не сохраняй", false, "这个地址别保存"),
         )
         assertEdit(
             "update",
@@ -196,6 +205,9 @@ class MemoryRequestsTest {
             Sample("Проверь обновления приложения", false, "检查应用更新"),
             Sample("Если перееду, измени запись про адрес", true, "要是我搬家了,就改一下地址那条记录"),
             Sample("Не хочу ничего менять", false, "我什么都不想改"),
+            // 「мне」词尾的 не 不是否定
+            Sample("Помоги мне изменить запись об адресе", true, "帮我改一下地址那条记录"),
+            Sample("Запись об адресе пока не меняй", false, "地址那条记录先别改"),
         )
         assertEdit(
             "delete",
@@ -215,6 +227,14 @@ class MemoryRequestsTest {
             Sample("Не хочу, чтобы ты удалял эту запись", false, "我不想让你删这条记录"),
             Sample("Забудь старую запись", true, "把旧记录忘掉"),
             Sample("Я не уверен, но если что — удали запись про старый адрес", true, "我不确定,但万一的话就把旧地址那条记录删掉"),
+            // 「мне」「телефоне」「машине」词尾的 не 不是否定
+            Sample("Помоги мне удалить запись о старом адресе", true, "帮我把旧地址那条记录删掉"),
+            Sample("Мне нужно удалить запись о старом адресе", true, "我要把旧地址那条记录删掉"),
+            Sample("Запись о старом телефоне удали", true, "把旧手机那条记录删掉"),
+            Sample("Запись о машине хочу удалить", true, "车那条记录我想删掉"),
+            Sample("Запись про адрес не удаляй", false, "地址那条记录别删"),
+            Sample("Мне не нужно удалять эту запись", false, "我不需要删这条记录"),
+            Sample("Эту запись я не хочу удалять", false, "这条记录我不想删"),
         )
     }
 
@@ -241,6 +261,12 @@ class MemoryRequestsTest {
             Sample("Play this record and tell me the singer", false, "放这首唱片,告诉我歌手是谁(英文 record)"),
             Sample("The guard saved the day", false, "保镖救了那一天(英文 guard)"),
             Sample("No sé, apunta esto", true, "我不确定,先记下这个"),
+            // 「vecino」「teléfono」词尾的 no 不是否定
+            Sample("Recuerda que mi vecino guarda mis llaves", true, "记住邻居替我保管钥匙"),
+            Sample("Eso no lo guardes", false, "那个别存"),
+            // 「Yeltsin」「Wisconsin」词尾的 sin 不算否定
+            Sample("Recuerda que en Wisconsin guardar el coche en la calle está prohibido", true, "记住:在威斯康星不能把车停在街上过夜"),
+            Sample("Lee esto sin guardar nada", false, "读一下这个,什么都别存"),
         )
         assertEdit(
             "update",
@@ -249,6 +275,12 @@ class MemoryRequestsTest {
             Sample("No cambies nada todavía", false, "先什么都别改"),
             Sample("Abre los ajustes de la app", false, "打开应用设置"),
             Sample("Si me mudo, cambia mi dirección en el recuerdo", true, "要是我搬家了,就把记忆里的地址改掉"),
+            // 「vecino」「teléfono」词尾的 no 不是否定
+            Sample("Actualiza la nota: mi teléfono cambió", true, "更新那条笔记:我的电话换了"),
+            Sample("Esa nota no la cambies", false, "那条笔记别改"),
+            // 「Yeltsin」「Wisconsin」词尾的 sin 不算否定
+            Sample("Actualiza la nota: Yeltsin cambió de número", true, "更新那条笔记:叶利钦换号码了"),
+            Sample("Revisa la nota sin cambiar nada", false, "看一下那条笔记,什么都别改"),
         )
         assertEdit(
             "delete",
@@ -260,6 +292,11 @@ class MemoryRequestsTest {
             Sample("No olvides mi dirección del trabajo", false, "别忘了我单位的地址"),
             Sample("Deja eso como está", false, "那个就这样"),
             Sample("Si te pidiera borrar ese recuerdo, ¿qué harías?", false, "要是我请你删掉那条记忆,你会怎么做"),
+            // 「vecino」「teléfono」词尾的 no 不是否定
+            Sample("Borra el recuerdo del teléfono olvidado en el taxi", true, "把手机落在出租车上那条记忆删掉"),
+            Sample("Esa nota no la borres", false, "那条笔记别删"),
+            // 「Yeltsin」「Wisconsin」词尾的 sin 不算否定
+            Sample("Revisa la nota sin borrar nada", false, "看一下那条笔记,什么都别删"),
         )
     }
 
@@ -284,12 +321,25 @@ class MemoryRequestsTest {
             Sample("Como funciona sua memória?", false, "你的记忆是怎么运作的"),
             Sample("Eu lembro que você mora em SP", false, "我记得你住在圣保罗"),
             Sample("Não sei, anota isso", true, "我不知道,把这个记下来"),
+            // 「Bruno」「plano」词尾的 no 不是否定
+            Sample("Lembra que o Bruno guarda as chaves do escritório", true, "记住布鲁诺保管办公室的钥匙"),
+            Sample("Isso não precisa guardar", false, "这个不用存"),
+            // 「precisem」「avisem」词尾的 sem 不算否定
+            Sample("Anota: talvez eles precisem guardar as caixas na garagem", true, "记下:他们可能得把箱子放进车库"),
+            Sample("Lê isto sem guardar", false, "读一下这个,不用存"),
         )
         assertEdit(
             "update",
             Sample("Muda o endereço na lembrança", true, "把记忆里的地址改一下"),
             Sample("Atualiza a lembrança do meu telefone", true, "更新我电话那条记忆"),
             Sample("Não muda nada ainda", false, "先什么都别改"),
+            // 「Bruno」「plano」词尾的 no 不是否定
+            Sample("Atualiza a nota: o plano mudou", true, "更新那条笔记:计划变了"),
+            Sample("Essa nota não precisa mudar", false, "那条笔记不用改"),
+            // 「precisem」「avisem」词尾的 sem 不算否定
+            Sample("Atualiza a nota: talvez precisem mudar a data", true, "更新那条笔记:他们可能得改日期"),
+            Sample("Atualiza a nota quando avisem a mudança de horário", true, "等他们通知改时间了就更新那条笔记"),
+            Sample("Lê a nota sem mudar nada", false, "读一下那条笔记,什么都别改"),
         )
         assertEdit(
             "delete",
@@ -301,6 +351,11 @@ class MemoryRequestsTest {
             Sample("Deixa isso como está", false, "那个就这样"),
             Sample("Se eu te pedisse para apagar isso, o que você faria?", false, "要是我请你删掉这个,你会怎么做"),
             Sample("Como você reagiria se eu mandasse apagar isso?", false, "要是我让你删掉这个,你会怎么反应"),
+            // 「Bruno」「plano」词尾的 no 不是否定
+            Sample("Apaga a nota do plano de limpeza", true, "把清洁计划那条笔记删掉"),
+            Sample("Essa nota não precisa apagar", false, "那条笔记不用删"),
+            // 「precisem」「avisem」词尾的 sem 不算否定
+            Sample("Lê a nota sem apagar nada", false, "读一下那条笔记,什么都别删"),
         )
     }
 
@@ -520,6 +575,16 @@ class MemoryRequestsTest {
             Sample("Aku ingat kamu pernah bilang begitu", false, "我记得你说过"),
             Sample("Memori ponsel saya penuh", false, "我手机内存满了"),
             Sample("Buat catatan rapat besok", false, "给明天的会做笔记(是在 App 里做笔记,不是记忆)"),
+            // 「juga」(也)词尾的 ga 不算否定;enggak、ngga、ngak、kagak 照旧算
+            Sample("Catat bahwa obat ini juga perlu disimpan di kulkas", true, "记下:这个药也要放冰箱"),
+            Sample("Yang ini enggak perlu disimpan", false, "这个不用存"),
+            // 「tunjangan」(津贴)词尾的 jangan 不算否定,「tunjangan lupa」也不算「jangan lupa」(别忘了)
+            Sample("Catat bahwa tunjangan disimpan di rekening tabungan", true, "记下:津贴存在储蓄账户里"),
+            Sample("Bulan ini tunjangan lupa ditransfer", false, "这个月的津贴忘了转"),
+            Sample("Kemarin tunjangan dilupakan lagi", false, "昨天津贴又被忘了"),
+            Sample("Soal tunjangan lupakan dulu", false, "津贴的事先放一放"),
+            Sample("Nomor ini jangan disimpan", false, "这个号码别存"),
+            Sample("Tolong jangan lupa saya alergi udang", true, "请别忘了我对虾过敏"),
         )
         assertEdit(
             "update",
@@ -531,6 +596,13 @@ class MemoryRequestsTest {
             Sample("Jangan diedit dulu", false, "先别编辑"),
             Sample("Kalau saya pindah rumah, ubah alamat saya di catatan", true, "要是我搬家了,就改一下笔记里我的地址"),
             Sample("Jangan edit catatan itu", false, "那条笔记别编辑"),
+            // 「juga」(也)词尾的 ga 不算否定;enggak、ngga、ngak、kagak 照旧算
+            Sample("Catatan alamat itu juga perlu revisi", true, "地址那条笔记也要改"),
+            Sample("Kamu ngga perlu ganti catatan itu", false, "你不用改那条笔记"),
+            // 「tunjangan」(津贴)词尾的 jangan 不算否定
+            Sample("Catatan tunjangan itu ganti jadi lima juta", true, "津贴那条笔记改成五百万"),
+            Sample("Perbarui catatan: tunjangan diubah jadi lima juta", true, "更新笔记:津贴改成五百万了"),
+            Sample("Alamatnya jangan ganti dulu", false, "地址先别改"),
         )
         assertEdit(
             "delete",
@@ -546,6 +618,19 @@ class MemoryRequestsTest {
             Sample("Bagaimana jika saya minta kamu menghapus catatan ini?", false, "要是我请你删掉这条笔记,怎么样"),
             Sample("Kalau aku bilang hapus, gimana caranya?", false, "要是我说删掉,要怎么做"),
             Sample("Jangan di-delete catatan itu", false, "那条笔记别删除"),
+            // 「juga」(也)词尾的 ga 不算否定;enggak、ngga、ngak、kagak 照旧算
+            Sample("Catatan alamat lama juga perlu dihapus", true, "旧地址那条笔记也要删"),
+            Sample("Catatan itu tidak perlu dihapus", false, "那条笔记不用删"),
+            Sample("Catatan itu ga usah dihapus", false, "那条笔记不用删"),
+            Sample("Catatan itu enggak usah dihapus", false, "那条笔记不用删"),
+            Sample("Catatan itu ngak usah dihapus", false, "那条笔记不用删"),
+            Sample("Catatan itu kagak usah dihapus", false, "那条笔记不用删"),
+            // 「tunjangan」(津贴)词尾的 jangan 不算否定
+            Sample("Catatan soal tunjangan dihapus aja", true, "津贴那条笔记删了吧"),
+            Sample("Hapus catatan gaji lama, tunjangan diubah jadi lima juta", true, "删掉旧工资那条笔记,津贴改成五百万了"),
+            Sample("Hapus catatan ini, tunjangan diapa-apakan pun saya tidak peduli", true, "删掉这条笔记,津贴怎么处理我都不管"),
+            Sample("Catatan itu jangan dihapus", false, "那条笔记别删"),
+            Sample("Hapus? Jangan diapa-apakan dulu", false, "删?先什么都别动"),
         )
     }
 

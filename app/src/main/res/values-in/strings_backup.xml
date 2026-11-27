@@ -6,7 +6,7 @@
     <string name="backup_warning_body">File ZIP berisi semua rahasia Anda: kunci API, token OAuth, dan kredensial layanan. Jaga agar tetap pribadi, jangan dibagikan, dan hapus setelah diimpor.</string>
     <string name="backup_included_label">Yang disertakan</string>
     <string name="backup_included_body">Penyedia dan kunci, chat, persona, keterampilan, memori, alur kerja, eksekusi tugas, dan pengaturan.</string>
-    <string name="backup_excluded_body">Tidak disertakan: pemasangan wireless debugging (pasangkan ulang setelah impor), pengaturan layanan aksesibilitas (aktifkan kembali di Setelan Android), ruang kerja sandbox, dan lampiran pustaka file.</string>
+    <string name="backup_excluded_body">Tidak disertakan: pemasangan wireless debugging (pasangkan ulang setelah impor), pengaturan layanan aksesibilitas (aktifkan kembali di Setelan Android), ruang kerja sandbox, dan lampiran pustaka file. Paket suara offline berukuran besar dan tidak dicadangkan; unduh lagi setelah memulihkan.</string>
     <string name="backup_export">Ekspor cadangan</string>
     <string name="backup_export_sub">Simpan file ZIP dengan semua data Anda</string>
     <string name="backup_import">Impor cadangan</string>
