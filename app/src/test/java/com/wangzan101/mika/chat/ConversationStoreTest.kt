@@ -902,7 +902,7 @@ class ConversationStoreTest {
         val expected2 = ConversationUsage(input = 150, output = 23, cached = 90, cacheReportedInput = 150, latest = comp)
         assertEquals(expected2, reopened.usageSnapshot("p"))
         assertEquals(expected2, reopened.observeUsage("p").first())
-        assertTrue(reopened.branch("p", "b", 0))
+        assertTrue(reopened.branch("p", "b", 0, origin = BranchOrigin("p", 0, true, 1)))
         assertEquals(ConversationUsage(), reopened.usageSnapshot("b"))
 
         // 删除父对话后，子对话继续记账不再写回父对话的 .usage
