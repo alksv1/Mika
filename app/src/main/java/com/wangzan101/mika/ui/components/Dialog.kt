@@ -41,6 +41,7 @@ fun MikaDialog(
     text: (@Composable () -> Unit)? = null,
     confirmButton: @Composable () -> Unit = {},
     dismissButton: (@Composable () -> Unit)? = null,
+    actions: (@Composable () -> Unit)? = null,
     properties: DialogProperties = DialogProperties(),
 ) {
     val c = MikaTheme.colors
@@ -64,12 +65,16 @@ fun MikaDialog(
             }
         },
         confirmButton = {
-            // 操作区不用强调色:两个按钮同一浅灰底,确认用正文色加粗,取消用次要色;调用方自己给的颜色(如删除的红)照旧
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (dismissButton != null) {
-                    DialogAction(Modifier.weight(1f), c.fill, c.ink2, androidx.compose.ui.text.font.FontWeight.Normal) { dismissButton() }
+            if (actions != null) {
+                actions()
+            } else {
+                // 操作区不用强调色:两个按钮同一浅灰底,确认用正文色加粗,取消用次要色;调用方自己给的颜色(如删除的红)照旧
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (dismissButton != null) {
+                        DialogAction(Modifier.weight(1f), c.fill, c.ink2, androidx.compose.ui.text.font.FontWeight.Normal) { dismissButton() }
+                    }
+                    DialogAction(Modifier.weight(1f), c.fill, c.ink, androidx.compose.ui.text.font.FontWeight.SemiBold) { confirmButton() }
                 }
-                DialogAction(Modifier.weight(1f), c.fill, c.ink, androidx.compose.ui.text.font.FontWeight.SemiBold) { confirmButton() }
             }
         },
         shape = MikaShapes.Sheet,

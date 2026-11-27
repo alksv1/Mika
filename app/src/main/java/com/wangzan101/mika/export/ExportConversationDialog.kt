@@ -5,26 +5,38 @@ import android.os.Handler
 import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -35,12 +47,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.wangzan101.mika.R
 import com.wangzan101.mika.chat.ConversationStore
@@ -58,6 +74,21 @@ import com.wangzan101.mika.core.export.ExportRedactor
 import com.wangzan101.mika.core.export.ExportSelection
 import com.wangzan101.mika.core.export.RedactionLevel
 import com.wangzan101.mika.core.screen.user.UserScreenMessage
+import com.wangzan101.mika.ui.components.ActivitySizedDialog
+import com.wangzan101.mika.ui.components.ButtonKind
+import com.wangzan101.mika.ui.components.ButtonSize
+import com.wangzan101.mika.ui.components.CapabilityTag
+import com.wangzan101.mika.ui.components.Hairline
+import com.wangzan101.mika.ui.components.MikaButton
+import com.wangzan101.mika.ui.components.MikaDialog
+import com.wangzan101.mika.ui.components.MikaSwitch
+import com.wangzan101.mika.ui.components.SegmentedControl
+import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaRadius
+import com.wangzan101.mika.ui.theme.MikaShapes
+import com.wangzan101.mika.ui.theme.MikaSize
+import com.wangzan101.mika.ui.theme.MikaTheme
+import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -66,6 +97,9 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val EXPORT_FORMATS = listOf("markdown", "json", "html")
+private val MonoPreviewStyle = MikaType.Hint.copy(fontFamily = FontFamily.Monospace)
 
 private data class ExportCandidate(val id: ExportBlockId, val title: String, val preview: String)
 
@@ -234,74 +268,173 @@ internal fun ExportConversationDialog(
     val html = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/html"), ::start)
     val zip = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip"), ::start)
     val suggested = suggestedName(title, bundle, format, context.getString(R.string.export_filename_fallback), pii)
+    val c = MikaTheme.colors
+    val canExport = selected.isNotEmpty() && all.isNotEmpty() && pending == null
+    val inProgress = running || previewing
+    val finished = outcome != null || failure != null
 
-    AlertDialog(
+    fun launchExport() {
+        pending = request()
+        when {
+            pending == null -> Unit
+            bundle -> zip.launch(suggested)
+            format == "json" -> json.launch(suggested)
+            format == "html" -> html.launch(suggested)
+            else -> md.launch(suggested)
+        }
+    }
+
+    MikaDialog(
         onDismissRequest = ::dismiss,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp).widthIn(max = 460.dp).fillMaxWidth(),
         title = { Text(stringResource(R.string.export_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                when {
-                    running || previewing -> {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            CircularProgressIndicator(Modifier.heightIn(max = 24.dp))
-                            Text(progressText(progress))
-                        }
+            when {
+                inProgress -> {
+                    Row(
+                        Modifier.fillMaxWidth().background(c.fill, MikaShapes.Card).padding(horizontal = 14.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.accent, trackColor = c.hair)
+                        Text(progressText(progress), style = MikaType.Body, color = c.ink)
                     }
-                    outcome != null -> {
-                        Text(stringResource(R.string.export_done))
+                }
+                outcome != null -> {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().background(c.okSoft, MikaShapes.Card).padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(MikaIcons.Check, null, Modifier.size(18.dp), tint = c.ok)
+                            Text(stringResource(R.string.export_done), style = MikaType.BodyStrong, color = c.ok)
+                        }
                         outcome?.takeIf { it.warnings.isNotEmpty() }?.let {
-                            Text(stringResource(R.string.export_warnings, it.warnings.size), style = MaterialTheme.typography.bodySmall)
+                            Row(
+                                Modifier.fillMaxWidth().background(c.warnSoft, MikaShapes.Chip).padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(MikaIcons.Exclaim, null, Modifier.size(16.dp), tint = c.warn)
+                                Text(stringResource(R.string.export_warnings, it.warnings.size), style = MikaType.Caption, color = c.warn)
+                            }
                         }
                     }
-                    failure != null -> Text(stringResource(R.string.export_failed, failure.orEmpty()))
-                    else -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = format == "markdown", onClick = { format = "markdown" })
-                            Text(stringResource(R.string.export_format_markdown))
-                            RadioButton(selected = format == "json", onClick = { format = "json" })
-                            Text(stringResource(R.string.export_format_json))
-                            RadioButton(selected = format == "html", onClick = { format = "html" })
-                            Text(stringResource(R.string.export_format_html))
+                }
+                failure != null -> {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        Row(
+                            Modifier.fillMaxWidth().background(c.badSoft, MikaShapes.Card).padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(MikaIcons.Exclaim, null, Modifier.padding(top = 2.dp).size(18.dp), tint = c.bad)
+                            Text(stringResource(R.string.export_failed, failure.orEmpty()), style = MikaType.Body, color = c.bad)
                         }
-                        OptionRow(stringResource(R.string.export_include_tool_steps), toolSteps) { toolSteps = it }
-                        OptionRow(stringResource(R.string.export_include_attachments), attachments) { attachments = it }
-                        OptionRow(stringResource(R.string.export_include_screens), screens) { screens = it }
-                        OptionRow(stringResource(R.string.export_include_timestamps), timestamps) { timestamps = it }
-                        OptionRow(stringResource(R.string.export_include_model), model) { model = it }
-                        OptionRow(stringResource(R.string.export_redact_pii), pii) { pii = it }
-                        if (bundle) Text(stringResource(R.string.export_bundle_note), style = MaterialTheme.typography.bodySmall)
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.export_messages), style = MaterialTheme.typography.labelLarge)
-                            TextButton(onClick = {
-                                selected = if (selected.size == all.size) emptySet() else all.map { it.id }.toSet()
-                            }) { Text(stringResource(R.string.export_select_all)) }
-                            Text(
-                                stringResource(R.string.export_selected_count, selected.size, all.size),
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 8.dp),
+                    }
+                }
+                else -> {
+                    LazyColumn(Modifier.fillMaxWidth().testTag("export-config-list")) {
+                        item(key = "format") {
+                            Text(stringResource(R.string.export_format), style = MikaType.Label, color = c.ink3)
+                            Spacer(Modifier.height(6.dp))
+                            SegmentedControl(
+                                options = listOf(
+                                    stringResource(R.string.export_format_markdown),
+                                    stringResource(R.string.export_format_json),
+                                    stringResource(R.string.export_format_html),
+                                ),
+                                selected = EXPORT_FORMATS.indexOf(format).coerceAtLeast(0),
+                                onSelect = { format = EXPORT_FORMATS[it] },
+                                tags = listOf("export-format-markdown", "export-format-json", "export-format-html"),
                             )
                         }
-                        if (exportPreview == null) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                CircularProgressIndicator(Modifier.size(20.dp))
-                                Text(stringResource(R.string.export_preparing))
+                        item(key = "options") {
+                            Spacer(Modifier.height(14.dp))
+                            Column(Modifier.fillMaxWidth().clip(MikaShapes.Card).background(c.fill)) {
+                                ExportOptionRow(stringResource(R.string.export_include_tool_steps), toolSteps, first = true) { toolSteps = it }
+                                ExportOptionRow(stringResource(R.string.export_include_attachments), attachments) { attachments = it }
+                                ExportOptionRow(stringResource(R.string.export_include_screens), screens) { screens = it }
+                                ExportOptionRow(stringResource(R.string.export_include_timestamps), timestamps) { timestamps = it }
+                                ExportOptionRow(stringResource(R.string.export_include_model), model) { model = it }
+                                ExportOptionRow(stringResource(R.string.export_redact_pii), pii) { pii = it }
                             }
-                        } else if (all.isEmpty()) {
-                            Text(stringResource(R.string.export_no_messages))
-                        } else {
-                            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
-                                items(all, key = { it.id.value }) { item ->
-                                    Row(
-                                        Modifier.fillMaxWidth().clickable { selected = toggle(selected, item.id) }.padding(vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Checkbox(checked = item.id in selected, onCheckedChange = { selected = toggle(selected, item.id) })
-                                        Column(Modifier.weight(1f)) {
-                                            Text(item.title, style = MaterialTheme.typography.labelMedium)
-                                            Text(item.preview, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
-                                        }
+                            if (bundle) {
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    Modifier.fillMaxWidth().background(c.accentSoft, MikaShapes.Chip).padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(MikaIcons.Info, null, Modifier.size(16.dp), tint = c.accent)
+                                    Text(stringResource(R.string.export_bundle_note), style = MikaType.Hint, color = c.ink2)
+                                }
+                            }
+                        }
+                        item(key = "messages-header") {
+                            Spacer(Modifier.height(14.dp))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(stringResource(R.string.export_messages), style = MikaType.Label, color = c.ink3)
+                                    if (all.isNotEmpty()) {
+                                        Text(stringResource(R.string.export_selected_count, selected.size, all.size), style = MikaType.Hint, color = c.ink3)
                                     }
                                 }
+                                if (all.isNotEmpty()) {
+                                    Box(
+                                        Modifier.clip(MikaShapes.Chip)
+                                            .clickable(role = Role.Button) {
+                                                selected = if (selected.size == all.size) emptySet() else all.map { it.id }.toSet()
+                                            }
+                                            .heightIn(min = 36.dp)
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                            .testTag("export-select-all"),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.export_select_all),
+                                            style = MikaType.Caption.copy(fontWeight = FontWeight.SemiBold),
+                                            color = c.accent,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                        }
+                        when {
+                            exportPreview == null -> item(key = "loading") {
+                                Row(
+                                    Modifier.fillMaxWidth().background(c.fill, MikaShapes.Card).padding(horizontal = 12.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = c.accent, trackColor = c.hair)
+                                    Text(stringResource(R.string.export_preparing), style = MikaType.Caption, color = c.ink2)
+                                }
+                            }
+                            all.isEmpty() -> item(key = "empty") {
+                                Box(
+                                    Modifier.fillMaxWidth().background(c.fill, MikaShapes.Card).padding(horizontal = 14.dp, vertical = 16.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(stringResource(R.string.export_no_messages), style = MikaType.Body, color = c.ink3)
+                                }
+                            }
+                            else -> itemsIndexed(all, key = { _, item -> item.id.value }) { index, item ->
+                                ExportMessageRow(
+                                    item = item,
+                                    selected = item.id in selected,
+                                    first = index == 0,
+                                    last = index == all.lastIndex,
+                                    onToggle = { selected = toggle(selected, item.id) },
+                                )
                             }
                         }
                     }
@@ -309,39 +442,65 @@ internal fun ExportConversationDialog(
             }
         },
         confirmButton = {
-            if (outcome != null || failure != null) {
+            if (finished) {
                 TextButton(onClick = ::dismiss) { Text(stringResource(R.string.export_close)) }
-            } else if (running) {
-                TextButton(onClick = { job?.cancel() }) { Text(stringResource(R.string.export_cancel)) }
-            } else if (previewing) {
-                TextButton(onClick = { previewJob?.cancel() }) { Text(stringResource(R.string.export_cancel)) }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
-                        enabled = selected.isNotEmpty() && all.isNotEmpty() && pending == null,
-                        onClick = ::startPreview,
-                    ) { Text(stringResource(R.string.export_preview)) }
-                    TextButton(
-                        enabled = selected.isNotEmpty() && all.isNotEmpty() && pending == null,
-                        onClick = {
-                            pending = request()
-                            when {
-                                pending == null -> Unit
-                                bundle -> zip.launch(suggested)
-                                format == "json" -> json.launch(suggested)
-                                format == "html" -> html.launch(suggested)
-                                else -> md.launch(suggested)
-                            }
-                        },
-                    ) { Text(stringResource(R.string.export_button)) }
+            } else if (inProgress) {
+                TextButton(onClick = { (if (running) job else previewJob)?.cancel() }) {
+                    Text(stringResource(R.string.export_cancel))
                 }
             }
         },
-        dismissButton = {
-            if (!running && !previewing && outcome == null && failure == null) {
-                TextButton(onClick = ::dismiss) { Text(stringResource(R.string.export_cancel)) }
+        actions = if (finished || inProgress) null else {
+            {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        MikaButton(
+                            text = stringResource(R.string.export_preview),
+                            onClick = ::startPreview,
+                            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 44.dp).testTag("export-preview"),
+                            kind = ButtonKind.Tonal,
+                            size = ButtonSize.Medium,
+                            enabled = canExport,
+                            maxLines = 2,
+                        )
+                        MikaButton(
+                            text = stringResource(R.string.export_button),
+                            onClick = ::launchExport,
+                            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 44.dp).testTag("export-confirm"),
+                            kind = ButtonKind.Primary,
+                            size = ButtonSize.Medium,
+                            enabled = canExport,
+                            maxLines = 2,
+                        )
+                    }
+                    Box(
+                        Modifier.fillMaxWidth()
+                            .clip(MikaShapes.Chip)
+                            .clickable(role = Role.Button, onClick = ::dismiss)
+                            .heightIn(min = 40.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .testTag("export-cancel"),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(R.string.export_cancel),
+                            style = MikaType.Body,
+                            color = c.ink2,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = !running,
+            dismissOnClickOutside = !running,
+        ),
     )
 
     previewResult?.let { result ->
@@ -358,31 +517,165 @@ internal fun ExportConversationDialog(
 
 @Composable
 internal fun ExportPreviewDialog(preview: ExportPreview, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.fillMaxSize().padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.export_preview), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.export_close)) }
+    val c = MikaTheme.colors
+    val formatLabel = when (preview) {
+        is ExportPreview.Html -> stringResource(R.string.export_format_html)
+        is ExportPreview.Text -> when (preview.formatId) {
+            "json" -> stringResource(R.string.export_format_json)
+            else -> stringResource(R.string.export_format_markdown)
+        }
+    }
+    ActivitySizedDialog(onDismiss = onDismiss, dismissOnClickOutside = false) { safeArea ->
+        Column(Modifier.fillMaxSize().background(c.bg).then(safeArea)) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .heightIn(min = MikaSize.TopBar)
+                    .padding(start = 16.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.export_preview),
+                        modifier = Modifier.weight(1f, fill = false),
+                        style = MikaType.Title,
+                        color = c.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    CapabilityTag(formatLabel)
                 }
-                if (preview.warnings.isNotEmpty()) {
-                    Text(stringResource(R.string.export_warnings, preview.warnings.size), style = MaterialTheme.typography.bodySmall)
+                MikaButton(
+                    text = stringResource(R.string.export_close),
+                    onClick = onDismiss,
+                    modifier = Modifier.minimumInteractiveComponentSize().testTag("export-preview-close"),
+                    kind = ButtonKind.Tonal,
+                    size = ButtonSize.Small,
+                    maxLines = 2,
+                )
+            }
+            Hairline(start = 0.dp)
+            val hasWarnings = preview.warnings.isNotEmpty()
+            val isTruncated = preview is ExportPreview.Text && preview.truncated
+            if (hasWarnings) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (isTruncated) 0.dp else 4.dp)
+                        .background(c.warnSoft, MikaShapes.Chip)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(MikaIcons.Exclaim, null, Modifier.size(16.dp), tint = c.warn)
+                    Text(
+                        stringResource(R.string.export_warnings, preview.warnings.size),
+                        style = MikaType.Caption,
+                        color = c.warn,
+                    )
                 }
-                if (preview is ExportPreview.Text && preview.truncated) {
-                    Text(stringResource(R.string.export_preview_truncated), style = MaterialTheme.typography.bodySmall)
+            }
+            if (isTruncated) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
+                        .background(c.fill, MikaShapes.Chip)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(MikaIcons.Info, null, Modifier.size(16.dp), tint = c.ink2)
+                    Text(
+                        stringResource(R.string.export_preview_truncated),
+                        style = MikaType.Caption,
+                        color = c.ink2,
+                    )
                 }
-                when (preview) {
-                    is ExportPreview.Text -> SelectionContainer(Modifier.weight(1f).fillMaxWidth()) {
-                        val chunks = remember(preview.text) {
-                            preview.text.lineSequence().chunked(200).map { it.joinToString("\n") }.toList()
-                        }
-                        LazyColumn(Modifier.fillMaxSize()) {
-                            items(chunks) { chunk ->
-                                Text(chunk, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                            }
+            }
+            when (preview) {
+                is ExportPreview.Text -> SelectionContainer(Modifier.weight(1f).fillMaxWidth()) {
+                    val chunks = remember(preview.text) {
+                        preview.text.lineSequence().chunked(200).map { it.joinToString("\n") }.toList()
+                    }
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        items(chunks) { chunk ->
+                            Text(chunk, style = MonoPreviewStyle, color = c.ink)
                         }
                     }
-                    is ExportPreview.Html -> HtmlPreview(preview, Modifier.weight(1f).fillMaxWidth())
+                }
+                is ExportPreview.Html -> HtmlPreview(preview, Modifier.weight(1f).fillMaxWidth())
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExportOptionRow(label: String, checked: Boolean, first: Boolean = false, onChange: (Boolean) -> Unit) {
+    val c = MikaTheme.colors
+    Column(Modifier.fillMaxWidth()) {
+        if (!first) Hairline(start = 12.dp)
+        Row(
+            Modifier.fillMaxWidth()
+                .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(label, Modifier.weight(1f), style = MikaType.Body, color = c.ink)
+            MikaSwitch(checked = checked, onCheckedChange = null)
+        }
+    }
+}
+
+@Composable
+private fun ExportMessageRow(
+    item: ExportCandidate,
+    selected: Boolean,
+    first: Boolean,
+    last: Boolean,
+    onToggle: () -> Unit,
+) {
+    val c = MikaTheme.colors
+    val shape = when {
+        first && last -> MikaShapes.Card
+        first -> RoundedCornerShape(topStart = MikaRadius.Card, topEnd = MikaRadius.Card)
+        last -> RoundedCornerShape(bottomStart = MikaRadius.Card, bottomEnd = MikaRadius.Card)
+        else -> RectangleShape
+    }
+    Column(Modifier.fillMaxWidth().clip(shape).background(c.fill)) {
+        if (!first) Hairline(start = 42.dp)
+        Row(
+            Modifier.fillMaxWidth()
+                .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle() })
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            ExportCheckMark(selected)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    item.title,
+                    style = MikaType.Label,
+                    color = if (selected) c.ink else c.ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (item.preview.isNotBlank()) {
+                    Text(
+                        item.preview,
+                        style = MikaType.Caption,
+                        color = if (selected) c.ink2 else c.ink3,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -390,10 +683,18 @@ internal fun ExportPreviewDialog(preview: ExportPreview, onDismiss: () -> Unit) 
 }
 
 @Composable
-private fun OptionRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }, verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = checked, onCheckedChange = onChange)
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+private fun ExportCheckMark(selected: Boolean) {
+    val c = MikaTheme.colors
+    Box(
+        Modifier.size(20.dp)
+            .clip(CircleShape)
+            .then(
+                if (selected) Modifier.background(c.accent)
+                else Modifier.border(1.5.dp, c.ink3, CircleShape),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) Icon(MikaIcons.Check, null, Modifier.size(13.dp), tint = c.onAccent)
     }
 }
 
