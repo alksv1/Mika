@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -269,8 +270,9 @@ internal fun ExportConversationDialog(
     val zip = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip"), ::start)
     val suggested = suggestedName(title, bundle, format, context.getString(R.string.export_filename_fallback), pii)
     val c = MikaTheme.colors
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val maxBodyHeight = minOf(screenHeight * 0.56f, screenHeight - 320.dp).coerceIn(160.dp, 500.dp)
     val canExport = selected.isNotEmpty() && all.isNotEmpty() && pending == null
-    val inProgress = running || previewing
     val finished = outcome != null || failure != null
 
     fun launchExport() {
@@ -286,11 +288,11 @@ internal fun ExportConversationDialog(
 
     MikaDialog(
         onDismissRequest = ::dismiss,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp).widthIn(max = 460.dp).fillMaxWidth(),
+        modifier = Modifier.safeDrawingPadding(),
         title = { Text(stringResource(R.string.export_title)) },
         text = {
             when {
-                inProgress -> {
+                running -> {
                     Row(
                         Modifier.fillMaxWidth().background(c.fill, MikaShapes.Card).padding(horizontal = 14.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -335,7 +337,7 @@ internal fun ExportConversationDialog(
                     }
                 }
                 else -> {
-                    LazyColumn(Modifier.fillMaxWidth().testTag("export-config-list")) {
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxBodyHeight).testTag("export-config-list")) {
                         item(key = "format") {
                             Text(stringResource(R.string.export_format), style = MikaType.Label, color = c.ink3)
                             Spacer(Modifier.height(6.dp))
@@ -444,60 +446,85 @@ internal fun ExportConversationDialog(
         confirmButton = {
             if (finished) {
                 TextButton(onClick = ::dismiss) { Text(stringResource(R.string.export_close)) }
-            } else if (inProgress) {
-                TextButton(onClick = { (if (running) job else previewJob)?.cancel() }) {
+            } else if (running) {
+                TextButton(onClick = { job?.cancel() }) {
                     Text(stringResource(R.string.export_cancel))
                 }
             }
         },
-        actions = if (finished || inProgress) null else {
-            {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
+        actions = when {
+            finished || running -> null
+            previewing -> {
+                {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().background(c.fill, MikaShapes.Card).padding(horizontal = 14.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.accent, trackColor = c.hair)
+                            Text(progressText(progress), style = MikaType.Body, color = c.ink)
+                        }
                         MikaButton(
-                            text = stringResource(R.string.export_preview),
-                            onClick = ::startPreview,
-                            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 44.dp).testTag("export-preview"),
+                            text = stringResource(R.string.export_cancel),
+                            onClick = { previewJob?.cancel() },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("export-preview-cancel"),
                             kind = ButtonKind.Tonal,
                             size = ButtonSize.Medium,
-                            enabled = canExport,
-                            maxLines = 2,
-                        )
-                        MikaButton(
-                            text = stringResource(R.string.export_button),
-                            onClick = ::launchExport,
-                            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 44.dp).testTag("export-confirm"),
-                            kind = ButtonKind.Primary,
-                            size = ButtonSize.Medium,
-                            enabled = canExport,
                             maxLines = 2,
                         )
                     }
-                    Box(
-                        Modifier.fillMaxWidth()
-                            .clip(MikaShapes.Chip)
-                            .clickable(role = Role.Button, onClick = ::dismiss)
-                            .heightIn(min = 40.dp)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                            .testTag("export-cancel"),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            stringResource(R.string.export_cancel),
-                            style = MikaType.Body,
-                            color = c.ink2,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                }
+            }
+            else -> {
+                {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            MikaButton(
+                                text = stringResource(R.string.export_preview),
+                                onClick = ::startPreview,
+                                modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 44.dp).testTag("export-preview"),
+                                kind = ButtonKind.Tonal,
+                                size = ButtonSize.Medium,
+                                enabled = canExport,
+                                maxLines = 2,
+                            )
+                            MikaButton(
+                                text = stringResource(R.string.export_button),
+                                onClick = ::launchExport,
+                                modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 44.dp).testTag("export-confirm"),
+                                kind = ButtonKind.Primary,
+                                size = ButtonSize.Medium,
+                                enabled = canExport,
+                                maxLines = 2,
+                            )
+                        }
+                        Box(
+                            Modifier.fillMaxWidth()
+                                .clip(MikaShapes.Chip)
+                                .clickable(role = Role.Button, onClick = ::dismiss)
+                                .heightIn(min = 40.dp)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .testTag("export-cancel"),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                stringResource(R.string.export_cancel),
+                                style = MikaType.Body,
+                                color = c.ink2,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
         },
         properties = DialogProperties(
-            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
             dismissOnBackPress = !running,
             dismissOnClickOutside = !running,
         ),
