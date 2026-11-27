@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">已完成第 %1$d/%2$d 步，点此查看结果并继续。</string>
     <string name="workflow_review_notify">这一步需要你处理，点此查看。</string>
     <string name="workflow_template_deleted">关联的流程已被删除，该定时计划已暂停。</string>
+    <string name="workflow_step_readonly">只读步骤</string>
+    <string name="workflow_step_readonly_sub">仅允许读取与查询，不执行修改或操作</string>
+    <string name="workflow_step_pause_after">完成后暂停确认</string>
+    <string name="workflow_step_pause_after_sub">完成本步后暂停，查看或修改结果后再继续</string>
+    <string name="workflow_step_continue_if">继续条件（选填）</string>
+    <string name="workflow_step_continue_if_hint">例如：发现异常或有新内容时才继续</string>
+    <string name="workflow_fields_summary">启动时需填写的参数：%1$s</string>
+    <string name="workflow_checkpoint_note">已到达检查点。可先核对或修改下方结果，再决定是否继续。</string>
+    <string name="workflow_edit_result">编辑结果</string>
+    <string name="workflow_early_stopped">未满足继续条件，流程已提前结束。</string>
+    <string name="workflow_early_stopped_reason">已提前结束：%1$s</string>
+    <string name="workflow_skipped">已跳过</string>
+    <string name="workflow_condition_uncertain">无法判断是否满足继续条件，请先核对本步结果再决定。</string>
+    <string name="workflow_workspace_files">工作区文件</string>
+    <string name="workflow_chip_today">今天 ({{today}})</string>
+    <string name="workflow_chip_prev_step">第 %1$d 步结果</string>
 </resources>

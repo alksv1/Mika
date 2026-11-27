@@ -15,6 +15,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
+import com.wangzan101.mika.cap.sandbox.SandboxDirs
+import com.wangzan101.mika.core.trigger.CONDITION_PLAN_EDITED
+import com.wangzan101.mika.task.TriggerRuntime
 import com.wangzan101.mika.ui.components.*
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
@@ -51,8 +54,10 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
     var starting by remember { mutableStateOf<WorkflowTemplate?>(null) }
     var deleting by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var resolving by remember { mutableStateOf<WorkflowRun?>(null) }
+    var editingResult by remember { mutableStateOf<WorkflowRun?>(null) }
     var retrying by remember { mutableStateOf<WorkflowRun?>(null) }
     var viewing by remember { mutableStateOf<StepAttempt?>(null) }
+    var artifacts by remember { mutableStateOf<List<WorkflowWorkspace.Artifact>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -71,6 +76,9 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
     }
     val template = data.templates.find { it.id == selectedTemplate }
     val run = data.runs.find { it.id == selectedRun }
+    LaunchedEffect(run?.id, run?.completed, run?.phase) {
+        artifacts = if (run != null) withContext(Dispatchers.IO) { WorkflowWorkspace(SandboxDirs(context)).listArtifacts(run.id) } else emptyList()
+    }
     val back = { if (selectedRun != null) selectedRun = null else if (selectedTemplate != null) selectedTemplate = null else onBack() }
     BackHandler(onBack = back)
     editor?.let { encoded ->
@@ -93,7 +101,33 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
             }
             when (run.phase) {
                 WorkflowPhase.Active -> MikaButton(stringResource(R.string.workflow_pause), { perform { runtime.store.pause(run.id) } }, enabled = !busy)
-                WorkflowPhase.Paused -> MikaButton(stringResource(R.string.workflow_continue), { perform { runtime.resume(run.id) } }, enabled = !busy, modifier = Modifier.testTag("workflow-continue"))
+                WorkflowPhase.Paused -> if (run.checkpointPaused) {
+                    FooterNote(stringResource(R.string.workflow_checkpoint_note))
+                    val lastIdx = run.completed - 1
+                    val lastResult = if (lastIdx >= 0) run.attempts.getOrNull(lastIdx)?.lastOrNull()?.result.orEmpty() else ""
+                    if (lastResult.isNotBlank()) {
+                        SelectionContainer { Text(lastResult, Modifier.padding(bottom = 12.dp)) }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MikaButton(
+                            stringResource(R.string.workflow_continue),
+                            { perform { runtime.resume(run.id) } },
+                            enabled = !busy,
+                            modifier = Modifier.weight(1f).testTag("workflow-continue"),
+                        )
+                        if (lastIdx >= 0) {
+                            MikaButton(
+                                stringResource(R.string.workflow_edit_result),
+                                { editingResult = run },
+                                kind = ButtonKind.Secondary,
+                                enabled = !busy,
+                                modifier = Modifier.weight(1f).testTag("workflow-edit-result"),
+                            )
+                        }
+                    }
+                } else {
+                    MikaButton(stringResource(R.string.workflow_continue), { perform { runtime.resume(run.id) } }, enabled = !busy, modifier = Modifier.testTag("workflow-continue"))
+                }
                 WorkflowPhase.Review -> {
                     FooterNote(stringResource(R.string.workflow_review_note))
                     run.current?.let { current ->
@@ -102,6 +136,7 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                             "start_failed" -> stringResource(R.string.workflow_start_failed)
                             PauseFlag.REASON -> stringResource(R.string.workflow_stopped_paused)
                             "result_too_long" -> stringResource(R.string.workflow_result_too_long)
+                            "condition_uncertain" -> stringResource(R.string.workflow_condition_uncertain)
                             else -> current.problem
                         }, color = MikaTheme.colors.bad)
                         if (onOpenConversation != null) MikaButton(stringResource(R.string.workflow_view_chat), { onOpenConversation(current.conversationId) }, kind = ButtonKind.Secondary)
@@ -110,6 +145,14 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                     TextButton({ retrying = run }, enabled = !busy, modifier = Modifier.testTag("workflow-retry")) { Text(stringResource(R.string.workflow_retry_step)) }
                 }
                 WorkflowPhase.Completed -> {
+                    if (run.earlyStopped) {
+                        val stopNote = if (run.earlyStopReason.isNotBlank()) {
+                            stringResource(R.string.workflow_early_stopped_reason, run.earlyStopReason)
+                        } else {
+                            stringResource(R.string.workflow_early_stopped)
+                        }
+                        FooterNote(stopNote)
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MikaButton(stringResource(R.string.chat_copy), { copyMessage(context, run.result) }, modifier = Modifier.weight(1f))
                         if (onUseResult != null) MikaButton(stringResource(R.string.workflow_use_result), { onUseResult(run.result) }, kind = ButtonKind.Secondary, modifier = Modifier.weight(1f).testTag("workflow-use-result"))
@@ -130,10 +173,18 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                         AttemptPhase.Done -> R.string.workflow_done
                         AttemptPhase.Dispatching, AttemptPhase.Running -> R.string.workflow_running
                         AttemptPhase.Review -> R.string.workflow_review
-                        null -> R.string.workflow_pending
+                        null -> if (run.earlyStopped) R.string.workflow_skipped else R.string.workflow_pending
                     }), first = index == 0, onClick = latest?.let { { viewing = it } })
                     if (attempts.size > 1) attempts.dropLast(1).forEachIndexed { n, previous ->
                         ListRow(null, stringResource(R.string.workflow_previous_attempt, n + 1), onClick = { viewing = previous })
+                    }
+                }
+            }
+            if (artifacts.isNotEmpty()) {
+                GroupLabel(stringResource(R.string.workflow_workspace_files))
+                GroupCard {
+                    artifacts.forEachIndexed { index, a ->
+                        ListRow(MikaIcons.Doc, a.relativePath, WorkflowPromptBuilder.formatSize(a.bytes), first = index == 0)
                     }
                 }
             }
@@ -142,8 +193,20 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
             }
         } else if (template != null) {
             MikaButton(stringResource(R.string.workflow_start), { starting = template }, enabled = !busy, modifier = Modifier.testTag("workflow-start"))
+            val fields = remember(template) { WorkflowParams.userFields(template.steps) }
+            if (fields.isNotEmpty()) {
+                FooterNote(stringResource(R.string.workflow_fields_summary, fields.joinToString(", ")))
+            }
             GroupCard {
-                template.steps.forEachIndexed { index, step -> ListRow(MikaIcons.Route, "${index + 1}. ${step.title}", step.instruction, first = index == 0) }
+                template.steps.forEachIndexed { index, step ->
+                    val badges = buildList {
+                        if (step.readOnly) add(stringResource(R.string.workflow_step_readonly))
+                        if (index < template.steps.lastIndex && step.pauseAfter) add(stringResource(R.string.workflow_step_pause_after))
+                        if (index < template.steps.lastIndex && step.continueIf.isNotBlank()) add(stringResource(R.string.workflow_step_continue_if))
+                    }
+                    val sub = if (badges.isEmpty()) step.instruction else badges.joinToString(" · ") + "\n" + step.instruction
+                    ListRow(MikaIcons.Route, "${index + 1}. ${step.title}", sub, first = index == 0)
+                }
             }
             Row {
                 TextButton({ editor = Json.encodeToString(template) }, modifier = Modifier.testTag("workflow-edit")) { Text(stringResource(R.string.workflow_edit)) }
@@ -168,11 +231,31 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
         }
     }
     starting?.let { item ->
-        WorkflowTextDialog(stringResource(R.string.workflow_start), stringResource(R.string.workflow_run_input), "", stringResource(R.string.workflow_start), allowEmpty = true,
-            onDismiss = { starting = null }, onSave = { text ->
-                val id = withContext(Dispatchers.IO) { runtime.start(item, text) }
-                selectedRun = id; starting = null
-            })
+        WorkflowStartDialog(
+            template = item,
+            onDismiss = { starting = null },
+            onStart = { text, params ->
+                val id = withContext(Dispatchers.IO) { runtime.start(item, text, params) }
+                selectedRun = id
+                starting = null
+            },
+        )
+    }
+    editingResult?.let { item ->
+        val idx = (item.completed - 1).coerceAtLeast(0)
+        val initial = item.attempts.getOrNull(idx)?.lastOrNull()?.result.orEmpty()
+        WorkflowTextDialog(
+            title = stringResource(R.string.workflow_edit_result),
+            label = stringResource(R.string.workflow_result_label),
+            initial = initial,
+            action = stringResource(R.string.save),
+            allowEmpty = false,
+            onDismiss = { editingResult = null },
+            onSave = { text ->
+                withContext(Dispatchers.IO) { runtime.editPausedResult(item.id, idx, text) }
+                editingResult = null
+            },
+        )
     }
     resolving?.let { item ->
         WorkflowTextDialog(stringResource(R.string.workflow_mark_done), stringResource(R.string.workflow_result_label), item.current?.result.orEmpty(), stringResource(R.string.workflow_continue),
@@ -198,56 +281,24 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
         MikaDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(if (record) R.string.workflow_delete_record else R.string.workflow_delete_template)) },
             confirmButton = { TextButton({
                 val revision = template?.revision
-                perform { if (record) runtime.store.deleteRun(id) else runtime.store.deleteTemplate(id, revision ?: 0) }
+                val targetRun = if (record) data.runs.find { it.id == id } else null
+                perform {
+                    if (record) {
+                        if (targetRun != null && targetRun.triggerKey != null && targetRun.phase != WorkflowPhase.Completed) {
+                            TriggerRuntime.skippedWorkflow(context, targetRun.triggerKey, CONDITION_PLAN_EDITED)
+                        }
+                        runtime.store.deleteRun(id)
+                    } else {
+                        runtime.store.deleteTemplate(id, revision ?: 0)
+                    }
+                }
                 deleting = null
             }) { Text(stringResource(R.string.recommendations_delete)) } },
             dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel)) } })
     }
 }
 
-@Composable private fun WorkflowEditor(store: WorkflowStore, initial: WorkflowTemplate, onBack: () -> Unit, onSaved: (String) -> Unit) {
-    var title by rememberSaveable(initial.id) { mutableStateOf(initial.title) }
-    var encoded by rememberSaveable(initial.id) { mutableStateOf(Json.encodeToString(initial.steps)) }
-    val steps = remember(encoded) { Json.decodeFromString<List<WorkflowStep>>(encoded) }
-    var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<WorkflowProblem?>(null) }
-    val scope = rememberCoroutineScope()
-    fun change(next: List<WorkflowStep>) { encoded = Json.encodeToString(next); error = null }
-    BackHandler { if (!busy) onBack() }
-    PageScaffold(stringResource(R.string.workflow_edit), { if (!busy) onBack() }) {
-        MikaTextField(title, { title = it; error = null }, label = { Text(stringResource(R.string.recommendations_title_label)) }, singleLine = true,
-            enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("workflow-title"))
-        steps.forEachIndexed { index, step ->
-            key(step.id) {
-                GroupLabel(stringResource(R.string.workflow_step_number, index + 1))
-                MikaTextField(step.title, { value -> change(steps.map { if (it.id == step.id) it.copy(title = value) else it }) },
-                    label = { Text(stringResource(R.string.workflow_step_name)) }, singleLine = true, enabled = !busy,
-                    modifier = Modifier.fillMaxWidth().testTag("workflow-step-title-$index"))
-                MikaTextField(step.instruction, { value -> change(steps.map { if (it.id == step.id) it.copy(instruction = value) else it }) },
-                    label = { Text(stringResource(R.string.workflow_instruction)) }, minLines = 2, maxLines = 5, enabled = !busy,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("workflow-step-instruction-$index"))
-                Row {
-                    TextButton({ change(steps.toMutableList().apply { add(index - 1, removeAt(index)) }) }, enabled = !busy && index > 0) { Text(stringResource(R.string.workflow_move_up)) }
-                    TextButton({ change(steps.toMutableList().apply { add(index + 1, removeAt(index)) }) }, enabled = !busy && index < steps.lastIndex) { Text(stringResource(R.string.workflow_move_down)) }
-                    TextButton({ change(steps.filterNot { it.id == step.id }) }, enabled = !busy && steps.size > 2) { Text(stringResource(R.string.recommendations_delete)) }
-                }
-            }
-        }
-        TextButton({ change(steps + WorkflowStep(title = "", instruction = "")) }, enabled = !busy && steps.size < WorkflowStore.MAX_STEPS,
-            modifier = Modifier.testTag("workflow-add-step")) { Text(stringResource(R.string.workflow_add_step)) }
-        error?.let { FooterNote(workflowError(it), color = MikaTheme.colors.bad) }
-        MikaButton(stringResource(R.string.save), {
-            busy = true
-            scope.launch {
-                try { withContext(Dispatchers.IO) { store.saveTemplate(initial.id, initial.revision, title, steps) }; onSaved(initial.id) }
-                catch (e: WorkflowException) { error = e.problem }
-                finally { busy = false }
-            }
-        }, enabled = !busy, modifier = Modifier.testTag("workflow-save"))
-    }
-}
-
-@Composable private fun WorkflowTextDialog(title: String, label: String, initial: String, action: String, allowEmpty: Boolean = false,
+@Composable internal fun WorkflowTextDialog(title: String, label: String, initial: String, action: String, allowEmpty: Boolean = false,
     onDismiss: () -> Unit, onSave: suspend (String) -> Unit) {
     var value by rememberSaveable { mutableStateOf(initial) }
     var error by remember { mutableStateOf<WorkflowProblem?>(null) }
@@ -273,7 +324,7 @@ private fun phaseLabel(phase: WorkflowPhase) = when (phase) {
     WorkflowPhase.Review -> R.string.workflow_review
     WorkflowPhase.Completed -> R.string.workflow_done
 }
-@Composable private fun workflowError(problem: WorkflowProblem) = stringResource(when (problem) {
+@Composable internal fun workflowError(problem: WorkflowProblem) = stringResource(when (problem) {
     WorkflowProblem.Invalid -> R.string.workflow_invalid
     WorkflowProblem.Full -> R.string.workflow_full
     WorkflowProblem.Changed -> R.string.workflow_changed

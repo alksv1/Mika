@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">Paso %1$d de %2$d completado. Toca para revisar y continuar.</string>
     <string name="workflow_review_notify">Este paso requiere tu atención. Toca para revisarlo.</string>
     <string name="workflow_template_deleted">Se eliminó la tarea de varios pasos vinculada, por lo que esta programación se ha pausado.</string>
+    <string name="workflow_step_readonly">Paso de solo lectura</string>
+    <string name="workflow_step_readonly_sub">Permitir solo lectura e investigación; omitir cambios o acciones en pantalla</string>
+    <string name="workflow_step_pause_after">Pausar al completar</string>
+    <string name="workflow_step_pause_after_sub">Revisa o edita el resultado antes de continuar con el siguiente paso</string>
+    <string name="workflow_step_continue_if">Condición para continuar (opcional)</string>
+    <string name="workflow_step_continue_if_hint">p. ej., continuar solo si hay elementos nuevos</string>
+    <string name="workflow_fields_summary">Parámetros para rellenar al iniciar: %1$s</string>
+    <string name="workflow_checkpoint_note">Pausado en punto de control. Revisa o edita el resultado y continúa.</string>
+    <string name="workflow_edit_result">Editar resultado</string>
+    <string name="workflow_early_stopped">Se detuvo antes porque no se cumplió la condición para continuar.</string>
+    <string name="workflow_early_stopped_reason">Detenido antes: %1$s</string>
+    <string name="workflow_skipped">Omitido</string>
+    <string name="workflow_condition_uncertain">No se pudo determinar si continuar. Revisa este paso antes de decidir.</string>
+    <string name="workflow_workspace_files">Archivos del espacio de trabajo</string>
+    <string name="workflow_chip_today">Hoy ({{today}})</string>
+    <string name="workflow_chip_prev_step">Resultado del paso %1$d</string>
 </resources>

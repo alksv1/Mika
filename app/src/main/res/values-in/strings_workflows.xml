@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">Langkah %1$d dari %2$d selesai. Ketuk untuk meninjau dan melanjutkan.</string>
     <string name="workflow_review_notify">Langkah ini memerlukan perhatian Anda. Ketuk untuk memeriksa.</string>
     <string name="workflow_template_deleted">Tugas beberapa langkah terkait telah dihapus, sehingga jadwal ini dijeda.</string>
+    <string name="workflow_step_readonly">Langkah baca-saja</string>
+    <string name="workflow_step_readonly_sub">Hanya izinkan membaca dan riset; lewati perubahan atau tindakan layar</string>
+    <string name="workflow_step_pause_after">Jeda setelah selesai</string>
+    <string name="workflow_step_pause_after_sub">Tinjau atau ubah hasil sebelum melanjutkan ke langkah berikutnya</string>
+    <string name="workflow_step_continue_if">Syarat lanjut (opsional)</string>
+    <string name="workflow_step_continue_if_hint">mis. lanjutkan hanya jika ditemukan item baru</string>
+    <string name="workflow_fields_summary">Parameter untuk diisi saat memulai: %1$s</string>
+    <string name="workflow_checkpoint_note">Dijeda di titik periksa. Tinjau atau ubah hasil di bawah, lalu lanjutkan.</string>
+    <string name="workflow_edit_result">Ubah hasil</string>
+    <string name="workflow_early_stopped">Berhenti lebih awal karena syarat lanjut tidak terpenuhi.</string>
+    <string name="workflow_early_stopped_reason">Berhenti lebih awal: %1$s</string>
+    <string name="workflow_skipped">Dilewati</string>
+    <string name="workflow_condition_uncertain">Tidak dapat memastikan apakah harus lanjut. Tinjau langkah ini sebelum memutuskan.</string>
+    <string name="workflow_workspace_files">File ruang kerja</string>
+    <string name="workflow_chip_today">Hari ini ({{today}})</string>
+    <string name="workflow_chip_prev_step">Hasil langkah %1$d</string>
 </resources>

@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">Etapa %1$d de %2$d concluída. Toque para revisar e continuar.</string>
     <string name="workflow_review_notify">Esta etapa precisa da sua atenção. Toque para conferir.</string>
     <string name="workflow_template_deleted">A tarefa com várias etapas vinculada foi excluída, então este agendamento foi pausado.</string>
+    <string name="workflow_step_readonly">Etapa somente leitura</string>
+    <string name="workflow_step_readonly_sub">Permitir apenas leitura e pesquisa; ignorar alterações ou ações na tela</string>
+    <string name="workflow_step_pause_after">Pausar após concluir</string>
+    <string name="workflow_step_pause_after_sub">Revise ou edite o resultado antes de prosseguir para a próxima etapa</string>
+    <string name="workflow_step_continue_if">Condição para continuar (opcional)</string>
+    <string name="workflow_step_continue_if_hint">ex.: continuar apenas se houver novos itens</string>
+    <string name="workflow_fields_summary">Parâmetros a preencher ao iniciar: %1$s</string>
+    <string name="workflow_checkpoint_note">Pausado no ponto de verificação. Revise ou edite o resultado abaixo e continue.</string>
+    <string name="workflow_edit_result">Editar resultado</string>
+    <string name="workflow_early_stopped">Encerrado mais cedo porque a condição para continuar não foi atendida.</string>
+    <string name="workflow_early_stopped_reason">Encerrado mais cedo: %1$s</string>
+    <string name="workflow_skipped">Ignorado</string>
+    <string name="workflow_condition_uncertain">Não foi possível determinar se deve continuar. Revise esta etapa antes de decidir.</string>
+    <string name="workflow_workspace_files">Arquivos do espaço de trabalho</string>
+    <string name="workflow_chip_today">Hoje ({{today}})</string>
+    <string name="workflow_chip_prev_step">Resultado da etapa %1$d</string>
 </resources>

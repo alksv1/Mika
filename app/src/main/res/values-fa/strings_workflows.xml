@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">مرحله %1$d از %2$d انجام شد. برای بررسی و ادامه ضربه بزنید.</string>
     <string name="workflow_review_notify">این مرحله به بررسی شما نیاز دارد. برای مشاهده ضربه بزنید.</string>
     <string name="workflow_template_deleted">کار چندمرحله‌ای متصل حذف شد، بنابراین این زمان‌بندی متوقف شد.</string>
+    <string name="workflow_step_readonly">مرحله فقط‌خواندنی</string>
+    <string name="workflow_step_readonly_sub">فقط خواندن و بررسی مجاز است؛ از تغییرات و عملیات صفحه صرف‌نظر می‌شود</string>
+    <string name="workflow_step_pause_after">توقف پس از تکمیل</string>
+    <string name="workflow_step_pause_after_sub">بررسی یا ویرایش نتیجه پیش از ادامه به مرحله بعد</string>
+    <string name="workflow_step_continue_if">شرط ادامه (اختیاری)</string>
+    <string name="workflow_step_continue_if_hint">مثال: فقط در صورت یافتن مورد جدید ادامه بده</string>
+    <string name="workflow_fields_summary">مقادیر مورد نیاز هنگام شروع: %1$s</string>
+    <string name="workflow_checkpoint_note">در نقطه بررسی متوقف شد. نتیجه زیر را بررسی یا ویرایش کنید و ادامه دهید.</string>
+    <string name="workflow_edit_result">ویرایش نتیجه</string>
+    <string name="workflow_early_stopped">به‌دلیل برقرار نبودن شرط ادامه، زودتر متوقف شد.</string>
+    <string name="workflow_early_stopped_reason">توقف زودهنگام: %1$s</string>
+    <string name="workflow_skipped">رد شده</string>
+    <string name="workflow_condition_uncertain">امکان تشخیص ادامه وجود نداشت. پیش از تصمیم، این مرحله را بررسی کنید.</string>
+    <string name="workflow_workspace_files">فایل‌های فضای کاری</string>
+    <string name="workflow_chip_today">امروز ({{today}})</string>
+    <string name="workflow_chip_prev_step">خروجی مرحله %1$d</string>
 </resources>

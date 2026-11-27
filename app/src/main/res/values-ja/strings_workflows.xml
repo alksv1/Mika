@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">%2$d ステップ中 %1$d が完了しました。タップして確認し続行します。</string>
     <string name="workflow_review_notify">確認が必要なステップがあります。タップして確認してください。</string>
     <string name="workflow_template_deleted">関連付けられたタスクが削除されたため、このスケジュールを一時停止しました。</string>
+    <string name="workflow_step_readonly">読み取り専用ステップ</string>
+    <string name="workflow_step_readonly_sub">読み取りと調査のみを許可し、変更や画面操作は行いません</string>
+    <string name="workflow_step_pause_after">このステップの後に一時停止</string>
+    <string name="workflow_step_pause_after_sub">このステップの完了後に結果を確認または編集してから続行します</string>
+    <string name="workflow_step_continue_if">続行条件（任意）</string>
+    <string name="workflow_step_continue_if_hint">例：新しい項目や問題が見つかった場合のみ続行</string>
+    <string name="workflow_fields_summary">開始時に入力する項目：%1$s</string>
+    <string name="workflow_checkpoint_note">チェックポイントで一時停止しています。下の結果を確認または編集してから続行してください。</string>
+    <string name="workflow_edit_result">結果を編集</string>
+    <string name="workflow_early_stopped">続行条件を満たさなかったため、早期終了しました。</string>
+    <string name="workflow_early_stopped_reason">早期終了：%1$s</string>
+    <string name="workflow_skipped">スキップ</string>
+    <string name="workflow_condition_uncertain">続行すべきか判断できませんでした。このステップの結果を確認してください。</string>
+    <string name="workflow_workspace_files">ワークスペースのファイル</string>
+    <string name="workflow_chip_today">今日 ({{today}})</string>
+    <string name="workflow_chip_prev_step">ステップ %1$d の結果</string>
 </resources>

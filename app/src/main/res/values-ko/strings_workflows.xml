@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">%2$d단계 중 %1$d단계 완료. 눌러서 확인하고 계속하세요.</string>
     <string name="workflow_review_notify">확인이 필요한 단계가 있습니다. 눌러서 확인하세요.</string>
     <string name="workflow_template_deleted">연결된 여러 단계 작업이 삭제되어 이 예약이 일시정지되었습니다.</string>
+    <string name="workflow_step_readonly">읽기 전용 단계</string>
+    <string name="workflow_step_readonly_sub">읽기 및 조회만 허용하고 변경이나 화면 조작은 건너뜁니다</string>
+    <string name="workflow_step_pause_after">완료 후 일시정지</string>
+    <string name="workflow_step_pause_after_sub">이 단계가 끝나면 결과를 확인하거나 수정한 뒤 다음 단계로 진행합니다</string>
+    <string name="workflow_step_continue_if">계속 조건(선택 사항)</string>
+    <string name="workflow_step_continue_if_hint">예: 새 항목이 발견된 경우에만 계속</string>
+    <string name="workflow_fields_summary">시작할 때 입력할 매개변수: %1$s</string>
+    <string name="workflow_checkpoint_note">체크포인트에서 일시정지되었습니다. 아래 결과를 확인하거나 수정한 후 계속하세요.</string>
+    <string name="workflow_edit_result">결과 편집</string>
+    <string name="workflow_early_stopped">계속 조건이 충족되지 않아 조기에 종료되었습니다.</string>
+    <string name="workflow_early_stopped_reason">조기 종료: %1$s</string>
+    <string name="workflow_skipped">건너뜀</string>
+    <string name="workflow_condition_uncertain">계속할지 판단할 수 없습니다. 결정하기 전에 이 단계를 확인하세요.</string>
+    <string name="workflow_workspace_files">작업 공간 파일</string>
+    <string name="workflow_chip_today">오늘 ({{today}})</string>
+    <string name="workflow_chip_prev_step">%1$d단계 결과</string>
 </resources>

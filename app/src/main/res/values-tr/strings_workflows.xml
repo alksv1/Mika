@@ -48,4 +48,20 @@
     <string name="workflow_checkpoint_notify">%2$d adımdan %1$d\'i tamamlandı. Gözden geçirip devam etmek için dokunun.</string>
     <string name="workflow_review_notify">Bu adım dikkatinizi gerektiriyor. İncelemek için dokunun.</string>
     <string name="workflow_template_deleted">Bağlı çok adımlı görev silindiği için bu zamanlama duraklatıldı.</string>
+    <string name="workflow_step_readonly">Salt okunur adım</string>
+    <string name="workflow_step_readonly_sub">Yalnızca okuma ve araştırmaya izin ver; yazma ve ekran işlemlerini atla</string>
+    <string name="workflow_step_pause_after">Tamamlanınca duraklat</string>
+    <string name="workflow_step_pause_after_sub">Sonraki adıma geçmeden önce sonucu inceleyin veya düzenleyin</string>
+    <string name="workflow_step_continue_if">Devam koşulu (isteğe bağlı)</string>
+    <string name="workflow_step_continue_if_hint">örn. yalnızca yeni öğeler bulunduğunda devam et</string>
+    <string name="workflow_fields_summary">Başlatırken doldurulacak parametreler: %1$s</string>
+    <string name="workflow_checkpoint_note">Kontrol noktasında duraklatıldı. Aşağıdaki sonucu inceleyin veya düzenleyin, ardından devam edin.</string>
+    <string name="workflow_edit_result">Sonucu düzenle</string>
+    <string name="workflow_early_stopped">Devam koşulu sağlanmadığı için erken durduruldu.</string>
+    <string name="workflow_early_stopped_reason">Erken durduruldu: %1$s</string>
+    <string name="workflow_skipped">Atlandı</string>
+    <string name="workflow_condition_uncertain">Devam edilip edilmeyeceği belirlenemedi. Karar vermeden önce bu adımı inceleyin.</string>
+    <string name="workflow_workspace_files">Çalışma alanı dosyaları</string>
+    <string name="workflow_chip_today">Bugün ({{today}})</string>
+    <string name="workflow_chip_prev_step">%1$d. adım çıktısı</string>
 </resources>
