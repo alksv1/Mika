@@ -31,6 +31,8 @@
     <string name="voice_settings_of">Cài đặt của %1$s</string>
     <string name="voice_voice">Giọng nói</string>
     <string name="voice_voice_default">Mặc định</string>
+    <string name="voice_tts_engine">Công cụ chuyển văn bản thành giọng nói</string>
+    <string name="voice_engine_default">Mặc định của hệ thống</string>
     <string name="realtime_lead">Trò chuyện với Mika và ngắt lời bất cứ lúc nào. Cuộc gọi điện thoại bằng AI dùng cùng lựa chọn này trừ khi chúng tự chọn riêng.</string>
     <string name="realtime_empty">Chưa có mô hình cuộc gọi thoại nào</string>
     <string name="realtime_empty_note">Chọn một mô hình bên dưới, hoặc kết nối một dịch vụ giọng nói có cung cấp cuộc gọi.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">Beijing</string>
     <string name="voice_region_singapore">Singapore</string>
     <string name="voice_compat_lead">Dành cho các dịch vụ dùng API âm thanh của OpenAI. Điền các mô hình bạn muốn; để trống các mô hình còn lại.</string>
-    <string name="voice_compat_models">Mô hình</string>
     <string name="voice_compat_models_note">Để trống một mô hình nếu dịch vụ không cung cấp nó.</string>
     <string name="voice_selfhosted_lead">Một máy chủ nhận dạng truyền trực tuyến trên mạng của riêng bạn. Nhập địa chỉ của nó; không cần tài khoản.</string>
     <string name="voice_field_api_key">API key</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">Đã kiểm tra</string>
     <string name="calls_audio_unchecked">Chưa kiểm tra</string>
     <string name="voice_stt_footer">Nhận dạng của chính điện thoại là miễn phí. Các tùy chọn trực tuyến đến từ dịch vụ giọng nói của bạn; hãy nói một câu để thử một tùy chọn trước khi chọn nó.</string>
+    <string name="voice_audition">Nghe thử %1$s</string>
+    <string name="voice_fallback_footer_stt">Nếu nhập bằng giọng nói bị giới hạn, dịch vụ quá tải hoặc không phản hồi kịp, Mika gửi cùng bản ghi âm cho mô hình kế tiếp theo thứ tự. Chỉ những mô hình chép lời sau khi bạn nói xong mới làm dự phòng được.</string>
+    <string name="voice_fallback_footer_tts">Nếu đọc to bị giới hạn, dịch vụ quá tải hoặc không phản hồi kịp, Mika thử mô hình kế tiếp theo thứ tự trước khi bắt đầu phát. Mô hình dự phòng dùng giọng mặc định của riêng nó.</string>
+    <string name="voice_fallback_pick_title">Dự phòng cho %1$s</string>
+    <string name="voice_fallback_none">Chưa có mô hình nào khác làm dự phòng được</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

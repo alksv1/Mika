@@ -308,4 +308,6 @@
     <plurals name="settings_workspace_size_limit_gb_n">
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">搜索设置</string>
+    <string name="settings_search_empty">没有匹配的设置项</string>
 </resources>

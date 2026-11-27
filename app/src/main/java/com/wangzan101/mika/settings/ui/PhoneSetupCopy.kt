@@ -261,6 +261,8 @@ object PhoneSetupCopy {
         BuiltinShellStatus.NotPaired -> tr(R.string.settings_not_set) to ValueTone.Bad
         BuiltinShellStatus.WirelessDebuggingOff -> tr(R.string.phone_wireless_off) to ValueTone.Bad
         BuiltinShellStatus.Connecting -> tr(R.string.phone_connecting) to ValueTone.Plain
+        // Mika 暂停着:不是故障,用户亲手停的。
+        BuiltinShellStatus.Paused -> tr(R.string.pause_helper_paused) to ValueTone.Plain
         is BuiltinShellStatus.Failed -> tr(R.string.phone_error) to ValueTone.Bad
     }
 
@@ -287,6 +289,8 @@ object PhoneSetupCopy {
             rootStart -> ROOT_STARTING_LINE
             else -> tr(R.string.phone_connecting)
         }
+        // Mika 暂停着:说清是用户亲手停的、停了什么。
+        BuiltinShellStatus.Paused -> tr(R.string.pause_paused_body)
         is BuiltinShellStatus.Failed -> when (s.reason) {
             BuiltinShellFailure.NoWifi -> NO_WIFI_LINE
             BuiltinShellFailure.WifiNotAllowed -> tr(R.string.phone_line_joined, failure(s.reason).title, WIFI_NOT_ALLOWED_LINE)

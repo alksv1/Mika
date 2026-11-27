@@ -15,11 +15,14 @@ data class StepContext(
     val sameAppAsLast: Boolean,
     /** 要发出的上下文里有截图;不看图的轻量模型不能接。 */
     val hasImages: Boolean = false,
+    /** 上一条模型回复之后用户又说了话(插话):要重新理解目标,这一步给主模型。 */
+    val userSpoke: Boolean = false,
 )
 
 /**
  * 实验开关 lightSteps 的分工:简单步给轻量模型,其余给主模型。
  * 轻量模型没配、不支持工具调用时恒用主模型。一步出了错误、守卫提示或画面没变,接下来 [TROUBLE_STEPS] 步强制主模型。
+ * 用户刚插了话的那一步([StepContext.userSpoke])也给主模型。
  *
  * 轻量侧沿用多级备援(Light Waterfall Chain):当前轻量模型不可用时依次切到下一个,全部用尽才回退主模型。
  * 主模型、轻量模型都可以是模型组([ModelPool]);[pick] 返回的是池本身,池再按成员选,失败换成员。
@@ -71,7 +74,7 @@ class ModelRouter(
             return main
         }
         val l = currentLight?.takeIf { active } ?: return main
-        val simple = ctx.step > 1 && !ctx.lastWasRecovery && ctx.sameAppAsLast && (!ctx.hasImages || l.capabilities.vision)
+        val simple = ctx.step > 1 && !ctx.lastWasRecovery && !ctx.userSpoke && ctx.sameAppAsLast && (!ctx.hasImages || l.capabilities.vision)
         return if (simple) l else main
     }
 
@@ -93,9 +96,11 @@ class ModelRouter(
 
     companion object {
         const val TROUBLE_STEPS = 2
-        /** 轻量模型给出这些调用(还有 do_steps)时不执行,这一步改问主模型:放弃、确认、接管、追问、沙箱命令都由主模型决定。 */
+        /** 轻量模型给出这些调用(还有 do_steps)时不执行,这一步改问主模型:放弃、确认、接管、追问、沙箱命令、root 命令都由主模型决定。 */
         private val MAIN_ONLY_VERBS = setOf(Verb.EndNotDone, Verb.RequestConfirmation, Verb.HandToUser, Verb.AskUser, Verb.HandleObstacle,
-            Verb.PhoneRun, Verb.Collect, Verb.PhoneFind, Verb.PhoneDialog, Verb.PhoneGesture, Verb.PhoneCommand) +
+            Verb.PhoneRun, Verb.Collect, Verb.PhoneFind, Verb.PhoneDialog, Verb.PhoneGesture, Verb.PhoneCommand,
+            // 以 root 身份跑的是模型写的命令,和 phone_system_command 一样只让主模型写
+            Verb.RootCommand) +
             // 沙箱里跑的是模型写的命令:只让主模型写
             setOf(Verb.RunCommand, Verb.RunBundledScript, Verb.ReadFile, Verb.WriteFile, Verb.SearchFiles, Verb.ShareFile, Verb.ViewImage, Verb.ListFolderFiles)
         /** 只能由主模型给出的调用([name] 是工具名,[verb] 是它做的动作)。 */

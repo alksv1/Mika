@@ -45,7 +45,7 @@ internal object HttpSupport {
         val attempt = call.sending(wire) ?: return send(null)
         val response = send(attempt)
         if (response.status !in 200..299) {
-            call.finish("error", null)
+            call.finishError(response.body)
         } else if (response.body.isNotEmpty()) {
             attempt.packet(response.body)
             return response.copy(onPacket = attempt::packet)

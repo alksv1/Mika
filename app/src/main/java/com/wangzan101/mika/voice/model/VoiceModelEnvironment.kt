@@ -57,8 +57,10 @@ class VoiceModelEnvironment(
             }
             if (existingTts == null) {
                 catalog.upsertModel(TtsSelectionController.SYSTEM_TTS_MODEL)
-            } else if (existingTts.tts != TtsSelectionController.SYSTEM_TTS_MODEL.tts) {
-                catalog.upsertModel(existingTts.copy(tts = TtsSelectionController.SYSTEM_TTS_MODEL.tts))
+            } else {
+                // 内置绑定按当前版本重写,只留用户选的引擎
+                val repaired = TtsSelectionController.SYSTEM_TTS_MODEL.tts!!.copy(engine = existingTts.tts?.engine.orEmpty())
+                if (existingTts.tts != repaired) catalog.upsertModel(existingTts.copy(tts = repaired))
             }
             TtsSelectionController(this).ensureDefault()
         }

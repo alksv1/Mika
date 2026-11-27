@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -47,6 +48,51 @@ import com.wangzan101.mika.settings.ui.models.refresh
 
 private val allowanceClient by lazy { ProviderAllowanceClient(ProviderStore.modelHttp) }
 
+/**
+ * 一家服务商一次余额查询的状态:从加载中到有值(或查不到为 null)。
+ * [updated] 是上次查到的时刻,跨手动刷新保留(刷新中、刷新失败都还显示上一次的时间),换 Key 才清掉。
+ */
+internal class AllowanceQuery internal constructor(source: AllowanceSource?, lastUpdated: MutableState<Instant?>) {
+    var value: ProviderAllowance? by mutableStateOf(null)
+    var updated: Instant? by lastUpdated
+    var loading: Boolean by mutableStateOf(source != null)
+}
+
+/**
+ * 挂在组合上查一遍这家服务商的额度:打开所在界面才跑,Key 版本([revision])或手动 [refresh]
+ * 变了作废重来;列表和密钥可能已更新、界面还没来得及重组时,结果经 [ProviderStore.matchesAllowanceConnection]
+ * 核对后才落地。没有查询源([source] 为 null)不跑,loading 保持 false。
+ */
+@Composable
+internal fun rememberAllowanceQuery(
+    provider: Provider, source: AllowanceSource?, store: ProviderStore, revision: Long, refresh: Int = 0,
+): AllowanceQuery {
+    val lastUpdated = remember(provider.baseUrl, source, revision) { mutableStateOf<Instant?>(null) }
+    val query = remember(provider.baseUrl, source, revision, refresh) { AllowanceQuery(source, lastUpdated) }
+    if (source != null) {
+        LaunchedEffect(provider.baseUrl, source, revision, refresh) {
+            val result = try {
+                withContext(Dispatchers.IO) {
+                    store.allowanceKey(provider, revision)?.takeIf { it.isNotBlank() }?.let { allowanceClient.query(source, it) }
+                }
+            } catch (error: ModelError) {
+                Log.w("MikaAllowance", "查询服务商额度失败（${source.name}，${error.javaClass.simpleName}）")
+                null
+            } catch (_: IllegalArgumentException) {
+                Log.w("MikaAllowance", "服务商额度请求无效（${source.name}）")
+                null
+            }
+            // 列表和密钥版本可能已更新，但界面还没来得及重组。
+            if (store.matchesAllowanceConnection(provider, revision)) {
+                query.value = result
+                if (result != null) query.updated = Instant.now()
+                query.loading = false
+            }
+        }
+    }
+    return query
+}
+
 @Composable
 internal fun UsageAllowanceCard(providers: List<Provider>, store: ProviderStore, onOpenUrl: (String) -> Unit) {
     if (providers.isEmpty()) return
@@ -75,44 +121,21 @@ private fun AllowanceRow(
     refresh: Int, first: Boolean, onOpenUrl: (String) -> Unit,
 ) {
     val source = route.source
-    var value by remember(provider.baseUrl, source, revision, refresh) { mutableStateOf<ProviderAllowance?>(null) }
-    var updated by remember(provider.baseUrl, source, revision) { mutableStateOf<Instant?>(null) }
-    var loading by remember(provider.baseUrl, source, revision, refresh) { mutableStateOf(source != null) }
-    if (source != null) {
-        LaunchedEffect(provider.baseUrl, source, revision, refresh) {
-            val result = try {
-                withContext(Dispatchers.IO) {
-                    store.allowanceKey(provider, revision)?.takeIf { it.isNotBlank() }?.let { allowanceClient.query(source, it) }
-                }
-            } catch (error: ModelError) {
-                Log.w("MikaAllowance", "查询服务商额度失败（${source.name}，${error.javaClass.simpleName}）")
-                null
-            } catch (_: IllegalArgumentException) {
-                Log.w("MikaAllowance", "服务商额度请求无效（${source.name}）")
-                null
-            }
-            // 列表和密钥版本可能已更新，但界面还没来得及重组。
-            if (store.matchesAllowanceConnection(provider, revision)) {
-                value = result
-                if (result != null) updated = Instant.now()
-                loading = false
-            }
-        }
-    }
+    val query = rememberAllowanceQuery(provider, source, store, revision, refresh)
     val link = route.dashboard?.let {
         val label = if (source == AllowanceSource.OpenRouter) R.string.usage_allowance_view_balance else R.string.chatgpt_manage_usage
         tr(label)
     }
-    val current = value
+    val current = query.value
     val subtitle = when {
-        loading -> tr(R.string.usage_allowance_loading)
+        query.loading -> tr(R.string.usage_allowance_loading)
         current != null -> allowanceText(current)
         source != null -> tr(R.string.usage_allowance_unavailable)
         route.selfHosted -> tr(R.string.usage_allowance_self_hosted)
         link != null -> link
         else -> tr(R.string.usage_allowance_unsupported)
     }
-    val lastUpdated = updated?.let {
+    val lastUpdated = query.updated?.let {
         val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(uiLocale()).withZone(ZoneId.systemDefault())
         tr(R.string.usage_allowance_updated, formatter.format(it))
     }
@@ -123,7 +146,7 @@ private fun AllowanceRow(
     }
 }
 
-private fun allowanceText(value: ProviderAllowance): String = when (value) {
+internal fun allowanceText(value: ProviderAllowance): String = when (value) {
     is ProviderAllowance.Balance -> tr(R.string.usage_allowance_balance, value.amounts.joinToString(" · ", transform = ::formatAmount))
     is ProviderAllowance.KeyLimit -> {
         val remaining = value.remaining

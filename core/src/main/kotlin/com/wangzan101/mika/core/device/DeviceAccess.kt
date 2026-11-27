@@ -105,7 +105,10 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
         }
         if (!allowed()) return@withLock result("disabled", now)
         val wasSecure = now.secure
-        if (!port.dismiss()) return@withLock result("dismiss_failed", read())
+        // 这次流程刚把屏幕唤醒时锁屏可能还没准备好接受 dismiss:在同一个有界等待([waitMs])里重试,每次前复核授权
+        if (!retrying(enabled = woke, ::allowed) { port.dismiss() }) {
+            return@withLock result(if (allowed()) "dismiss_failed" else "disabled", read())
+        }
         now = await { !allowed() || it.ready || it.secure && it.keyguardShowing } ?: return@withLock result("device_unavailable")
         if (!allowed()) return@withLock result("disabled", now)
         // 非安全锁屏由这次流程上滑解开、或这次流程唤醒了熄屏:算这次解的;安全锁屏没输入凭据就开了是用户同时自己解的
@@ -184,6 +187,15 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
         var s = read()
         while (s != null && !done(s) && waited < waitMs) { delay(pollMs); waited += pollMs; s = read() }
         return s
+    }
+    /** [action] 成功就返回 true;[enabled] 时失败了隔 [pollMs] 再试,总共不超过 [waitMs],[allowed] 一收回就停。 */
+    private suspend fun retrying(enabled: Boolean, allowed: () -> Boolean, action: suspend () -> Boolean): Boolean {
+        var waited = 0L
+        while (true) {
+            if (action()) return true
+            if (!enabled || waited >= waitMs || !allowed()) return false
+            delay(pollMs); waited += pollMs
+        }
     }
     private fun result(status: String, s: DeviceState? = null, storedKind: CredentialKind? = null, detectedKind: CredentialKind? = null,
         keyguardDiagnostics: List<String> = emptyList(), performedUnlock: Boolean = false) =

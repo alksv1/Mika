@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Приостановить Mika</string>
+    <string name="pause_row_sub_active">Остановить всю работу Mika до возобновления</string>
+    <string name="pause_row_sub_paused">На паузе: задачи и планы не выполняются</string>
+    <string name="pause_state_active">Включено</string>
+    <string name="pause_explain">Пауза останавливает все выполняемые и ожидающие задачи, пропускает наступившие планы и отклоняет новые задачи из чата, с компьютеров и из каналов сообщений, пока вы не возобновите работу. Также отключаются служба специальных возможностей Mika и отладка по Wi-Fi, а помощник на телефоне останавливается. Ничего не удаляется, а сопряжение для отладки по Wi-Fi сохраняется.</string>
+    <string name="pause_paused_title">Mika на паузе</string>
+    <string name="pause_paused_body">Пока вы не возобновите работу, задачи не выполняются, планы пропускаются, а помощник на телефоне остановлен.</string>
+    <string name="pause_active_title">Mika работает</string>
+    <string name="pause_active_body">Поставьте Mika на паузу, если хотите на время полностью его отключить.</string>
+    <string name="pause_status_label">Что отключает пауза</string>
+    <string name="pause_action">Приостановить Mika</string>
+    <string name="pause_action_sub">Остановить задачи, отключить спецвозможности и отладку по Wi-Fi, остановить помощника</string>
+    <string name="pause_resume">Возобновить Mika</string>
+    <string name="pause_resume_sub">Переподключить помощника по сохранённому сопряжению</string>
+    <string name="pause_resumed">Mika снова работает.</string>
+    <string name="pause_resume_note">Mika не удалось самостоятельно включить всё обратно. Выполните шаги ниже.</string>
+    <string name="pause_a11y_restoring">Снова включаем службу специальных возможностей Mika…</string>
+    <string name="pause_a11y_label">Служба специальных возможностей</string>
+    <string name="pause_wireless_label">Отладка по Wi-Fi</string>
+    <string name="pause_helper_label">Помощник на телефоне</string>
+    <string name="pause_helper_running">Работает</string>
+    <string name="pause_helper_paused">На паузе</string>
+    <string name="pause_helper_not_running">Не работает</string>
+    <string name="pause_helper_connecting">Подключение…</string>
+    <string name="pause_tasks_stopped">Выполняемые и ожидающие задачи остановлены.</string>
+    <string name="pause_done">Спецвозможности и отладка по Wi-Fi отключены, помощник остановлен.</string>
+    <string name="pause_a11y_manual">Не удалось отключить службу специальных возможностей отсюда. Откройте настройки специальных возможностей и отключите Mika.</string>
+    <string name="pause_wireless_manual">Не удалось отключить отладку по Wi-Fi отсюда. Откройте параметры разработчика и отключите её.</string>
+    <string name="pause_save_failed">Не удалось сохранить изменение, поэтому ничего не изменилось. Попробуйте ещё раз.</string>
+    <string name="pause_step_a11y">Снова включите Mika в настройках специальных возможностей</string>
+    <string name="pause_step_wireless">Снова включите отладку по Wi-Fi в параметрах разработчика</string>
+    <string name="pause_step_repair">Заново выполнить сопряжение помощника</string>
+    <string name="pause_reconnect">Переподключить помощника сейчас</string>
+    <string name="pause_blocked_task">Mika на паузе, поэтому эта задача не запущена. Сначала возобновите Mika в настройках.</string>
+    <string name="pause_blocked_plan">Mika на паузе, поэтому этот план не выполнен.</string>
+    <string name="pause_blocked_workflow">Mika на паузе, поэтому этот рабочий процесс не выполнен. Сначала возобновите Mika в настройках.</string>
+    <string name="pause_channel_reply">Mika на телефоне на паузе, поэтому эта задача не запущена. Отправьте её снова после возобновления Mika.</string>
+    <string name="plans_skipped_paused">Пропущено, пока Mika был на паузе</string>
+    <string name="workflow_stopped_paused">Остановлено из-за паузы Mika</string>
+</resources>

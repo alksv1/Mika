@@ -32,8 +32,9 @@ data class ConnectCandidates(
  * 用户填了端口就不再扫(之前就是扫不到才让填的),直接试它。
  * TLS 上被拒(UNAUTHORIZED、TLS_FAILED)不一定是钥匙不对:有的系统让另一个服务先接住同一端口的第一次 TLS 握手,
  * 对谁的证书都拒,紧接着再连才落到 adbd。所以同一端口隔 [tlsRetryDelayMs] 再试一次,还不行就接着试其余候选;
- * 只有试遍都连不上、且有端口这样拒了我们,才报 UNAUTHORIZED(要重新配对)。已经有端口拒了我们就不再扫本机端口:
- * adbd 找到了,扫出来的也只会是它。
+ * 只有试遍都连不上、且有端口这样拒了我们,才报 UNAUTHORIZED(要重新配对)。有端口拒了我们也照样扫本机端口(跳过已试过的):
+ * 缓存、属性、mDNS 给的可能是旧端口,上面还有服务回话却不认当前钥匙,而 adbd 已经换到别的端口上了。
+ * 扫描有时间上限,扫不到别的才报 UNAUTHORIZED。
  */
 class AdbConnectPort(
     private val property: () -> Int?,
@@ -64,7 +65,7 @@ class AdbConnectPort(
             { local(property()) },
             { finder.findPorts(AdbServiceTypes.CONNECT, mdnsTimeoutMs).map { AdbEndpoint(localHost, it) } },
             {
-                if (scan == null || manualPort != null || rejected != null) emptyList() else {
+                if (scan == null || manualPort != null) emptyList() else {
                     scanning(true)
                     try {
                         scan.scan(triedPorts).also { scanResult = it }.endpoints

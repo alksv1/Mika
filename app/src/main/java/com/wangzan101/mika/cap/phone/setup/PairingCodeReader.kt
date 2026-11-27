@@ -11,6 +11,7 @@ import com.wangzan101.mika.core.device.shell.PairingDiscovery
 import com.wangzan101.mika.core.device.shell.PairingScreen
 import com.wangzan101.mika.core.device.shell.PhoneSetupFlow
 import com.wangzan101.mika.core.device.shell.PairingScreenReading
+import com.wangzan101.mika.settings.MikaPause
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.conflate
@@ -58,8 +59,9 @@ internal object PairingCodeReader {
                         Log.i(TAG, "saw $seen")
                         last = seen
                     }
+                    val paused = MikaPause.get(context).paused()
                     val attempt = readings.firstNotNullOfOrNull {
-                        PairingScreen.attempt(it, portFound, status, tried)
+                        PairingScreen.attempt(it, portFound, status, tried, paused = paused)
                     } ?: return@collect
                     Log.i(TAG, "read a code from the screen; pairing")
                     tried += attempt.code

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">إيقاف Mika مؤقتًا</string>
+    <string name="pause_row_sub_active">أوقف كل أعمال Mika حتى تستأنفه</string>
+    <string name="pause_row_sub_paused">متوقف مؤقتًا: لا تُشغَّل مهام أو خطط</string>
+    <string name="pause_state_active">قيد التشغيل</string>
+    <string name="pause_explain">عند الإيقاف المؤقت تتوقف كل المهام الجارية والمنتظرة، وتُتخطى الخطط التي يحين وقتها، وتُرفض المهام الجديدة الواردة من الدردشة والحواسيب وقنوات الرسائل حتى تستأنف. ويُوقَف أيضًا تشغيل خدمة تسهيل الاستخدام الخاصة بـ Mika وتصحيح الأخطاء اللاسلكي، وتتوقف أداة مساعدة الهاتف. لا يُلغى تثبيت أي شيء ولا يُحذف، ويبقى إقران تصحيح الأخطاء اللاسلكي محفوظًا.</string>
+    <string name="pause_paused_title">Mika متوقف مؤقتًا</string>
+    <string name="pause_paused_body">حتى تستأنف، لا تُشغَّل أي مهام، وتُتخطى الخطط، وتبقى أداة مساعدة الهاتف متوقفة.</string>
+    <string name="pause_active_title">Mika قيد التشغيل</string>
+    <string name="pause_active_body">أوقف Mika مؤقتًا عندما تريد إيقافه تمامًا لبعض الوقت.</string>
+    <string name="pause_status_label">ما يوقفه الإيقاف المؤقت</string>
+    <string name="pause_action">إيقاف Mika مؤقتًا</string>
+    <string name="pause_action_sub">إيقاف المهام، وإيقاف تسهيل الاستخدام وتصحيح الأخطاء اللاسلكي، وإيقاف الأداة المساعدة</string>
+    <string name="pause_resume">استئناف Mika</string>
+    <string name="pause_resume_sub">إعادة توصيل الأداة المساعدة بالإقران المحفوظ</string>
+    <string name="pause_resumed">عاد Mika إلى العمل.</string>
+    <string name="pause_resume_note">لم يتمكّن Mika من إعادة تشغيل كل شيء بنفسه. أكمل الخطوات أدناه.</string>
+    <string name="pause_a11y_restoring">جارٍ إعادة تشغيل خدمة إمكانية الوصول في Mika…</string>
+    <string name="pause_a11y_label">خدمة تسهيل الاستخدام</string>
+    <string name="pause_wireless_label">تصحيح الأخطاء اللاسلكي</string>
+    <string name="pause_helper_label">أداة مساعدة الهاتف</string>
+    <string name="pause_helper_running">قيد التشغيل</string>
+    <string name="pause_helper_paused">متوقف مؤقتًا</string>
+    <string name="pause_helper_not_running">غير مُشغَّل</string>
+    <string name="pause_helper_connecting">جارٍ الاتصال…</string>
+    <string name="pause_tasks_stopped">أُوقفت المهام الجارية والمنتظرة.</string>
+    <string name="pause_done">تم إيقاف تسهيل الاستخدام وتصحيح الأخطاء اللاسلكي، وتوقفت الأداة المساعدة.</string>
+    <string name="pause_a11y_manual">تعذّر إيقاف خدمة تسهيل الاستخدام من هنا. افتح إعدادات تسهيل الاستخدام وأوقف Mika.</string>
+    <string name="pause_wireless_manual">تعذّر إيقاف تصحيح الأخطاء اللاسلكي من هنا. افتح خيارات المطوّرين وأوقفه.</string>
+    <string name="pause_save_failed">تعذّر حفظ التغيير، لذا لم يتغير شيء. حاول مرة أخرى.</string>
+    <string name="pause_step_a11y">أعِد تشغيل Mika من إعدادات تسهيل الاستخدام</string>
+    <string name="pause_step_wireless">أعِد تشغيل تصحيح الأخطاء اللاسلكي من خيارات المطوّرين</string>
+    <string name="pause_step_repair">إقران أداة مساعدة الهاتف من جديد</string>
+    <string name="pause_reconnect">إعادة توصيل الأداة المساعدة الآن</string>
+    <string name="pause_blocked_task">Mika متوقف مؤقتًا، لذا لم تبدأ هذه المهمة. استأنف Mika من الإعدادات أولًا.</string>
+    <string name="pause_blocked_plan">Mika متوقف مؤقتًا، لذا لم تُشغَّل هذه الخطة.</string>
+    <string name="pause_blocked_workflow">Mika متوقف مؤقتًا، لذا لم يُشغَّل سير العمل هذا. استأنف Mika من الإعدادات أولًا.</string>
+    <string name="pause_channel_reply">Mika متوقف مؤقتًا على الهاتف، لذا لم يبدأ هذه المهمة. أرسلها مرة أخرى بعد استئناف Mika.</string>
+    <string name="plans_skipped_paused">تم التخطي أثناء إيقاف Mika مؤقتًا</string>
+    <string name="workflow_stopped_paused">توقف بسبب إيقاف Mika مؤقتًا</string>
+</resources>

@@ -111,6 +111,14 @@ internal class TraceCall(
             reply?.let { { TracePayload.reply(it, verb) } })
     }
 
+    fun finishError(errorBody: String?) {
+        val attempt = current ?: return
+        current = null
+        val usage = attempt.usage
+        val captured = errorBody?.takeIf { it.isNotBlank() }?.let { { TracePayload.errorBody(it) } }
+        run.end(attempt.span, "error", usage?.input, usage?.cached, usage?.output, captured)
+    }
+
     fun begin(body: JsonObject, messages: List<Message>, provider: String = "openai_compatible",
         protocol: InferenceProtocol = InferenceProtocol.Responses,
     ) = run.begin(this, body, messages, provider = provider, protocol = protocol)

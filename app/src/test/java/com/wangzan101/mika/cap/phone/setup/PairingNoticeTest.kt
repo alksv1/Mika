@@ -198,4 +198,13 @@ class PairingNoticeTest {
             ),
         )
     }
+
+    @Test
+    fun pausedFlagAndPausedStatusSuppressPairingNotices() {
+        assertNull(PairingNotice.of(BuiltinShellStatus.Paused, PairingDiscovery.Found(37001)))
+        assertEquals(
+            null to true,
+            PairingNotice.follow(BuiltinShellStatus.NotPaired, PairingDiscovery.Found(37001), repairing = false, submitted = false, paused = true),
+        )
+    }
 }

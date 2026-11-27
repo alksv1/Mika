@@ -254,6 +254,8 @@
     <string name="pip_closed_hint">Đã đóng cho tác vụ này. Nhấn “Hiện màn hình” ở góc dưới bên phải, hoặc mở “Màn hình nền” trong menu bên.</string>
     <string name="chat_conversation_tokens">Cuộc trò chuyện này: %1$s</string>
     <string name="chat_conversation_tokens_partial">Cuộc trò chuyện này: ít nhất %1$s</string>
+    <string name="chat_current_model">Mô hình hiện tại</string>
+    <string name="chat_usage_view_details">Xem mức dùng token</string>
     <string name="chat_task_cost_estimate">Ước tính %1$s</string>
     <string name="chat_task_cost_partial">%1$s (một phần)</string>
     <string name="chat_task_cost_unavailable">Không có thông tin chi phí</string>
@@ -330,4 +332,6 @@
     <string name="chat_example_share_title">Chia sẻ Mika với bạn bè</string>
     <string name="chat_example_share_blurb">Giới thiệu cho người bạn cần đến nó</string>
     <string name="chat_example_share">Chia sẻ liên kết dự án Mika https://github.com/wangzan101/mika với một người bạn và nói rằng nó có thể thao tác điện thoại giúp họ.</string>
+    <string name="chat_video">Video</string>
+    <string name="chat_video_play">Phát</string>
 </resources>

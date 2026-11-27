@@ -157,4 +157,9 @@
     <string name="calls_type_transport">タクシー・配車</string>
     <string name="calls_only_strangers">連絡先にない番号のみ</string>
     <string name="calls_strangers_note">Mika に連絡先の読み取りを許可してください。番号が未登録だと確認できた場合のみ AI が応答します。非通知や照合できない着信にはご自身で応答してください。</string>
+    <string name="calls_show_dialpad">ダイヤルパッドを表示</string>
+    <string name="calls_hide_dialpad">ダイヤルパッドを隠す</string>
+    <string name="calls_delete_digit">削除</string>
+    <string name="calls_clear_draft">下書きを消去</string>
+    <string name="calls_reset_history_filters">絞り込みをリセット</string>
 </resources>

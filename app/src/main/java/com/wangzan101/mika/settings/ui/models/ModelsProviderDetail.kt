@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import com.wangzan101.mika.ui.components.MikaDialog
+import com.wangzan101.mika.ui.components.MikaTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -88,7 +89,74 @@ class ProviderDetailActions(
     val setDailyBudget: (Long?) -> Boolean = { false },
     /** 把这家默认的模型设为主模型(账号登录的详情里那一行)。 */
     val useAsMain: () -> Unit = {},
+    /** 改这家的备注;null 是去掉备注。 */
+    val rename: (String?) -> Unit = {},
 )
+
+/**
+ * 服务商详情里的密钥区:标题按池里 Key 的数量说话,每把 Key 一行(多把时可单独移除),末尾常驻「添加」。
+ * [keys] 是这家服务商池里的 Key 原文,[showKeys] 为真时才明文显示。
+ */
+@Composable
+internal fun KeyPoolSection(
+    keys: List<String>, showKeys: Boolean,
+    onToggleShow: () -> Unit, onRemove: (String) -> Unit, onAdd: () -> Unit,
+) {
+    val c = MikaTheme.colors
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        GroupLabel(KeyPoolCopy.sectionTitle(keys.size), Modifier.weight(1f))
+        if (keys.isNotEmpty()) {
+            Text(
+                stringResource(if (showKeys) R.string.model_keys_hide else R.string.model_keys_show),
+                color = c.accent,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .clickable(onClick = onToggleShow)
+                    .padding(end = 4.dp, top = 8.dp, bottom = 4.dp)
+                    .testTag("toggle-show-keys"),
+            )
+        }
+    }
+    GroupCard {
+        if (keys.isEmpty()) {
+            ListRow(
+                null, stringResource(R.string.model_key_not_configured),
+                subtitle = stringResource(R.string.model_key_not_configured_hint), first = true,
+            ) { RowValue(stringResource(R.string.model_key_required), ValueTone.Bad) }
+        } else {
+            keys.forEachIndexed { i, k ->
+                val displayKey = if (showKeys) k else when {
+                    k.length > 14 -> "${k.take(8)}…${k.takeLast(4)}"
+                    k.length > 8  -> "${k.take(4)}…${k.takeLast(4)}"
+                    else          -> "••••••••"
+                }
+                ListRow(null, stringResource(R.string.model_key_number, i + 1), subtitle = displayKey, first = i == 0) {
+                    RowValue(stringResource(R.string.model_key_active), ValueTone.Ok)
+                    if (keys.size > 1) {
+                        Text(
+                            stringResource(R.string.model_key_remove),
+                            color = c.bad,
+                            style = MikaType.Caption,
+                            modifier = Modifier
+                                .clickable { onRemove(k) }
+                                .padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
+                                .testTag("remove-key-$i"),
+                        )
+                    }
+                }
+            }
+        }
+        ListRow(
+            icon = MikaIcons.Plus,
+            title = stringResource(R.string.model_key_add),
+            subtitle = stringResource(if (keys.isEmpty()) R.string.model_key_add_first_hint else R.string.model_key_add_another_hint),
+            first = keys.isEmpty(),
+            onClick = onAdd,
+        ) { RowChevron() }
+    }
+    KeyPoolCopy.footerNote(keys.size)?.let { FooterNote(it) }
+}
 
 /**
  * 一个服务商:连接(状态、接口、地址、Key 可更换)、几个模型(在用的在前,最多 [MODEL_PREVIEW] 个,其余点「查看全部」)、删除。
@@ -103,6 +171,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
     var confirmDelete by remember { mutableStateOf(false) }
     var confirmRetest by remember(p.id) { mutableStateOf<String?>(null) }
     var editingBudget by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
     var customBudget by remember { mutableStateOf("") }
     var budgetSaveFailed by remember { mutableStateOf(false) }
     var using by remember { mutableStateOf<String?>(null) }
@@ -128,75 +197,29 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                     }
                 }
                 ListRow(null, ModelsCopy.BASE_URL) { RowValue(ModelsCopy.shortUrl(p.baseUrl)) }
+                ListRow(
+                    null, stringResource(R.string.provider_nickname_label), onClick = { renaming = true },
+                    modifier = Modifier.testTag("provider-nickname"),
+                ) {
+                    RowValue(p.nickname ?: ModelsCopy.UNSET)
+                    RowChevron()
+                }
+            }
+            if (renaming) {
+                ProviderRenameDialog(
+                    current = p.nickname,
+                    onDismiss = { renaming = false },
+                    onConfirm = { nickname -> actions.rename(nickname); renaming = false },
+                )
             }
             (state as? ListState.Failed)?.let { FooterNote(ModelSetupCopy.failed(it.message), color = c.bad) }
 
-            // ── API Key Pool ───────────────────────────────────────────────
-            val keys = ui.providerKeyMap[p.id].orEmpty()
-            val poolHealthy = keys.size
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                GroupLabel(
-                    if (poolHealthy == 0) "API Keys"
-                    else if (poolHealthy == 1) "API Key Pool  ·  1 key"
-                    else "API Key Pool  ·  $poolHealthy keys  ·  auto-rotating",
-                    Modifier.weight(1f),
-                )
-                if (keys.isNotEmpty()) {
-                    Text(
-                        if (showKeys) "Hide Keys" else "Show Keys",
-                        color = c.accent,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .clickable { showKeys = !showKeys }
-                            .padding(end = 4.dp, top = 8.dp, bottom = 4.dp)
-                            .testTag("toggle-show-keys"),
-                    )
-                }
-            }
-            GroupCard {
-                if (keys.isEmpty()) {
-                    // No keys yet — prominent empty state
-                    ListRow(null, "No key configured", subtitle = "Add a key to connect this provider", first = true) {
-                        RowValue("Required", ValueTone.Bad)
-                    }
-                } else {
-                    keys.forEachIndexed { i, k ->
-                        val displayKey = if (showKeys) k else when {
-                            k.length > 14 -> "${k.take(8)}…${k.takeLast(4)}"
-                            k.length > 8  -> "${k.take(4)}…${k.takeLast(4)}"
-                            else          -> "••••••••"
-                        }
-                        ListRow(null, "Key ${i + 1}", subtitle = displayKey, first = i == 0) {
-                            RowValue("Active", ValueTone.Ok)
-                            if (keys.size > 1) {
-                                Text(
-                                    "Remove",
-                                    color = c.bad,
-                                    style = MikaType.Caption,
-                                    modifier = Modifier
-                                        .clickable { actions.removeKey(k) }
-                                        .padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
-                                        .testTag("remove-key-$i"),
-                                )
-                            }
-                        }
-                    }
-                }
-                // Add key — always visible
-                ListRow(
-                    icon = MikaIcons.Plus,
-                    title = "Add API Key",
-                    subtitle = if (keys.isEmpty()) "Paste your key to connect" else "Add another key to the rotation pool",
-                    first = keys.isEmpty(),
-                    onClick = { addingKey = true },
-                ) { RowChevron() }
-            }
-            if (keys.size > 1) {
-                FooterNote("Keys rotate automatically. Any key that hits a 429 rate-limit or timeout is skipped until it recovers — zero downtime.")
-            } else if (keys.size == 1) {
-                FooterNote("Add more keys to enable automatic failover rotation.")
-            }
+            KeyPoolSection(
+                ui.providerKeyMap[p.id].orEmpty(), showKeys,
+                onToggleShow = { showKeys = !showKeys },
+                onRemove = actions.removeKey,
+                onAdd = { addingKey = true },
+            )
         }
 
         GroupCard {
@@ -300,7 +323,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(Modifier.weight(1f)) {
-                                if (key.isEmpty()) Text("Paste one or more keys (comma or newline separated)", style = MikaType.Body, color = c.ink3)
+                                if (key.isEmpty()) Text(ModelSetupCopy.KEY_POOL_HINT, style = MikaType.Body, color = c.ink3)
                                 BasicTextField(
                                     key,
                                     { raw ->
@@ -327,7 +350,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                         }
                         if (parsedKeys.size > 1) {
                             Text(
-                                "✓ Key Pool: ${parsedKeys.size} API keys detected (auto-rotating on 429/timeout)",
+                                KeyPoolCopy.detectedChange(parsedKeys.size),
                                 style = MikaType.Caption,
                                 color = c.ok,
                                 modifier = Modifier.padding(top = 6.dp),
@@ -362,10 +385,10 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
             onDismissRequest = { addingKey = false },
             title = {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Add API Key", Modifier.weight(1f))
+                    Text(stringResource(R.string.model_key_add), Modifier.weight(1f))
                     if (newKeyText.isNotEmpty()) {
                         Text(
-                            if (showAddKey) "Hide" else "Show",
+                            stringResource(if (showAddKey) R.string.hide else R.string.show),
                             color = c.accent,
                             fontSize = 13.sp,
                             modifier = Modifier
@@ -379,7 +402,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                 KeyboardDismissArea {
                     Column(Modifier.fillMaxWidth()) {
                         Text(
-                            "Paste one key, or multiple keys separated by commas or new lines to add them all at once.",
+                            stringResource(R.string.model_key_add_note),
                             style = MikaType.Caption, color = c.ink2,
                             modifier = Modifier.padding(bottom = 10.dp),
                         )
@@ -390,7 +413,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                         ) {
                             if (newKeyText.isEmpty()) {
                                 Text(
-                                    "Paste API key(s) here",
+                                    stringResource(R.string.model_key_hint),
                                     style = MikaType.Body, color = c.ink3,
                                 )
                             }
@@ -415,12 +438,12 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                         // Live feedback
                         when {
                             parsedAdding.size > 1 -> Text(
-                                "${parsedAdding.size} keys detected — all will be added to the rotation pool",
+                                KeyPoolCopy.detectedAdd(parsedAdding.size),
                                 style = MikaType.Caption, color = c.ok,
                                 modifier = Modifier.padding(top = 6.dp),
                             )
                             newKeyText.isNotBlank() && !blocked -> Text(
-                                "1 key ready to add",
+                                stringResource(R.string.model_key_one_ready),
                                 style = MikaType.Caption, color = c.ok,
                                 modifier = Modifier.padding(top = 6.dp),
                             )
@@ -438,7 +461,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
                         actions.addKey(newKeyText.trim())
                     },
                     enabled = newKeyText.isNotBlank() && !blocked,
-                ) { Text(if (parsedAdding.size > 1) "Add ${parsedAdding.size} Keys" else ModelsCopy.SAVE) }
+                ) { Text(KeyPoolCopy.addConfirm(parsedAdding.size, ModelsCopy.SAVE)) }
             },
             dismissButton = { TextButton({ addingKey = false }) { Text(ModelSetupCopy.CANCEL) } },
         )
@@ -457,4 +480,30 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
             dismissButton = { TextButton({ confirmDelete = false }) { Text(ModelSetupCopy.CANCEL) } },
         )
     }
+}
+
+/** 改账号备注:空着保存就是去掉备注。字数在输入时按 [Provider.MAX_NICKNAME] 截。 */
+@Composable
+internal fun ProviderRenameDialog(current: String?, onDismiss: () -> Unit, onConfirm: (String?) -> Unit) {
+    var text by remember { mutableStateOf(current.orEmpty()) }
+    MikaDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.provider_rename_title)) },
+        text = {
+            MikaTextField(
+                value = text,
+                onValueChange = { text = nicknameInput(it) },
+                modifier = Modifier.fillMaxWidth().testTag("provider-rename-input"),
+                singleLine = true,
+                label = { Text(stringResource(R.string.provider_nickname_label)) },
+                placeholder = { Text(stringResource(R.string.provider_nickname_hint)) },
+            )
+        },
+        confirmButton = {
+            TextButton({ onConfirm(Provider.cleanNickname(text)) }, modifier = Modifier.testTag("provider-rename-save")) {
+                Text(ModelsCopy.SAVE)
+            }
+        },
+        dismissButton = { TextButton(onDismiss) { Text(ModelSetupCopy.CANCEL) } },
+    )
 }

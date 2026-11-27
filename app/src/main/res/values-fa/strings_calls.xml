@@ -157,4 +157,9 @@
     <string name="calls_type_transport">تاکسی و خدمات سفر</string>
     <string name="calls_only_strangers">فقط شماره‌های ذخیره‌نشده</string>
     <string name="calls_strangers_note">به Mika اجازهٔ خواندن مخاطبان را بدهید. هوش مصنوعی فقط وقتی پاسخ می‌دهد که مطمئن شود شماره ذخیره نشده است. اگر شماره پنهان باشد یا جستجو ناموفق باشد، پاسخ با شماست.</string>
+    <string name="calls_show_dialpad">نمایش صفحهٔ شماره‌گیری</string>
+    <string name="calls_hide_dialpad">پنهان کردن صفحهٔ شماره‌گیری</string>
+    <string name="calls_delete_digit">حذف</string>
+    <string name="calls_clear_draft">پاک کردن پیش‌نویس</string>
+    <string name="calls_reset_history_filters">بازنشانی فیلترها</string>
 </resources>

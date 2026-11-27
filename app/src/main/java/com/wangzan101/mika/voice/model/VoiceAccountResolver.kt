@@ -7,6 +7,10 @@ import com.wangzan101.mika.settings.activeApiKey
 import com.wangzan101.mika.settings.clientHeaders
 import com.wangzan101.mika.settings.hasKey
 import com.wangzan101.mika.settings.providerKey
+import com.wangzan101.mika.settings.providerKeys
+import com.wangzan101.mika.core.model.keyRejectionOf
+import com.wangzan101.mika.core.model.withKeyRotation
+import kotlinx.coroutines.CancellationException
 import java.security.MessageDigest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -17,6 +21,10 @@ interface VoiceProviderAccountSource {
     fun hasKey(id: String): Boolean
     fun keyRevision(id: String): Long
     fun headers(provider: Provider): Map<String, String>
+    /** 这家密钥池里有几把密钥;只有一把时没得轮换。 */
+    fun keyCount(id: String): Int = 1
+    /** 上游拒了 [key]:和对话模型同一处记账(429 冷却,401/403 耗尽),见 [KeyPoolManager.markRejected]。 */
+    fun rejectKey(id: String, key: String, status: Int, retryAfterMs: Long?) {}
 }
 
 class ProviderStoreVoiceAccountSource(private val store: ProviderStore) : VoiceProviderAccountSource {
@@ -28,6 +36,9 @@ class ProviderStoreVoiceAccountSource(private val store: ProviderStore) : VoiceP
     override fun hasKey(id: String): Boolean = store.hasKey(id)
     override fun keyRevision(id: String): Long = store.providerKeyRevisions.value[id] ?: 0L
     override fun headers(provider: Provider): Map<String, String> = store.clientHeaders(provider)
+    override fun keyCount(id: String): Int = store.providerKeys(id).size
+    override fun rejectKey(id: String, key: String, status: Int, retryAfterMs: Long?) =
+        KeyPoolManager.shared.markRejected(id, key, status, retryAfterMs)
 }
 
 sealed interface ResolvedAccount {
@@ -115,6 +126,45 @@ class VoiceAccountResolver(
             account = account,
             configurationFingerprint = configurationFingerprint(service, model),
         )
+    }
+
+    /** [model] 借用的对话服务商密钥池里有不止一把密钥,值得轮换。自带密钥的语音服务只有一把。 */
+    fun pooled(model: ResolvedVoiceModel): Boolean =
+        (model.account as? ResolvedAccount.ExistingProvider)?.let { providers.keyCount(it.provider.id) > 1 } == true
+
+    /**
+     * 用 [model] 的账号发一次请求。借用对话服务商账号的,走那家的密钥池,和对话模型共用同一份密钥、同一个轮询、
+     * 同一份冷却:每次请求向池里现取一把,被拒(429/401/403,见 [keyRejectionOf])就照对话那边记账,换池里下一把重发,
+     * 每把最多一次([withKeyRotation])。[mayRetry] 为 false 时(比如流式朗读已经交出了声音)不再换密钥重发。
+     * 自带密钥的语音服务原样发一次。
+     */
+    suspend fun <T> withPooledKey(
+        model: ResolvedVoiceModel,
+        mayRetry: () -> Boolean = { true },
+        send: suspend (ResolvedVoiceModel) -> T,
+    ): T {
+        val account = model.account as? ResolvedAccount.ExistingProvider ?: return send(model)
+        val providerId = account.provider.id
+        val resolvedKey = account.credentials.apiKey.ifBlank { null }
+        val result = withKeyRotation(
+            // 和对话模型的 keySupplier 一样每次请求现取:轮询、跳过冷却中的密钥都在池里做
+            nextKey = { providers.activeApiKey(providerId) ?: resolvedKey },
+            rejected = { key, retryAfterMs, status -> providers.rejectKey(providerId, key, status, retryAfterMs) },
+            rejectionOf = { outcome: Result<T> ->
+                outcome.exceptionOrNull()?.takeIf { mayRetry() }?.let(::keyRejectionOf)
+            },
+            send = { key ->
+                val keyed = model.copy(account = account.copy(credentials = VoiceCredentials(apiKey = key.orEmpty())))
+                try {
+                    Result.success(send(keyed))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            },
+        )
+        return result.getOrThrow()
     }
 
     /**

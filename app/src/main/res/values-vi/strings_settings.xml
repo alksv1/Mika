@@ -307,4 +307,6 @@
     <plurals name="settings_workspace_size_limit_gb_n">
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">Tìm trong cài đặt</string>
+    <string name="settings_search_empty">Không có cài đặt nào khớp</string>
 </resources>

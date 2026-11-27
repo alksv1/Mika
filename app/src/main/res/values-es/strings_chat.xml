@@ -278,6 +278,8 @@
     <string name="pip_closed_hint">Cerrada para esta tarea. Toca “Mostrar pantalla” abajo a la derecha, o abre “Pantallas en segundo plano” en el menú lateral.</string>
     <string name="chat_conversation_tokens">Esta conversación: %1$s</string>
     <string name="chat_conversation_tokens_partial">Esta conversación: al menos %1$s</string>
+    <string name="chat_current_model">Modelo actual</string>
+    <string name="chat_usage_view_details">Ver uso de tokens</string>
     <string name="chat_task_cost_estimate">Aprox. %1$s</string>
     <string name="chat_task_cost_partial">%1$s (parcial)</string>
     <string name="chat_task_cost_unavailable">Coste no disponible</string>
@@ -360,4 +362,6 @@
     <string name="chat_example_share_title">Comparte Mika con un amigo</string>
     <string name="chat_example_share_blurb">Recomiéndalo a quien le sirva</string>
     <string name="chat_example_share">Comparte el enlace del proyecto Mika https://github.com/wangzan101/mika con un amigo y cuéntale que puede manejar el teléfono por él.</string>
+    <string name="chat_video">Vídeo</string>
+    <string name="chat_video_play">Reproducir</string>
 </resources>

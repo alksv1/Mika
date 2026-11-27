@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Taxi và dịch vụ xe</string>
     <string name="calls_only_strangers">Chỉ các số ngoài danh bạ</string>
     <string name="calls_strangers_note">Cho phép Mika đọc danh bạ. AI chỉ trả lời khi số có thể kiểm tra được và chưa được lưu. Số ẩn và tra cứu thất bại sẽ để cho bạn.</string>
+    <string name="calls_show_dialpad">Hiện bàn phím quay số</string>
+    <string name="calls_hide_dialpad">Ẩn bàn phím quay số</string>
+    <string name="calls_delete_digit">Xóa</string>
+    <string name="calls_clear_draft">Xóa bản nháp</string>
+    <string name="calls_reset_history_filters">Đặt lại bộ lọc</string>
 </resources>

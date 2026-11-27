@@ -39,6 +39,7 @@ import com.wangzan101.mika.core.device.shell.SuProbe
 import com.wangzan101.mika.cap.phone.shell.HelperHub
 import com.wangzan101.mika.cap.phone.shell.adb.AndroidAdb
 import com.wangzan101.mika.cap.phone.shell.adb.NsdAdbServiceFinder
+import com.wangzan101.mika.settings.MikaPause
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -108,6 +109,7 @@ class BuiltinShellManager(context: Context, private val hub: HelperHub, private 
             canWrite = { app.checkSelfPermission(PermissionCommands.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED },
             read = platform::wirelessDebugging,
             write = { DeveloperSettings.turnOnWirelessDebugging(app.contentResolver) },
+            writeOff = { DeveloperSettings.turnOffWirelessDebugging(app.contentResolver) },
         )
     }
 
@@ -115,6 +117,7 @@ class BuiltinShellManager(context: Context, private val hub: HelperHub, private 
     val engine: BuiltinShellEngine by lazy {
         BuiltinShellEngine(
             platform, hub.shell, scope, Dispatchers.IO, autoOn = wirelessAutoOn,
+            pausedFlag = MikaPause.get(app)::paused,
         )
     }
 

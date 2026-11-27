@@ -290,6 +290,8 @@
     <string name="pip_closed_hint">Закрыто для этой задачи. Нажмите «Показать экран» справа внизу или откройте «Фоновые экраны» в боковом меню.</string>
     <string name="chat_conversation_tokens">Этот чат: %1$s</string>
     <string name="chat_conversation_tokens_partial">Этот чат: не меньше %1$s</string>
+    <string name="chat_current_model">Текущая модель</string>
+    <string name="chat_usage_view_details">Посмотреть расход токенов</string>
     <string name="chat_task_cost_estimate">Около %1$s</string>
     <string name="chat_task_cost_partial">%1$s (частично)</string>
     <string name="chat_task_cost_unavailable">Не удалось оценить стоимость</string>
@@ -374,4 +376,6 @@
     <string name="chat_example_share_title">Поделиться Mika с другом</string>
     <string name="chat_example_share_blurb">Посоветуйте тому, кому пригодится</string>
     <string name="chat_example_share">Поделись ссылкой на проект Mika https://github.com/wangzan101/mika с другом и расскажи, что он умеет управлять телефоном.</string>
+    <string name="chat_video">Видео</string>
+    <string name="chat_video_play">Воспроизвести</string>
 </resources>

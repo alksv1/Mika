@@ -29,6 +29,7 @@ class CallHistoryClearDeviceTest {
         id = "one", number = "123456789", direction = CallDirection.INCOMING,
         startedAtMs = 1, endedAtMs = 2, result = "fixture result", transcript = emptyList(),
     )
+    private val row get() = compose.onNodeWithTag("call-history-item-one")
     private val app get() = ApplicationProvider.getApplicationContext<MikaApp>()
 
     @Test fun cancelDoesNotClearHistory() {
@@ -38,7 +39,7 @@ class CallHistoryClearDeviceTest {
         compose.onNodeWithTag("call-history-clear-confirm").assertExists()
         compose.onNodeWithText(app.getString(R.string.calls_cancel)).performClick()
         compose.onNodeWithTag("call-history-clear-confirm").assertDoesNotExist()
-        compose.onNodeWithText("fixture result", substring = true).assertExists()
+        row.assertExists()
         compose.runOnIdle { assertEquals(0, calls) }
     }
 
@@ -57,12 +58,13 @@ class CallHistoryClearDeviceTest {
                 }
             }
         }
+        row.assertExists()
         compose.onNodeWithTag("call-history-clear").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(0, calls) }
         compose.onNodeWithTag("call-history-clear-confirm").performClick()
         compose.onNodeWithText(app.getString(R.string.calls_history_empty)).assertExists()
         compose.onNodeWithText(app.getString(R.string.calls_history_cleared)).assertExists()
-        compose.onNodeWithText("fixture result", substring = true).assertDoesNotExist()
+        row.assertDoesNotExist()
         compose.runOnIdle { assertEquals(1, calls) }
     }
 
@@ -72,7 +74,7 @@ class CallHistoryClearDeviceTest {
         compose.onNodeWithTag("call-history-clear").performScrollTo().performClick()
         compose.onNodeWithTag("call-history-clear-confirm").performClick()
         compose.onNodeWithText(app.getString(R.string.calls_history_clear_failed)).assertExists()
-        compose.onNodeWithText("fixture result", substring = true).assertExists()
+        row.assertExists()
         compose.runOnIdle { assertEquals(1, calls) }
     }
 
@@ -84,6 +86,39 @@ class CallHistoryClearDeviceTest {
         compose.onNodeWithTag("call-history-clear").performScrollTo().performClick()
         compose.onNodeWithTag("call-history-clear-confirm").performClick()
         compose.runOnIdle { assertEquals(1, calls) }
+    }
+
+    @Test fun clearingSearchPreservesStatusFilterAndResetRestoresAllRecords() {
+        var cleared = 0
+        val done = record.copy(id = "done", number = "1110001", handled = true)
+        val open = record.copy(id = "open", number = "2220002", handled = false)
+        showHistory(listOf(done, open)) { cleared++; CallActionResult(true, "ok") }
+        val doneRow = compose.onNodeWithTag("call-history-item-done")
+        val openRow = compose.onNodeWithTag("call-history-item-open")
+        val doneFilter = compose.onNodeWithTag("call-history-filter-done")
+        doneRow.assertExists()
+        openRow.assertExists()
+
+        doneFilter.performScrollTo().performClick().assertIsSelected()
+        doneRow.assertExists()
+        openRow.assertDoesNotExist()
+
+        // Only the unhandled record matches this search, so the DONE filter shows nothing.
+        compose.onNodeWithTag("call-history-search").performScrollTo().performTextInput("2220002")
+        doneRow.assertDoesNotExist()
+        openRow.assertDoesNotExist()
+        compose.onNodeWithTag("call-history-clear-search").performScrollTo().performClick()
+        doneFilter.assertIsSelected()
+        doneRow.assertExists()
+        openRow.assertDoesNotExist()
+
+        compose.onNodeWithTag("call-history-search").performScrollTo().performTextInput("2220002")
+        compose.onNodeWithTag("call-history-reset-filters").performScrollTo().performClick()
+        compose.onNodeWithTag("call-history-filter-all").assertIsSelected()
+        compose.onNodeWithTag("call-history-clear-search").assertDoesNotExist()
+        doneRow.assertExists()
+        openRow.assertExists()
+        compose.runOnIdle { assertEquals(0, cleared) }
     }
 
     @Test fun unreadableEmptyHistoryStillOffersClear() {

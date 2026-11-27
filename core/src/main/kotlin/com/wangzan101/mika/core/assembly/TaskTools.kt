@@ -145,6 +145,16 @@ fun toolDispatcher(
     audioAskBeforeSave: Boolean = true,
     /** 用户允许模型主动说话;默认关。 */
     audioSpeakTool: Boolean = false,
+    /** 视频看/存;为空时不装视频能力。 */
+    video: com.wangzan101.mika.core.cap.video.VideoPort? = null,
+    /** 视频生成;为空时不提供 video_generate。 */
+    videoGeneration: com.wangzan101.mika.core.cap.video.VideoGenerationPort? = null,
+    /** 每任务最多生成几个视频。 */
+    videoMaxPerTask: Int = 1,
+    /** 视频生成没指定时的默认时长/画幅/清晰度(来自用户设置)。 */
+    videoDurationSec: Int = 5,
+    videoAspect: String = "16:9",
+    videoResolution: String = "720p",
     /** 固定音频转写端口;为空且未给 [transcribeProvider] 时不装转写能力。 */
     transcribe: com.wangzan101.mika.core.cap.transcribe.TranscribePort? = null,
     /** 随当前 STT 选择动态解析转写端口;目录和执行都重新检查,不重建任务内其他状态。 */
@@ -219,7 +229,12 @@ fun toolDispatcher(
             override fun open(spec: RunSpec) =
                 wechatOwner?.let { com.wangzan101.mika.core.cap.wechat.WechatOwnerCapability(it) }
         },
-    ) + listOfNotNull(if (transcribe != null || transcribeProvider != null) {
+    ) + listOfNotNull(video?.let { port ->
+        object : CapabilityProvider {
+            override val id = com.wangzan101.mika.core.cap.video.VIDEO
+            override fun open(spec: RunSpec) = com.wangzan101.mika.core.cap.video.VideoCapability(port, videoGeneration, videoMaxPerTask, videoDurationSec, videoAspect, videoResolution)
+        }
+    }) + listOfNotNull(if (transcribe != null || transcribeProvider != null) {
         object : CapabilityProvider {
             override val id = com.wangzan101.mika.core.cap.transcribe.TRANSCRIBE
             override fun open(spec: RunSpec) = com.wangzan101.mika.core.cap.transcribe.TranscribeCapability(transcribe, transcribeProvider)
@@ -302,7 +317,7 @@ fun recordedTools(): ToolIndex = legacyNames().let { legacy -> ToolIndex(allTool
 
 /** Mika 所有可能提供的工具,按发给模型的顺序。 */
 internal fun allTools(): List<AgentTool> =
-    GeneralGroup.tools + PhoneCapability.tools() + WebGroup.tools + SandboxGroup.tools + com.wangzan101.mika.core.cap.audio.AudioGroup.tools + com.wangzan101.mika.core.cap.transcribe.TranscribeGroup.tools + com.wangzan101.mika.core.cap.image.ImageGroup.tools + RootGroup.tools + com.wangzan101.mika.core.calls.callAgentTools + helperFileTools + com.wangzan101.mika.core.cap.wechat.wechatOwnerAgentTools
+    GeneralGroup.tools + PhoneCapability.tools() + WebGroup.tools + SandboxGroup.tools + com.wangzan101.mika.core.cap.audio.AudioGroup.tools + com.wangzan101.mika.core.cap.transcribe.TranscribeGroup.tools + com.wangzan101.mika.core.cap.image.ImageGroup.tools + com.wangzan101.mika.core.cap.video.VideoGroup.tools + RootGroup.tools + com.wangzan101.mika.core.calls.callAgentTools + helperFileTools + com.wangzan101.mika.core.cap.wechat.wechatOwnerAgentTools
 
 /** Mika 所有可能提供的工具的声明。 */
 fun knownTools(): ToolIndex = ToolIndex(allTools())

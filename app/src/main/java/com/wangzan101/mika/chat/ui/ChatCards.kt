@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,11 +28,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -236,6 +241,47 @@ internal fun GeneratedAudioCards(audios: List<com.wangzan101.mika.core.chat.Gene
                             stringResource(if (playing) R.string.chat_audio_stop else R.string.chat_audio_play),
                         ).joinToString(" · "),
                         style = FileMeta, color = if (playing) c.accent else c.ink3, maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 这一轮生成的视频:首帧封面、时长、点开用系统播放器。 */
+@Composable
+internal fun GeneratedVideoCards(videos: List<com.wangzan101.mika.core.chat.GeneratedVideo>, vm: ChatViewModel) {
+    val c = MikaTheme.colors
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        videos.forEach { v ->
+            val poster by produceState<android.graphics.Bitmap?>(null, v.path) { value = vm.loadVideoPoster(v.path) }
+            Row(
+                Modifier.fillMaxWidth().cardSurface(c, MikaShapes.Card).clip(MikaShapes.Card)
+                    .clickable(role = Role.Button) { vm.playVideo(v.path) }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    Modifier.size(64.dp, 40.dp).background(c.neutralSoft, FileTileShape).clip(FileTileShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val frame = poster
+                    if (frame != null) Image(frame.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else Icon(MikaIcons.Camera, null, Modifier.size(20.dp), tint = c.ink)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        v.prompt?.lineSequence()?.firstOrNull()?.take(80)?.takeIf { it.isNotBlank() }
+                            ?: stringResource(R.string.chat_video),
+                        style = FileName, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        listOfNotNull(
+                            v.durationMs?.let { secondsLabel(it) },
+                            v.width.takeIf { it > 0 }?.let { w -> "$w×${v.height}" },
+                            stringResource(R.string.chat_video_play),
+                        ).joinToString(" · "),
+                        style = FileMeta, color = c.ink3, maxLines = 1,
                     )
                 }
             }

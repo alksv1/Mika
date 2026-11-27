@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import socket
 import subprocess
@@ -125,6 +126,8 @@ args = sys.argv[1:]
 with open(os.environ["FAKE_ADB_LOG"], "a") as log:
     log.write(json.dumps(args) + "\n")
 cfg = json.loads(Path(os.environ["FAKE_ADB_CONFIG"]).read_text())
+if args[:1] == ["-P"]:
+    args = args[2:]
 if args[:1] == ["-s"]:
     args = args[2:]
 if args == ["start-server"]:
@@ -142,6 +145,17 @@ elif args[:2] == ["shell", "cat"]:
     if cfg.get("cat_fails"):
         sys.exit(1)
     print(json.dumps(cfg["info"]))
+elif args[:3] == ["shell", "pm", "path"]:
+    print(cfg.get("apk_path", "package:/data/app/~~x/com.wangzan101.mika/base.apk"))
+elif args[:1] == ["exec-out"]:
+    if "screen_stdout" in cfg:
+        # What the phone sends back verbatim: exec-out mixes the remote stderr into stdout.
+        sys.stdout.write(cfg["screen_stdout"])
+        sys.stderr.write(cfg.get("screen_stderr", ""))
+        sys.exit(cfg.get("screen_exit", 0))
+    print(json.dumps(cfg.get("screen", {"status": "ok", "accessibility_services_suppressed": False,
+                                      "windows": [], "node_count": 0, "truncated": False})))
+    sys.exit(cfg.get("screen_exit", 0))
 elif args[:3] == ["shell", "settings", "get"]:
     print(cfg["boot"])
 elif args[:2] == ["forward", "tcp:0"]:
@@ -609,6 +623,148 @@ else:
             self.assertEqual(1, run.call_count)
             module.Adb("/other/adb").start_server()
             self.assertEqual(2, run.call_count)
+            module.Adb("adb", server_port=5038).start_server()
+            module.Adb("adb", "phone-a", 5038).start_server()
+            self.assertEqual(3, run.call_count)
+            self.assertEqual(["adb", "-P", "5038", "start-server"], run.call_args.args[0])
+
+    def test_alternate_server_port_is_used_for_every_adb_call_of_connect(self):
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server)
+            result, body = self.invoke("connect", "--adb", str(adb), "--adb-server-port", "5038", env=env)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertTrue(body["connected"])
+            self.assertTrue(calls())
+            self.assertTrue(all(call[:2] == ["-P", "5038"] for call in calls()))
+            self.assertTrue(any("--remove" in call for call in calls()))
+
+    def test_alternate_server_port_is_used_for_device_inventory(self):
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server)
+            result, body = self.invoke("devices", "--adb", str(adb), "--adb-server-port", "5038", env=env)
+            self.assertEqual(0, result.returncode)
+            self.assertEqual("phone-a", body["devices"][0]["device"])
+            self.assertTrue(all(call[:2] == ["-P", "5038"] for call in calls()))
+
+    def test_default_server_port_is_left_to_adb(self):
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server)
+            result, body = self.invoke("devices", "--adb", str(adb), env=env)
+            self.assertEqual(0, result.returncode)
+            self.assertFalse(any("-P" in call for call in calls()))
+
+    def test_invalid_server_port_is_rejected_before_running_adb(self):
+        for value in ("0", "65536", "not-a-port"):
+            with self.subTest(value=value):
+                result, body = self.invoke("devices", "--adb", "missing-adb", "--adb-server-port", value)
+                self.assertEqual("arguments", body["error"]["code"])
+
+    def test_server_port_is_rejected_with_url(self):
+        with api() as server:
+            result, body = self.invoke("doctor", "--adb-server-port", "5038", server=server)
+            self.assertEqual("arguments", body["error"]["code"])
+            self.assertEqual([], server.calls)
+
+    def test_screen_runs_only_the_non_suppressing_shell_entry(self):
+        with api() as server:
+            screen = {"status": "ok", "accessibility_services_suppressed": False, "display_ids": [0, 7],
+                      "windows": [{"display_id": 7, "root": {"text": "Example"}}], "node_count": 1, "truncated": False}
+            adb, env, _, calls = self.fake_adb(server, screen=screen)
+            result, body = self.invoke("screen", "--adb", str(adb), "--package", "com.wangzan101.mika.dev",
+                                       "--adb-server-port", "5038", env=env)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual(1, body["node_count"])
+            self.assertEqual([0, 7], body["display_ids"])
+            self.assertEqual("com.wangzan101.mika.dev", body["package"])
+            self.assertEqual("phone-a", body["device"])
+            self.assertEqual([], server.calls)
+            self.assertTrue(all(call[:2] == ["-P", "5038"] for call in calls()))
+            self.assertTrue(any(c[-3:] == ["pm", "path", "com.wangzan101.mika.dev"] for c in calls()))
+            commands = " ".join(" ".join(c) for c in calls())
+            self.assertIn("app_process /system/bin com.wangzan101.mika.shell.ScreenInspectMain", commands)
+            for forbidden in ("uiautomator", "connect-computer.sh", "forward", "input "):
+                self.assertNotIn(forbidden, commands)
+
+    def test_screen_requires_adb(self):
+        with api() as server:
+            result, body = self.invoke("screen", server=server)
+            self.assertEqual("arguments", body["error"]["code"])
+            self.assertEqual([], server.calls)
+
+    def test_screen_without_the_package_does_not_run_anything(self):
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server, apk_path="")
+            result, body = self.invoke("screen", "--adb", str(adb), env=env)
+            self.assertEqual("screen_unavailable", body["error"]["code"])
+            self.assertFalse(any("exec-out" in c for c in calls()))
+
+    # app_process on a Mika build without the entry point: the stack trace arrives on exec-out's stdout.
+    OLD_APK = ("java.lang.ClassNotFoundException: com.wangzan101.mika.shell.ScreenInspectMain\n"
+               "\tat java.lang.Class.classForName(Native Method)\n"
+               "\tat com.android.internal.os.RuntimeInit.main(RuntimeInit.java:355)\n")
+
+    def test_screen_on_an_old_apk_asks_for_an_update_and_hides_process_output(self):
+        for exit_code in (0, 1):
+            with self.subTest(exit_code=exit_code), api() as server:
+                adb, env, _, calls = self.fake_adb(server, screen_stdout=self.OLD_APK, screen_exit=exit_code)
+                result, body = self.invoke("screen", "--adb", str(adb), env=env)
+                self.assertEqual("screen_unavailable", body["error"]["code"])
+                self.assertEqual("outdated_app", body["error"]["reason"])
+                self.assertIn("update", body["error"]["message"].lower())
+                self.assertNotIn("RuntimeInit", result.stdout + result.stderr)
+                self.assertEqual(1, sum("exec-out" in c for c in calls()))
+
+    def test_screen_adb_failure_is_reported_not_parsed(self):
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server, screen_stdout="", screen_stderr="error: closed\n", screen_exit=1)
+            result, body = self.invoke("screen", "--adb", str(adb), env=env)
+            self.assertEqual("screen_unavailable", body["error"]["code"])
+            self.assertEqual("adb_failed", body["error"]["reason"])
+            self.assertNotIn("error: closed", result.stdout)
+
+    def test_screen_rejects_garbage_and_an_ok_result_with_a_failed_exit(self):
+        ok = json.dumps({"status": "ok", "accessibility_services_suppressed": False, "windows": []})
+        for stdout, exit_code, reason in (("Aborted\n", 0, "unreadable"), ("{not json\n", 0, "unreadable"),
+                                          (ok + "\n", 134, "adb_failed"), (ok + "\nSegmentation fault\n", 0, "unreadable")):
+            with self.subTest(stdout=stdout, exit_code=exit_code), api() as server:
+                adb, env, _, _ = self.fake_adb(server, screen_stdout=stdout, screen_exit=exit_code)
+                result, body = self.invoke("screen", "--adb", str(adb), env=env)
+                self.assertEqual("screen_unavailable", body["error"]["code"])
+                self.assertEqual(reason, body["error"]["reason"])
+
+    def test_screen_accepts_the_json_line_after_harmless_noise(self):
+        ok = {"status": "ok", "accessibility_services_suppressed": False, "windows": [], "node_count": 0}
+        with api() as server:
+            adb, env, _, _ = self.fake_adb(server, screen_stdout="WARNING: linker: unused DT entry\n" + json.dumps(ok) + "\n")
+            result, body = self.invoke("screen", "--adb", str(adb), env=env)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual(0, body["node_count"])
+
+    def test_screen_reports_the_phone_side_reason_without_retrying(self):
+        for reason, expected in (("connect_failed", "connect_failed"), ("timeout", "timeout"),
+                                 ("unsupported", "unsupported"), ("something else", "screen_unavailable")):
+            with self.subTest(reason=reason), api() as server:
+                adb, env, _, calls = self.fake_adb(server, screen={"status": "error", "code": reason}, screen_exit=1)
+                result, body = self.invoke("screen", "--adb", str(adb), env=env)
+                self.assertEqual("screen_unavailable", body["error"]["code"])
+                self.assertEqual(expected, body["error"]["reason"])
+                self.assertEqual(1, sum("exec-out" in c for c in calls()))
+
+    def test_screen_rejects_a_suppressing_result(self):
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server, screen={
+                "status": "ok", "windows": [], "accessibility_services_suppressed": True})
+            result, body = self.invoke("screen", "--adb", str(adb), env=env)
+            self.assertEqual("screen_unavailable", body["error"]["code"])
+
+    def test_screen_quotes_the_apk_path_for_the_phone_shell(self):
+        with api() as server:
+            apk = "/data/app/Mika's build/base.apk"
+            adb, env, _, calls = self.fake_adb(server, apk_path="package:" + apk)
+            result, body = self.invoke("screen", "--adb", str(adb), env=env)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            command = next(c[-1] for c in calls() if "exec-out" in c)
+            self.assertTrue(command.startswith("CLASSPATH=" + shlex.quote(apk) + " app_process "))
 
     def test_skill_copy_runs_without_original_repository(self):
         copied = self.directory / "installed-skill"

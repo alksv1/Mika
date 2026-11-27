@@ -353,4 +353,6 @@
         <item quantity="many">%1$d GB</item>
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">ابحث في الإعدادات</string>
+    <string name="settings_search_empty">لا توجد إعدادات مطابقة</string>
 </resources>

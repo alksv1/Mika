@@ -22,13 +22,57 @@ import java.io.File
 class SystemTtsDeviceTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
 
-    private suspend fun synthesize(language: AppLanguage, text: String) =
+    private suspend fun synthesize(language: AppLanguage, text: String, engine: String? = null, voice: String? = null) =
         SystemTtsModel(
             context = context,
-            engineFactory = { AndroidSystemTtsEngine(it) },
+            engineFactory = { AndroidSystemTtsEngine(it, engine) },
             resolvedLanguage = { language },
             outputDir = { File(context.cacheDir, "voice") },
-        ).synthesize(TtsRequest(text))
+        ).synthesize(TtsRequest(text, voice = voice))
+
+    /** 失败只许是显式的系统不可用,不许崩溃、卡住或换成云端。 */
+    private fun assertOkOrUnavailable(result: Result<com.wangzan101.mika.core.model.TtsResponse>) {
+        val error = result.exceptionOrNull()
+        if (error != null) {
+            assertTrue(error is VoiceModelError)
+            assertTrue((error as VoiceModelError).category in setOf(VoiceErrorCategory.SYSTEM_UNAVAILABLE, VoiceErrorCategory.TIMEOUT))
+            return
+        }
+        assertEquals("audio/wav", result.getOrThrow().mime)
+        assertTrue(result.getOrThrow().bytes.isNotEmpty())
+    }
+
+    @Test
+    fun installedEnginesAreListedAndTheDefaultComesFirst() = runBlocking {
+        val engines = SystemTtsDiscovery.engines(context)
+        if (engines.isEmpty()) return@runBlocking
+        assertEquals(engines.map { it.packageName }.distinct(), engines.map { it.packageName })
+        val defaults = engines.indexOfFirst { it.isDefault }
+        assertTrue(defaults <= 0)
+    }
+
+    @Test
+    fun eachInstalledEngineListsVoicesAndSynthesizesWithItsFirstVoice() = runBlocking {
+        for (engine in SystemTtsDiscovery.engines(context)) {
+            val voices = SystemTtsDiscovery.voices(context, engine.packageName, java.util.Locale.ENGLISH)
+            val voice = voices.firstOrNull()?.name
+            assertOkOrUnavailable(runCatching {
+                synthesize(AppLanguage.resolved(context), "Hello, this is a system speech test.", engine.packageName, voice)
+            })
+        }
+    }
+
+    @Test
+    fun aMissingEnginePackageFallsBackToTheDefaultEngine() = runBlocking {
+        assertOkOrUnavailable(runCatching {
+            synthesize(AppLanguage.resolved(context), "Hello.", engine = "com.example.not.installed.tts")
+        })
+    }
+
+    @Test
+    fun aVoiceTheEngineDoesNotOfferStillSpeaksWithTheDefaultVoice() = runBlocking {
+        assertOkOrUnavailable(runCatching { synthesize(AppLanguage.resolved(context), "Hello.", voice = "alloy") })
+    }
 
     @Test
     fun systemEngineSynthesizesNonEmptyWavForTheResolvedLanguage() = runBlocking {

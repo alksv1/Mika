@@ -89,4 +89,16 @@ class FollowUpQueueTest {
         assertNull(reopened.cancel("a1"))
         assertEquals(listOf("a1"), reopened.pendingFor("c").map { it.id })
     }
+
+    @Test fun clearDropsEverythingIncludingClaimedSoNothingRunsAfterResume() {
+        val q = FollowUpQueue()
+        q.add(item("a1"))
+        q.add(item("a2"))
+        q.add(item("b1", "b"))
+        q.claimNext({ true })
+        assertEquals(listOf("a1", "a2", "b1"), q.clear().map { it.id })
+        assertTrue(q.changes.value.isEmpty())
+        assertEquals(emptyList<QueuedFollowUp>(), q.claimNext({ true }))
+        assertEquals(emptyList<QueuedFollowUp>(), q.clear())
+    }
 }

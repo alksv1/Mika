@@ -328,4 +328,6 @@
         <item quantity="one">%1$d گیگابایت</item>
         <item quantity="other">%1$d گیگابایت</item>
     </plurals>
+    <string name="settings_search_hint">جستجو در تنظیمات</string>
+    <string name="settings_search_empty">تنظیمات مطابقی یافت نشد</string>
 </resources>

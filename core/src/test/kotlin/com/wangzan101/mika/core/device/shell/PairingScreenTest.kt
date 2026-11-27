@@ -99,4 +99,11 @@ class PairingScreenTest {
             PairingScreen.attempt(both, portFound = true, status = BuiltinShellStatus.Failed(BuiltinShellFailure.AuthorizationRevoked), tried = emptySet()),
         )
     }
+
+    @Test
+    fun pausedFlagSuppressesAutoPairingEvenWhenStatusIsNotPaired() {
+        val reading = PairingScreenReading(code = "123456", port = 37000)
+        assertNull(PairingScreen.attempt(reading, portFound = true, status = BuiltinShellStatus.Paused, tried = emptySet()))
+        assertNull(PairingScreen.attempt(reading, portFound = true, status = BuiltinShellStatus.NotPaired, tried = emptySet(), paused = true))
+    }
 }

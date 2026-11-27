@@ -103,4 +103,46 @@
     <string name="model_fallback_add_another">Добавить еще резервную модель (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">Если %1$s превысит лимит запросов или квоту, Mika автоматически переключится на резервные модели по цепочке, чтобы завершить задачу без сбоев.</string>
     <string name="model_fallback_collapse_hint">Цепочка развернута · Нажмите, чтобы свернуть</string>
+    <string name="model_keys_title">Ключи API</string>
+    <string name="model_keys_pool_one">Пул ключей API · 1 ключ</string>
+    <string name="model_keys_pool_many">Пул ключей API · %1$s · автоматическое чередование</string>
+    <string name="model_keys_hide">Скрыть ключи</string>
+    <string name="model_keys_show">Показать ключи</string>
+    <string name="model_key_not_configured">Ключ не задан</string>
+    <string name="model_key_not_configured_hint">Добавьте ключ, чтобы подключить этого провайдера</string>
+    <string name="model_key_required">Обязательно</string>
+    <string name="model_key_number">Ключ %1$d</string>
+    <string name="model_key_active">Активен</string>
+    <string name="model_key_add">Добавить ключ API</string>
+    <string name="model_key_add_first_hint">Вставьте ключ для подключения</string>
+    <string name="model_key_add_another_hint">Добавьте ещё один ключ в пул ротации</string>
+    <string name="model_keys_rotate_note">Ключи чередуются автоматически. Ключ, столкнувшийся с лимитом запросов (429) или тайм-аутом, пропускается, пока не восстановится, — без простоя.</string>
+    <string name="model_keys_add_more_note">Добавьте ещё ключи, чтобы включить автоматическое переключение на резервные.</string>
+    <string name="model_key_add_note">Вставьте один ключ или несколько через запятую либо с новой строки — добавятся все.</string>
+    <string name="model_keys_detected_add">Обнаружено: %1$s — все будут добавлены в пул ротации</string>
+    <string name="model_key_one_ready">1 ключ готов к добавлению</string>
+    <string name="model_provider_line_pool">%1$s · Пул ключей (%2$s)</string>
+    <string name="model_keys_detected_setup">Обнаружено: %1$s — при лимите запросов или тайм-ауте ключи будут чередоваться автоматически</string>
+    <string name="model_providers_none">Провайдеры не подключены</string>
+    <string name="model_providers_keys_in_pool">%1$s · в пуле %2$s</string>
+    <string name="model_key_remove">Удалить</string>
+    <string name="model_fallback_remove_desc">Удалить резервную модель</string>
+    <plurals name="model_keys_count">
+        <item quantity="one">%1$d ключ</item>
+        <item quantity="few">%1$d ключа</item>
+        <item quantity="many">%1$d ключей</item>
+        <item quantity="other">%1$d ключа</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="one">✓ Пул ключей: обнаружен %1$d ключ API (авточередование при 429 или тайм-ауте)</item>
+        <item quantity="few">✓ Пул ключей: обнаружено %1$d ключа API (авточередование при 429 или тайм-ауте)</item>
+        <item quantity="many">✓ Пул ключей: обнаружено %1$d ключей API (авточередование при 429 или тайм-ауте)</item>
+        <item quantity="other">✓ Пул ключей: обнаружено %1$d ключа API (авточередование при 429 или тайм-ауте)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="one">Добавить %1$d ключ</item>
+        <item quantity="few">Добавить %1$d ключа</item>
+        <item quantity="many">Добавить %1$d ключей</item>
+        <item quantity="other">Добавить %1$d ключа</item>
+    </plurals>
 </resources>

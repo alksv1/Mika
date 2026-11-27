@@ -17,7 +17,8 @@ import kotlinx.coroutines.flow.update
  * 2. 任务被挪到主屏(用户在主屏打开了这个 App)→ 暂停,用户点「继续」后才把它挪回虚拟屏;
  *    Mika 不自己判断用户是否用完,避免在用户眼前把 App 抽走;
  * 3. 屏幕熄灭或锁屏 → 定时任务及另行授权的微信任务尝试唤醒/解锁，其他任务等待解锁；亮屏并解锁后自动继续。
- * 前两条只在这一步用的是手机(phone 为 true)时才查:网页、沙箱上的步骤不需要助手,也不会被挪到主屏。
+ * 这三条只在这一步用的是手机(phone 为 true)时才查:网页、沙箱上的步骤不需要助手,不会被挪到主屏,
+ * 也不碰主屏(网页在 App 自己的私有虚拟屏上),熄屏、锁屏时照常开始和继续。
  * 另外,用户在浏览器页上亲手摸了借给任务的页面([onUserOnPage])→ 不论哪种屏都先停下,用户点「继续」再接着做。
  * 不碰界面的步骤(模型推理、读屏)不经过这里,照常进行。
  */
@@ -94,7 +95,7 @@ class TaskGate(
                     }
                     if (shellAvailable.value) movedAway.value = false
                 }
-                locked.value -> {
+                onPhone && locked.value -> {
                     recoveredMidRun = recoveredMidRun || hasPassed
                     setWaiting(TaskState.Held(LOCKED))
                     if (unattendedUnlock == null) {

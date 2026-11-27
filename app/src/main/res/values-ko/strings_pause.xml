@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Mika 일시 중지</string>
+    <string name="pause_row_sub_active">다시 시작할 때까지 Mika의 모든 작업을 멈춰요</string>
+    <string name="pause_row_sub_paused">일시 중지됨: 작업과 계획을 실행하지 않아요</string>
+    <string name="pause_state_active">켜짐</string>
+    <string name="pause_explain">일시 중지하면 실행 중이거나 대기 중인 작업이 모두 멈추고, 시간이 된 계획은 건너뛰며, 채팅·컴퓨터·메시지 채널에서 오는 새 작업은 다시 시작할 때까지 받지 않아요. 또 Mika의 접근성 서비스와 무선 디버깅을 끄고 휴대전화 도우미를 멈춰요. 아무것도 제거하거나 삭제하지 않으며, 무선 디버깅 페어링도 그대로 남아요.</string>
+    <string name="pause_paused_title">Mika가 일시 중지됨</string>
+    <string name="pause_paused_body">다시 시작할 때까지 작업은 실행되지 않고, 계획은 건너뛰며, 휴대전화 도우미는 멈춰 있어요.</string>
+    <string name="pause_active_title">Mika가 켜져 있음</string>
+    <string name="pause_active_body">Mika를 한동안 완전히 멈추고 싶을 때 일시 중지하세요.</string>
+    <string name="pause_status_label">일시 중지하면 꺼지는 항목</string>
+    <string name="pause_action">Mika 일시 중지</string>
+    <string name="pause_action_sub">작업을 멈추고, 접근성과 무선 디버깅을 끄고, 도우미를 멈춰요</string>
+    <string name="pause_resume">Mika 다시 시작</string>
+    <string name="pause_resume_sub">저장된 페어링으로 도우미를 다시 연결해요</string>
+    <string name="pause_resumed">Mika가 다시 켜졌어요.</string>
+    <string name="pause_resume_note">Mika가 스스로 다시 켜지 못한 항목이 있습니다. 아래 단계를 완료하세요.</string>
+    <string name="pause_a11y_restoring">Mika의 접근성 서비스를 다시 켜는 중…</string>
+    <string name="pause_a11y_label">접근성 서비스</string>
+    <string name="pause_wireless_label">무선 디버깅</string>
+    <string name="pause_helper_label">휴대전화 도우미</string>
+    <string name="pause_helper_running">실행 중</string>
+    <string name="pause_helper_paused">일시 중지됨</string>
+    <string name="pause_helper_not_running">실행 안 됨</string>
+    <string name="pause_helper_connecting">연결 중…</string>
+    <string name="pause_tasks_stopped">실행 중이거나 대기 중인 작업을 멈췄어요.</string>
+    <string name="pause_done">접근성과 무선 디버깅을 끄고 도우미를 멈췄어요.</string>
+    <string name="pause_a11y_manual">여기서 접근성 서비스를 끄지 못했어요. 접근성 설정을 열고 Mika를 꺼 주세요.</string>
+    <string name="pause_wireless_manual">여기서 무선 디버깅을 끄지 못했어요. 개발자 옵션을 열고 꺼 주세요.</string>
+    <string name="pause_save_failed">변경 사항을 저장하지 못해서 아무것도 바뀌지 않았어요. 다시 시도해 주세요.</string>
+    <string name="pause_step_a11y">접근성 설정에서 Mika 다시 켜기</string>
+    <string name="pause_step_wireless">개발자 옵션에서 무선 디버깅 다시 켜기</string>
+    <string name="pause_step_repair">휴대전화 도우미 다시 페어링</string>
+    <string name="pause_reconnect">지금 도우미 다시 연결</string>
+    <string name="pause_blocked_task">Mika가 일시 중지되어 이 작업을 시작하지 않았어요. 먼저 설정에서 Mika를 다시 시작하세요.</string>
+    <string name="pause_blocked_plan">Mika가 일시 중지되어 이 계획을 실행하지 않았어요.</string>
+    <string name="pause_blocked_workflow">Mika가 일시 중지되어 이 워크플로를 실행하지 않았어요. 먼저 설정에서 Mika를 다시 시작하세요.</string>
+    <string name="pause_channel_reply">휴대전화의 Mika가 일시 중지되어 이 작업을 시작하지 않았어요. Mika를 다시 시작한 뒤 다시 보내 주세요.</string>
+    <string name="plans_skipped_paused">Mika 일시 중지 중 건너뜀</string>
+    <string name="workflow_stopped_paused">Mika 일시 중지로 멈춤</string>
+</resources>

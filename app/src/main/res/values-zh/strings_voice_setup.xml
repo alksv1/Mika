@@ -31,6 +31,8 @@
     <string name="voice_settings_of">%1$s 的设置</string>
     <string name="voice_voice">音色</string>
     <string name="voice_voice_default">默认</string>
+    <string name="voice_tts_engine">语音合成引擎</string>
+    <string name="voice_engine_default">系统默认</string>
     <string name="realtime_lead">和 Mika 直接对话，随时可以打断。AI 接打电话默认也用这个选择，也可以单独指定。</string>
     <string name="realtime_empty">还没有语音通话模型</string>
     <string name="realtime_empty_note">在下面选一个，或接入支持通话的语音服务。</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">北京</string>
     <string name="voice_region_singapore">新加坡</string>
     <string name="voice_compat_lead">给支持 OpenAI 语音接口的服务用。填你要用的模型，其余留空。</string>
-    <string name="voice_compat_models">模型</string>
     <string name="voice_compat_models_note">服务不提供的就留空。</string>
     <string name="voice_selfhosted_lead">部署在你自己网络里的流式识别服务。填地址即可，不需要账号。</string>
     <string name="voice_field_api_key">API Key</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">已确认</string>
     <string name="calls_audio_unchecked">未确认</string>
     <string name="voice_stt_footer">手机自带的识别免费；在线的选项来自语音服务，选之前可以先说一句试试。</string>
+    <string name="voice_audition">试听 %1$s</string>
+    <string name="voice_fallback_footer_stt">语音输入被限流、服务过载或迟迟没有回应时，Mika 会把同一段录音按顺序交给下一个模型。只有说完再转写的模型能当备援。</string>
+    <string name="voice_fallback_footer_tts">朗读被限流、服务过载或迟迟没有回应时，Mika 会在开始播放前按顺序换下一个模型。备援用它自己的默认音色。</string>
+    <string name="voice_fallback_pick_title">%1$s的备援</string>
+    <string name="voice_fallback_none">还没有别的模型能当备援</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

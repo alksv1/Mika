@@ -254,6 +254,8 @@
     <string name="pip_closed_hint">这个任务不再浮出小画面。点右下角「显示画面」，或在侧栏「后台屏」里看。</string>
     <string name="chat_conversation_tokens">本对话共 %1$s</string>
     <string name="chat_conversation_tokens_partial">本对话至少 %1$s</string>
+    <string name="chat_current_model">当前模型</string>
+    <string name="chat_usage_view_details">查看 Token 用量</string>
     <string name="chat_task_cost_estimate">约 %1$s</string>
     <string name="chat_task_cost_partial">%1$s（部分）</string>
     <string name="chat_task_cost_unavailable">费用暂不可估</string>
@@ -332,4 +334,6 @@
     <string name="chat_example_share_title">把 Mika 分享给朋友</string>
     <string name="chat_example_share_blurb">推荐给用得上的朋友</string>
     <string name="chat_example_share">把 Mika 的项目链接 https://github.com/wangzan101/mika 分享给一个朋友，告诉他 Mika 能帮人操作手机</string>
+    <string name="chat_video">视频</string>
+    <string name="chat_video_play">播放</string>
 </resources>

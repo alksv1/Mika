@@ -65,6 +65,10 @@ internal fun TaskService.begin(newGoal: String, requestedConversation: String?,
     triggerActionGoal: String? = null, triggerThreadId: String? = null, mcpExternalId: String? = null, messageId: String? = null,
     channelPeer: ChannelPeer? = null, channelMessageId: String? = null, triggerCondition: String? = null, workflowAttemptId: String? = null,
     brief: String? = null) {
+    if (pausedBlocks()) {
+        finishPausedStart(provenance, triggerKey, mcpExternalId, workflowAttemptId, channelPeer, channelMessageId, followUp = null)
+        return
+    }
     if (teachingBlocks()) {
         finishRejectedStart(triggerKey, mcpExternalId)
         if (provenance.origin == RunOrigin.Ui) {
@@ -110,6 +114,10 @@ internal fun TaskService.startNew(newGoal: String, requestedConversation: String
     followUp: QueuedFollowUp? = null, triggerCondition: String? = null,
     channelPeer: ChannelPeer? = null, channelMessageId: String? = null, workflowAttemptId: String? = null,
     brief: String? = null) {
+    if (pausedBlocks()) {
+        finishPausedStart(provenance, triggerKey, mcpExternalId, workflowAttemptId, channelPeer, channelMessageId, followUp)
+        return
+    }
     if (teachingBlocks()) {
         finishRejectedStart(triggerKey, mcpExternalId)
         if (followUp != null) center.followUps.add(followUp)
@@ -216,8 +224,11 @@ internal fun TaskService.keepForeground() {
 
 internal fun TaskService.launch(run: TaskRun, store: ConversationStore) {
     val service = this
+    // 这个任务自己的那份 CPU 锁:当场拿上(定时派发撑着的那把随后放开),到收尾([run.job] 结束)才放
+    val cpu = KeepAwake(cpuWake.lease(), scope, keepThroughEnd = true).also { it.onState(run.state.value) }
     val waitingLockWatcher = scope.launch {
         run.state.collectLatest { state ->
+            cpu.onState(state)
             if (LockTriggerPolicy.isWaiting(state)) {
                 pocketGuard.lockWhileWaitingIfCovered {
                     LockTriggerPolicy.isWaiting(run.state.value) && run in center.running() &&
@@ -265,7 +276,7 @@ internal fun TaskService.launch(run: TaskRun, store: ConversationStore) {
         stopRunId?.let { id -> taskState._summarizing.update { it + id } }
         run.mcpExternalId?.let { (application as com.wangzan101.mika.MikaApp).remoteTasks.ended(it, end, run.steers.value, run.runId.value, run.sharedFiles.value) }
         run.end(end)
-        if (!run.conditionCheck) recordTurn(store, run, end, run.runId.value, run.sharedFiles.value, run.audios.value, run.photos.value, run.joinedSteers(), run.usedGroups, run.joinedInterrupted(), run.joinedFinished())
+        if (!run.conditionCheck) recordTurn(store, run, end, run.runId.value, run.sharedFiles.value, run.audios.value, run.photos.value, run.videos.value, run.joinedSteers(), run.usedGroups, run.joinedInterrupted(), run.joinedFinished())
         // Sequential workflows must know whether the step actually completed before dispatching the next one.
         // Reuse the existing outcome judge once; unknown/partial results remain for the user to resolve.
         val workflowJudged = if (run.workflowAttemptId != null) runCatching { run.settleOutcome(end, store) }.getOrNull() else null
@@ -286,7 +297,7 @@ internal fun TaskService.launch(run: TaskRun, store: ConversationStore) {
                 run.triggerThreadId.orEmpty(), outcome)
             if (outcome is ConditionOutcome.Error) {
                 val failure = TaskState.Failed(tr(R.string.task_check_unfinished, outcome.reason), FailKind.Environment)
-                recordTurn(store, run, failure, run.runId.value, audios = run.audios.value)
+                recordTurn(store, run, failure, run.runId.value, audios = run.audios.value, videos = run.videos.value)
                 runCatching { notifyResult(run, prepareResult(run, failure, "condition:${run.key}")) }
                     .onFailure { Log.w(TAG, "condition failure notification failed", it) }
             }
@@ -345,5 +356,5 @@ internal fun TaskService.launch(run: TaskRun, store: ConversationStore) {
         onRunEnded(run, store)
     }
     // 收尾前被取消(服务退出)、放出来还没跑就被停掉时,替它拿着的屏幕锁没交出去也没放开:这里放开
-    run.job?.invokeOnCompletion { waitingLockWatcher.cancel(); run.wakeHandoff?.release(); run.wakeHandoff = null }
+    run.job?.invokeOnCompletion { waitingLockWatcher.cancel(); cpu.close(); run.wakeHandoff?.release(); run.wakeHandoff = null }
 }

@@ -48,6 +48,15 @@ If a debug build is installed alongside Mika, connect with `mika connect --packa
 
 The CLI handles forwarding; you do not need the MCP instructions for manually forwarding a fixed port. After reconnecting the cable, make sure the same phone is back in ADB. After a phone reboot or turning off computer access, run `connect` again.
 
+If another program on the computer holds the default ADB server port (usually 5037) and conflicts with the ADB Mika uses, give Mika its own server port:
+
+```bash
+mika --adb-server-port 5038 devices --json
+mika --adb-server-port 5038 connect --device SERIAL --json
+```
+
+Pass the same option to later `doctor`, `task`, `ui` and `notification-doctor` commands. This is the port of the computer's ADB server, unrelated to Mika's listening port on the phone, and it cannot be combined with `--url`. Without it, adb's own choice applies (including the `ANDROID_ADB_SERVER_PORT` environment variable). Wireless ADB devices must be connected again on the new server with `adb -P 5038 connect`. Some phones restart `adbd` when USB is replugged, which ends a helper started over USB; once wireless debugging is paired in Mika, the phone restarts its helper by itself.
+
 For LAN/private-network access explicitly enabled in the phone's settings:
 
 ```bash
@@ -55,6 +64,18 @@ mika --url http://PHONE:8765 --token-file /path/to/private-token-file doctor --j
 ```
 
 The private token file contains only the access token. Use the server origin or `/api/v1` URL, not `/mcp`; URL credentials are rejected. The CLI refuses redirects and ignores ambient HTTP proxies. The server retains its private-network restrictions. Plain LAN HTTP does not encrypt traffic; ADB or a trusted private network can be used.
+
+## Read-only screen inspection over ADB
+
+```bash
+mika screen --device SERIAL --json
+# A debug build installed alongside
+mika screen --device SERIAL --package com.wangzan101.mika.dev --json
+```
+
+`screen` uses the authorized ADB connection to run a screen-reading entry point from the Mika APK as the shell user. It returns the accessible window and element trees of every display, including Mika's virtual display, and each window carries its `display_id`. It connects through Android's public `UiAutomation` capability with `FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES`, so Mika's accessibility service keeps running during inspection. The stock `adb shell uiautomator dump` uses a suppressing connection that temporarily disconnects Mika, so do not use it instead. If the system cannot provide a non-suppressing connection, the command fails rather than falling back to a suppressing one.
+
+Inspection is read-only: it does not tap, type or change settings, and it does not need the phone's task service. Password fields (and their children) report no text or description, only `password: true`. One inspection reads at most 2,500 elements, 60 levels deep, 1,000 characters per text and about one million characters in total, reading focused and active windows first. Beyond that `truncated` is true and `truncated_by` names the limit (`nodes`, `depth`, `text`, `output`), so check `node_count` and `truncated` before relying on the result. If another UI automation session holds the phone, the result is `screen_unavailable` with `reason` `connect_failed`; if the phone cannot finish within 15 seconds, the reason is `timeout`. An older Mika without this entry point returns `reason` `outdated_app` and asks for an update; an ADB failure is `adb_failed` and output that is not a screen result is `unreadable`. Raw phone output is never treated as a result. The command is not available over LAN-only access (`--url`).
 
 ## Tasks
 

@@ -29,6 +29,7 @@ import com.wangzan101.mika.core.run.RunProvenance
 import com.wangzan101.mika.core.run.RunOrigin
 import com.wangzan101.mika.core.run.Attendance
 import com.wangzan101.mika.settings.FeatureFlags
+import com.wangzan101.mika.settings.MikaPause
 import com.wangzan101.mika.takeover.Takeover
 import com.wangzan101.mika.ui.MainActivity
 import com.wangzan101.mika.settings.ui.StatusCopy
@@ -102,6 +103,8 @@ class TaskService : Service() {
     internal fun rememberRecord(run: TaskRun, recordId: String) = center.markRecord(run, recordId)
     /** 几个任务共用的屏幕常亮锁。 */
     internal val wakeLock by lazy { SharedWakeLock(ScreenWakeLock(this)) }
+    /** 几个任务(和派发中的工作流步骤)共用的 CPU 锁:熄屏、Doze 里也接着跑;各持一份,见 [KeepAwake]。 */
+    internal val cpuWake by lazy { SharedWakeLock(CpuWakeLock(this, "Mika:run")) }
 
     internal fun reservePackage(pkg: String, runKey: String, stillUsed: () -> Boolean) = center.reserve(pkg, runKey, stillUsed)
     internal fun packageFree(pkg: String, runKey: String, stillUsed: () -> Boolean) = center.appFree(pkg, runKey, stillUsed)
@@ -164,6 +167,7 @@ class TaskService : Service() {
         lastStartId = startId
         // 系统重交旧启动请求、通知按钮或外部入口都可能在完全退出后到这里:不处理动作,也不让服务驻留
         if (FeatureFlags.get(this).quitRequested()) {
+            if (intent?.action == ACTION_START_TRIGGER) TriggerHandoffWake.release()
             stopSelf(startId)
             return START_NOT_STICKY
         }
@@ -181,15 +185,20 @@ class TaskService : Service() {
                 if (thread != null && text.isNotBlank()) queueFollowUp(thread, text, id, source)
             }
             ACTION_DRAIN_FOLLOWUPS -> drainReady(intent.getStringExtra(EXTRA_CONVERSATION))
-            ACTION_START_TRIGGER -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
-                provenance = RunProvenance(RunOrigin.Trigger, Attendance.Unattended),
-                triggerKey = intent.getStringExtra(EXTRA_TRIGGER_KEY),
-                triggerActionGoal = intent.getStringExtra(EXTRA_TRIGGER_ACTION),
-                triggerThreadId = intent.getStringExtra(EXTRA_TRIGGER_THREAD),
-                triggerCondition = intent.getStringExtra(EXTRA_TRIGGER_CONDITION))
+            // 开跑的任务当场拿上自己那份 CPU 锁([launch]);排队、因暂停不开的也到此为止:派发时撑着的那把都可以放开
+            ACTION_START_TRIGGER -> try {
+                begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
+                    provenance = RunProvenance(RunOrigin.Trigger, Attendance.Unattended),
+                    triggerKey = intent.getStringExtra(EXTRA_TRIGGER_KEY),
+                    triggerActionGoal = intent.getStringExtra(EXTRA_TRIGGER_ACTION),
+                    triggerThreadId = intent.getStringExtra(EXTRA_TRIGGER_THREAD),
+                    triggerCondition = intent.getStringExtra(EXTRA_TRIGGER_CONDITION))
+            } finally { TriggerHandoffWake.release() }
             ACTION_START_WORKFLOW -> {
                 workflowStarts.incrementAndGet()
                 keepForeground()
+                // 认领步骤到交给任务之间熄屏也不睡过去;步骤开跑后由任务自己那份接着撑
+                val cpu = cpuWake.lease().also { it.acquire() }
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
                     val workflows = (application as com.wangzan101.mika.MikaApp).workflows
                     val attemptId = intent.getStringExtra(EXTRA_WORKFLOW_ATTEMPT).orEmpty()
@@ -212,6 +221,7 @@ class TaskService : Service() {
                     } catch (e: Exception) {
                         withContext(Dispatchers.IO) { workflows.complete(attemptId, false, "", "start_failed") }
                     } finally {
+                        cpu.release()
                         if (workflowStarts.decrementAndGet() == 0 && !taskState._busy.value && keeper.page.value == null) stopSelf(lastStartId)
                     }
                 }
@@ -235,6 +245,7 @@ class TaskService : Service() {
             ACTION_CANCEL_MCP -> intent.getStringExtra(EXTRA_MCP_ID)?.let { id -> center.runs().firstOrNull { it.mcpExternalId == id } }
                 ?.let { r -> if (center.cancelIfQueued(r)) cancelQueued(r) else r.cancel() }
             ACTION_CANCEL -> if (run != null && center.cancelIfQueued(run)) cancelQueued(run) else run?.cancel()
+            ACTION_PAUSE_ALL -> stopForPause()
             ACTION_RESUME -> run?.resume()
             ACTION_TAKE_OVER -> run?.takeOver(waitKeyOf(intent))
             ACTION_HAND_BACK -> run?.handBack(waitKeyOf(intent))
@@ -273,6 +284,7 @@ class TaskService : Service() {
 
     override fun onDestroy() {
         pocketGuard.close()
+        TriggerHandoffWake.release()
         scope.cancel()
         // 服务没了就撑不住进程:留着的那一页如实关掉,对话里记下
         keeper.close(KeptPageClose.AppExit)
@@ -358,6 +370,7 @@ class TaskService : Service() {
         const val ACTION_START_CHANNEL = "com.wangzan101.mika.task.START_CHANNEL"
         const val ACTION_CANCEL_MCP = "com.wangzan101.mika.task.CANCEL_MCP"
         const val ACTION_CANCEL = "com.wangzan101.mika.task.CANCEL"
+        internal const val ACTION_PAUSE_ALL = "com.wangzan101.mika.task.PAUSE_ALL"
         const val ACTION_RESUME = "com.wangzan101.mika.task.RESUME"
         const val ACTION_TAKE_OVER = "com.wangzan101.mika.task.TAKE_OVER"
         const val ACTION_HAND_BACK = "com.wangzan101.mika.task.HAND_BACK"
@@ -463,7 +476,7 @@ class TaskService : Service() {
          */
         fun enqueueFollowUp(context: Context, conversationId: String, messageId: String, text: String,
             source: QueuedSource = QueuedSource.Explicit, startIfIdle: Boolean = true): Boolean {
-            if (text.isBlank() || FeatureFlags.get(context).quitRequested()) return false
+            if (text.isBlank() || FeatureFlags.get(context).quitRequested() || MikaPause.get(context).paused()) return false
             val app = context.applicationContext as? com.wangzan101.mika.MikaApp ?: return false
             val item = QueuedFollowUp(messageId, conversationId, text, System.currentTimeMillis(), source)
             if (!app.followUpQueue.add(item)) return false
@@ -479,7 +492,7 @@ class TaskService : Service() {
 
         /** 打开对话时:这个对话还有排队的下一件、又没有任务在跑,就让服务取一件开始。 */
         fun drainFollowUps(context: Context, conversationId: String) {
-            if (FeatureFlags.get(context).quitRequested()) return
+            if (FeatureFlags.get(context).quitRequested() || MikaPause.get(context).paused()) return
             val app = context.applicationContext as? com.wangzan101.mika.MikaApp ?: return
             if (!app.followUpQueue.contains(conversationId)) return
             runCatching {
@@ -495,10 +508,17 @@ class TaskService : Service() {
             checkGoal: String? = null, condition: String? = null) {
             if (FeatureFlags.get(context).quitRequested()) return
             val checking = checkGoal != null
-            context.startForegroundService(Intent(context, TaskService::class.java).setAction(ACTION_START_TRIGGER)
-                .putExtra(EXTRA_GOAL, checkGoal ?: goal).putExtra(EXTRA_CONVERSATION, threadId)
-                .putExtra(EXTRA_TRIGGER_KEY, windowKey).putExtra(EXTRA_TRIGGER_THREAD, threadId)
-                .apply { if (checking) putExtra(EXTRA_TRIGGER_ACTION, goal).putExtra(EXTRA_TRIGGER_CONDITION, condition) })
+            // 闹钟广播一结束系统就不再撑 CPU:撑到服务处理完这次启动(见 [TriggerHandoffWake])
+            TriggerHandoffWake.hold(context)
+            try {
+                context.startForegroundService(Intent(context, TaskService::class.java).setAction(ACTION_START_TRIGGER)
+                    .putExtra(EXTRA_GOAL, checkGoal ?: goal).putExtra(EXTRA_CONVERSATION, threadId)
+                    .putExtra(EXTRA_TRIGGER_KEY, windowKey).putExtra(EXTRA_TRIGGER_THREAD, threadId)
+                    .apply { if (checking) putExtra(EXTRA_TRIGGER_ACTION, goal).putExtra(EXTRA_TRIGGER_CONDITION, condition) })
+            } catch (e: Exception) {
+                TriggerHandoffWake.release()
+                throw e
+            }
         }
 
         /** 渠道交来的任务保留回复地址；消息编号由登记处持久化去重。 */
@@ -523,6 +543,17 @@ class TaskService : Service() {
             if (state.runs.value.none { it.mcpExternalId == externalId }) return
             context.startService(Intent(context, TaskService::class.java).setAction(ACTION_CANCEL_MCP)
                 .putExtra(EXTRA_MCP_ID, externalId))
+        }
+
+        /**
+         * 用户刚暂停了 Mika(标记已经写好):持久排队清空;服务里还有任务(在跑或排着)就让它全部停下。
+         * 之后服务门口的 [pausedBlocks] 挡住一切新开始。
+         */
+        fun pauseAll(context: Context) {
+            val app = context.applicationContext as? com.wangzan101.mika.MikaApp ?: return
+            app.followUpQueue.clear()
+            if (app.taskState.runs.value.isEmpty()) return
+            runCatching { context.startService(Intent(context, TaskService::class.java).setAction(ACTION_PAUSE_ALL)) }
         }
 
         /** [runKey] 见 [send];应用内的按钮带着屏上那个对话的任务编号,不会落到别的任务上。 */

@@ -1,6 +1,7 @@
 package com.wangzan101.mika.workflow.ui
 
 import androidx.activity.compose.BackHandler
+import com.wangzan101.mika.core.run.PauseFlag
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -93,6 +94,7 @@ internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpe
                         if (current.problem.isNotBlank()) FooterNote(when (current.problem) {
                             "interrupted" -> stringResource(R.string.workflow_interrupted)
                             "start_failed" -> stringResource(R.string.workflow_start_failed)
+                            PauseFlag.REASON -> stringResource(R.string.workflow_stopped_paused)
                             "result_too_long" -> stringResource(R.string.workflow_result_too_long)
                             else -> current.problem
                         }, color = MikaTheme.colors.bad)
@@ -273,4 +275,5 @@ private fun phaseLabel(phase: WorkflowPhase) = when (phase) {
     WorkflowProblem.Read -> R.string.workflow_read_failed
     WorkflowProblem.Write -> R.string.recommendations_save_failed
     WorkflowProblem.ResultTooLong -> R.string.workflow_result_too_long
+    WorkflowProblem.Paused -> R.string.pause_blocked_workflow
 })

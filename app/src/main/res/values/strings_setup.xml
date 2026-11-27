@@ -103,4 +103,40 @@
     <string name="model_fallback_add_another">Add Another Backup Model (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">If %1$s hits rate limits or quota, Mika automatically switches down the chain in order so tasks finish without interruption.</string>
     <string name="model_fallback_collapse_hint">Active cascade · Tap to collapse</string>
+    <string name="model_keys_title">API Keys</string>
+    <string name="model_keys_pool_one">API Key Pool · 1 key</string>
+    <string name="model_keys_pool_many">API Key Pool · %1$s · auto-rotating</string>
+    <string name="model_keys_hide">Hide Keys</string>
+    <string name="model_keys_show">Show Keys</string>
+    <string name="model_key_not_configured">No key configured</string>
+    <string name="model_key_not_configured_hint">Add a key to connect this provider</string>
+    <string name="model_key_required">Required</string>
+    <string name="model_key_number">Key %1$d</string>
+    <string name="model_key_active">Active</string>
+    <string name="model_key_add">Add API Key</string>
+    <string name="model_key_add_first_hint">Paste your key to connect</string>
+    <string name="model_key_add_another_hint">Add another key to the rotation pool</string>
+    <string name="model_keys_rotate_note">Keys rotate automatically. Any key that hits a 429 rate-limit or timeout is skipped until it recovers — zero downtime.</string>
+    <string name="model_keys_add_more_note">Add more keys to enable automatic failover rotation.</string>
+    <string name="model_key_add_note">Paste one key, or multiple keys separated by commas or new lines to add them all at once.</string>
+    <string name="model_keys_detected_add">%1$s detected — all will be added to the rotation pool</string>
+    <string name="model_key_one_ready">1 key ready to add</string>
+    <string name="model_provider_line_pool">%1$s · Key Pool (%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s detected — pool will auto-rotate on rate-limit or timeout</string>
+    <string name="model_providers_none">No providers connected</string>
+    <string name="model_providers_keys_in_pool">%1$s · %2$s in pool</string>
+    <string name="model_key_remove">Remove</string>
+    <string name="model_fallback_remove_desc">Remove backup</string>
+    <plurals name="model_keys_count">
+        <item quantity="one">%1$d key</item>
+        <item quantity="other">%1$d keys</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="one">✓ Key Pool: %1$d API key detected (auto-rotating on 429/timeout)</item>
+        <item quantity="other">✓ Key Pool: %1$d API keys detected (auto-rotating on 429/timeout)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="one">Add %1$d Key</item>
+        <item quantity="other">Add %1$d Keys</item>
+    </plurals>
 </resources>

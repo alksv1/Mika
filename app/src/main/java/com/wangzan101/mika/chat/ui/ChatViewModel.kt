@@ -124,6 +124,8 @@ class ChatViewModel(
     internal val generatedAudios: StateFlow<List<com.wangzan101.mika.core.chat.GeneratedAudio>> = MutableStateFlow(emptyList()),
     /** 当前任务生成并留在工作区里的图;任务开始时由服务清空。 */
     internal val generatedPhotos: StateFlow<List<com.wangzan101.mika.core.chat.GeneratedPhoto>> = MutableStateFlow(emptyList()),
+    /** 当前任务生成并留在工作区里的视频;任务开始时由服务清空。 */
+    internal val generatedVideos: StateFlow<List<com.wangzan101.mika.core.chat.GeneratedVideo>> = MutableStateFlow(emptyList()),
     /** 把选中的文件(内容 URI 字符串)复制进对话工作区的 inbox/。 */
     internal val importAttachments: suspend (conversationId: String, uris: List<String>) -> ImportResult = { _, _ -> ImportResult(emptyList(), emptyList()) },
     /** 读出选中文件(内容 URI 字符串)的名字、大小和是不是照片;读盘的活由调用方放到后台线程。 */
@@ -162,6 +164,9 @@ class ChatViewModel(
     /** 正在跟用户学习时不另开任务，也不把这句话记成已经开始。 */
     internal val teaching: () -> Boolean = { false },
     internal val onTeachingBlocked: () -> Unit = {},
+    /** 用户暂停了 Mika:这句话不发出去(不进前台、不开任务),提示一声。 */
+    internal val paused: () -> Boolean = { false },
+    internal val onPausedBlocked: () -> Unit = {},
     /** 朗读一条回答;没配置声音模型时不做。 */
     private val speakText: suspend (String) -> Unit = {},
     private val stopVoice: () -> Unit = {},
@@ -172,6 +177,10 @@ class ChatViewModel(
     internal val autoRead: StateFlow<Boolean> = MutableStateFlow(false),
     /** 播放工作区里的一段音频(对话编号, 路径);默认不做。 */
     private val playAudio: suspend (String, String) -> Unit = { _, _ -> },
+    /** 用系统播放器打开工作区里的一段视频(对话编号, 路径);默认不做。 */
+    private val playVideo: suspend (String, String) -> Unit = { _, _ -> },
+    /** 取工作区一段视频的首帧当封面(对话编号, 路径);取不到时为 null。 */
+    private val videoPosterLoader: suspend (String, String) -> android.graphics.Bitmap? = { _, _ -> null },
     private val voiceFailed: (String) -> Unit = {},
     /** 项目分组列表与删项目入口;为 null 时仅按普通对话显示。 */
     internal val projectStore: ProjectStore? = null,
@@ -240,6 +249,18 @@ class ChatViewModel(
     fun playAudio(path: String) {
         val id = _ui.value.conversationId ?: return
         scope.launch { playAudio(id, path) }
+    }
+
+    /** 用系统播放器打开这一轮生成的一段视频;没有对话编号时不做。 */
+    fun playVideo(path: String) {
+        val id = _ui.value.conversationId ?: return
+        scope.launch { playVideo(id, path) }
+    }
+
+    /** 视频卡片的封面(首帧);取不到返回 null。 */
+    suspend fun loadVideoPoster(path: String): android.graphics.Bitmap? {
+        val id = _ui.value.conversationId ?: return null
+        return videoPosterLoader(id, path)
     }
 
     val ui: StateFlow<ChatUi> = _ui.asStateFlow()
@@ -366,6 +387,7 @@ class ChatViewModel(
         scope.launch { autoRead.collect { if (!it) autoReadKey = null } }
         scope.launch { generatedAudios.collect { if (session.ownTask()) live.onAudios(it) } }
         scope.launch { generatedPhotos.collect { if (session.ownTask()) live.onPhotos(it) } }
+        scope.launch { generatedVideos.collect { if (session.ownTask()) live.onVideos(it) } }
         scope.launch { runNotes.collect { notes -> _ui.update { ui -> ui.copy(exchanges = ui.exchanges.map { session.withNotes(it, notes) }) } } }
         scope.launch { activities.collect { if (session.ownTask()) live.onActivities(it) } }
         scope.launch { steers.collect { if (session.ownTask()) live.onSteers(it) } }

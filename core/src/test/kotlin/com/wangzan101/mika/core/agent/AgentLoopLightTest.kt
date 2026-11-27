@@ -6,6 +6,9 @@ import com.wangzan101.mika.core.model.ModelReply
 import com.wangzan101.mika.core.model.Part
 import com.wangzan101.mika.core.model.StopReason
 import com.wangzan101.mika.core.model.ToolSpec
+import com.wangzan101.mika.core.run.RunId
+import com.wangzan101.mika.core.run.RunInbox
+import com.wangzan101.mika.core.run.RunSpec
 import com.wangzan101.mika.core.run.record.RunEvent
 import com.wangzan101.mika.core.run.record.RunSink
 import com.wangzan101.mika.core.screen.uistate.ScreenSnapshot
@@ -192,5 +195,29 @@ class AgentLoopLightTest {
         assertTrue(r is TaskState.Succeeded)
         assertEquals(1, light.requests.size)
         assertEquals(3, main.requests.size)
+    }
+
+    // 用户插了话的那一步要重新理解目标:给主模型,不给轻量模型;之后照常分工
+    @Test fun stepAfterUserSteerGoesToMain() = runTest {
+        val main = Named("main", FakeModel(tools(call("phone_observe")), tools(call("phone_observe")), tools(call("phone_observe")), finish()))
+        val light = Named("light", FakeModel(tools(call("phone_observe")), finish()))
+        val inbox = RunInbox()
+        // 第 3 步轻量模型读屏时用户插话:不在模型请求进行中发,不会撤掉请求
+        val screen = object : com.wangzan101.mika.core.screen.uistate.ScreenPort by FakeScreen() {
+            private var sent = false
+            override suspend fun snapshot(): ScreenSnapshot {
+                if (!sent && light.requests.size == 1) { sent = true; inbox.steer("m1", "STEER_WORDS") }
+                return ScreenSnapshot("s${light.requests.size}", "com.x", emptyList(), 1080, 2400)
+            }
+        }
+        val sink = Events()
+        val end = AgentLoop(main, toolDispatcher(screen), "BASE", sink = sink, flags = on, router = ModelRouter(main, light))
+            .run(RunSpec(RunId("r1"), "t", "thread-1"), inbox)
+        assertTrue("$end", end is TaskState.Succeeded)
+        assertEquals(listOf("main", "main", "light", "main", "light_rejected", "main"),
+            sink.list.filterIsInstance<RunEvent.ModelReply>().map { it.role })
+        fun List<Message>.saidSteer() = flatMap { it.parts }.filterIsInstance<Part.Text>().any { "STEER_WORDS" in it.text }
+        assertTrue("插话之后的那一步问的是主模型", main.requests[3].saidSteer())
+        assertTrue(!light.requests[0].saidSteer())
     }
 }

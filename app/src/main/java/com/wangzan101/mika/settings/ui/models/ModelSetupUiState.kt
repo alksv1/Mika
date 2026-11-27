@@ -94,6 +94,7 @@ data class AddForm(
     val noList: Boolean = false,
     val name: String = "",
     val manual: Boolean = false,
+    val nickname: String = "",
 ) {
     /** 显示「模型名」一栏:没列出模型,或用户要手填。 */
     val showModel: Boolean get() = noList || manual

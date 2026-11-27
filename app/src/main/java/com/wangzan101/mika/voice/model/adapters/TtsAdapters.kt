@@ -100,7 +100,30 @@ class OpenAiSpeechTtsAdapter(
                 headers = (model.account as? ResolvedAccount.ExistingProvider)?.headers.orEmpty(),
             )
         }
-        return categorized(delegate)
+        return categorized(withDefaultVoice(delegate, binding.voice))
+    }
+}
+
+/**
+ * 请求里没带音色时,用这个模型自己记着的那个(接入时填的)。自己部署的服务各有各的音色名,不带就被拒;
+ * 用户在朗读页选过音色的,请求里带着,照用户选的。没记音色的模型原样不动。
+ */
+internal fun withDefaultVoice(delegate: TtsModel, voice: String): TtsModel {
+    val default = voice.trim()
+    if (default.isEmpty()) return delegate
+    fun TtsRequest.filled(): TtsRequest = if (this.voice.isNullOrBlank()) copy(voice = default) else this
+    return when (delegate) {
+        is StreamingTtsModel -> object : StreamingTtsModel {
+            override val name: String get() = delegate.name
+            override val capabilities: TtsCapabilities get() = delegate.capabilities
+            override suspend fun synthesize(request: TtsRequest): TtsResponse = delegate.synthesize(request.filled())
+            override fun streamAudio(request: TtsRequest): Flow<TtsAudioPart> = delegate.streamAudio(request.filled())
+        }
+        else -> object : TtsModel {
+            override val name: String get() = delegate.name
+            override val capabilities: TtsCapabilities get() = delegate.capabilities
+            override suspend fun synthesize(request: TtsRequest): TtsResponse = delegate.synthesize(request.filled())
+        }
     }
 }
 

@@ -130,7 +130,7 @@ internal object MemorySave : AgentTool {
             // 开着也不是见什么收什么:引文得落在用户这一轮自己说的、让它记的那半句上。
             // 不然随便一句「帮我看看这个网页」都能被拿来当引文,把屏幕、网页上的字存进来;
             // 「别记我的地址,记住我喜欢喝茶」里引前半句也不行——让记的是后半句
-            if (utterances.quotedClauses(quote).none { clauses -> clauses.any(::asksToRemember) }) {
+            if (utterances.quotedClauses(quote).none { clauses -> clauses.any(MemoryRequests::asksToRemember) }) {
                 return refused(ctx, a, "inference_not_requested", Feedback["memory.inference_not_requested"])
             }
         }
@@ -154,35 +154,6 @@ internal object MemorySave : AgentTool {
                 }
             },
         )
-    }
-
-    /**
-     * 这半句让它记:记住、记下、写入记忆、存起来、保存、别忘了、remember、save、add … to memory。只认中文和英文的动词说法
-     * (改删记忆的 [MemoryEdit] 也只认这两种),光提到「记忆」「memory」这个词不算,别的语言一律按没让它记处理——
-     * 认错了就是把用户没同意的东西存进去,宁可不认。只在收「Mika 自己归纳的」时用:用户原话照旧不需要这些字眼。
-     */
-    private val SAVE_REQUEST = Regex(
-        "[记記](?:住|下|一下|一[条條]|一[笔筆]|[几幾][条條]|到|[进進]|入|[着著]|好|上|吧|[录錄](?:一下|下|到|[进進]|在))|" +
-            "[写寫][入进進到]|存[入进進到下一上吧]|存起[来來]|保存|儲存|[别別]忘|不要忘|(?:加|添加|放|收)[到进進入]\\S{0,8}?(?:记忆|記憶)|" +
-            "\\b(?:remember|memori[sz]e|save|store|note\\s+(?:that|this|it|down)|keep\\s+in\\s+mind|" +
-            "(?:add|write|put|commit)\\b[^,.;!?\\n]{0,40}?\\b(?:to|in|into)\\s+(?:your\\s+|the\\s+|my\\s+)?memor(?:y|ies))\\b",
-        RegexOption.IGNORE_CASE,
-    )
-    /** 问它还记不记得,不是让它记。 */
-    private val RECALL_QUESTION = Regex("\\b(?:do|did)\\s+you\\s+(?:still\\s+|even\\s+)?remember\\b|\\bwhat\\s+(?:do|did|can)\\s+you\\s+remember\\b", RegexOption.IGNORE_CASE)
-    /** 这半句是不让记:「别记」「不要把这些存进去」「don't save」。「别忘了记下来」「不记得」不是。 */
-    private val SAVE_NEGATION = Regex(
-        "(?<![能要用可])(?:不|别|別|勿|无需|無需|无须|無須|禁止)\\s*(?:要|用|再|去|必|该|該|应该|應該|许|許|准|可以|能)?\\s*(?:把[^,，。;；!！?？\\n]{0,12}?)?(?:给我|給我|帮我|幫我|替我)?\\s*" +
-            "(?:[记記](?![得忆憶性])|[写寫][入进進到下]|存(?![在款货貨量储儲])|保存|儲存)|" +
-            "\\b(?:do\\s+not|don'?t|never|no\\s+need\\s+to|not\\s+to|shouldn'?t|should\\s+not|mustn'?t|must\\s+not|won'?t|without)\\s+" +
-            "(?:ever\\s+|actually\\s+|please\\s+|you\\s+)?(?:remember|memori[sz]e|sav(?:e|ing)|stor(?:e|ing)|not(?:e|ing)|keep(?:ing)?|add(?:ing)?|writ(?:e|ing)|put(?:ting)?|commit(?:ting)?)\\b",
-        RegexOption.IGNORE_CASE,
-    )
-
-    /** 这半句话让它记了没有:有让它记的动词说法,而且不是不让记。 */
-    private fun asksToRemember(clause: String): Boolean {
-        val c = clause.replace('’', '\'')
-        return SAVE_REQUEST.containsMatchIn(RECALL_QUESTION.replace(c, " ")) && !SAVE_NEGATION.containsMatchIn(c)
     }
 }
 
@@ -217,14 +188,9 @@ internal object MemoryEdit : AgentTool {
         // 用含引文的完整原话判断否定，避免模型只摘出「不要删除」里的「删除」。
         val messages = utterances.matchingCurrentMessages(quote)
         if (messages.isEmpty()) return refused(ctx, a, "quote_not_from_user", Feedback["memory.edit_quote_not_from_user"])
-        val (request, negation) = when (op) {
-            "update" -> UPDATE_REQUEST to UPDATE_NEGATION
-            "delete" -> DELETE_REQUEST to DELETE_NEGATION
-            else -> throw ArgError("op", "must be update or delete")
-        }
-        // 话里明说了要改(删),没说不要,也不是「如果我说……你会怎么做」这种只是问问的
-        val requested = request.containsMatchIn(quote) && messages.none(negation::containsMatchIn) && messages.none(::onlyAsking)
-        if (!requested) return refused(ctx, a, "edit_not_requested", Feedback["memory.edit_not_requested"])
+        if (op != "update" && op != "delete") throw ArgError("op", "must be update or delete")
+        // 话里明说了要改(删),没说不要,也不是「如果我说……你会怎么做」这种只是问问的;各语言的说法在 MemoryRequests
+        if (!MemoryRequests.requested(op, quote, messages)) return refused(ctx, a, "edit_not_requested", Feedback["memory.edit_not_requested"])
         val candidates = ctx.memorySearchCandidates()
         if (candidates == null || id !in candidates) {
             return fail("not_found", Feedback["memory.not_found"], recoverable = true)
@@ -280,27 +246,4 @@ internal object MemoryEdit : AgentTool {
 
     private fun quotesExactId(quote: String, id: String): Boolean =
         Regex("(?<![A-Za-z0-9_-])" + Regex.escape(id) + "(?![A-Za-z0-9_-])").containsMatchIn(quote)
-
-    // 要改:「改」字的各种说法(改成、改得简洁一点、改一下;「改天」「改变」这类不算),和精简、合并、整理、换成这些说的就是改的词。
-    // 只认这几个固定说法的话,「把那几条改得简洁一点」会被当成没说要改
-    private const val UPDATE_WORDS = "修改|改(?![天日期变變革善观觀口])|更新|更正|编辑|編輯|精简|精簡|缩短|縮短|简化|簡化|压缩|壓縮|合并|合併|整理|重写|重寫|换成|換成|替换|替換|调整|調整|润色|潤色"
-    private const val UPDATE_WORDS_EN = "update|change|edit|correct|rewrite|reword|rephrase|shorten|simplify|merge|replace|trim|tidy"
-    private const val DELETE_WORDS = "删|刪|忘掉|忘记|忘記|去掉|移除|清掉|清除"
-    private const val DELETE_WORDS_EN = "delete|forget|remove|erase|drop"
-    // 「能不能改」「要不要删」是在问、在请它做,不是不让:前面紧挨着同一个字的「不」不算否定
-    private const val NOT = "(?<![能要用可])(?:不|别|別|无需|無需|无须|無須|不用|不必|不要|不能|不准|禁止)\\s*(?:要|用|再|去)?\\s*"
-    private const val NOT_EN = "\\b(?:do\\s+not|don't|dont|never|no\\s+need\\s+to)\\s+"
-    private val UPDATE_REQUEST = Regex("$UPDATE_WORDS|\\b(?:$UPDATE_WORDS_EN)\\b", RegexOption.IGNORE_CASE)
-    private val DELETE_REQUEST = Regex("$DELETE_WORDS|别记|別記|不要记|不要記|取消记忆|取消記憶|\\b(?:$DELETE_WORDS_EN)\\b", RegexOption.IGNORE_CASE)
-    private val UPDATE_NEGATION = Regex("$NOT(?:$UPDATE_WORDS)|$NOT_EN(?:$UPDATE_WORDS_EN)\\b", RegexOption.IGNORE_CASE)
-    private val DELETE_NEGATION = Regex("$NOT(?:$DELETE_WORDS)|$NOT_EN(?:$DELETE_WORDS_EN)\\b", RegexOption.IGNORE_CASE)
-
-    /**
-     * 「如果我说把那条删掉,你会怎么处理」:在问它会怎么做,不是让它现在做。改删记忆不过「讨论还是操作」那一关
-     * (见 AgentLoop 的 MEMORY_WRITE_VERBS),这种问法在这里拒。两样都有才算:假设的说法,加上问它会怎么做——
-     * 只有假设的条件句常常就是要记的内容(「如果我说老地方,就是公司楼下那家」)。
-     */
-    private val HYPOTHETICAL = Regex("(?:如果|假如|要是|假设|假設|假使)我(?:说|說|让|讓|叫|要)|\\bif\\s+i\\s+(?:said|asked|told|were\\s+to)\\b", RegexOption.IGNORE_CASE)
-    private val ASKING_HOW = Regex("你会(?:怎么|怎样|如何)|你會(?:怎麼|怎樣|如何)|会(?:发生什么|怎么样)|會(?:發生什麼|怎麼樣)|\\b(?:what|how)\\s+would\\s+you\\b|\\bwhat\\s+would\\s+happen\\b", RegexOption.IGNORE_CASE)
-    private fun onlyAsking(message: String) = HYPOTHETICAL.containsMatchIn(message) && ASKING_HOW.containsMatchIn(message)
 }

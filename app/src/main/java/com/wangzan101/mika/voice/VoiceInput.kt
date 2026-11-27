@@ -70,7 +70,7 @@ class VoiceInput(
     }
 
     /**
-     * 开一次会话,按下时调(要在主线程)。[language] 是识别语言(BCP-47);null 跟 App 界面语言。
+     * 开一次会话,按下时调(要在主线程)。[language] 是识别语言(BCP-47);null 跟 App 界面语言(自建流式识别不看它,用服务自己设的语言)。
      * 没有录音权限、引擎用不了时,给出只发一个 Failed 的会话,界面按同一套处理。
      */
     override fun start(language: String?): SpeechSession =
@@ -108,7 +108,7 @@ class VoiceInput(
             SttHooks()
         }
         return try {
-            voiceModels.stt.start(context, ref, tag, hooks)
+            voiceModels.stt.start(context, ref, tag, hooks, voiceModels.stt.backupsFor(ref))
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {

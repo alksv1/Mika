@@ -330,4 +330,6 @@
         <item quantity="one">%1$d GB</item>
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">Search settings</string>
+    <string name="settings_search_empty">No matching settings</string>
 </resources>

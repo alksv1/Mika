@@ -31,6 +31,8 @@
     <string name="voice_settings_of">تنظیمات %1$s</string>
     <string name="voice_voice">صدا</string>
     <string name="voice_voice_default">پیش‌فرض</string>
+    <string name="voice_tts_engine">موتور تبدیل متن به گفتار</string>
+    <string name="voice_engine_default">پیش‌فرض سیستم</string>
     <string name="realtime_lead">با Mika صحبت کنید و هر وقت خواستید حرفش را قطع کنید. تماس‌های تلفنی هوش مصنوعی همین انتخاب را به کار می‌برند مگر اینکه انتخاب خودشان را داشته باشند.</string>
     <string name="realtime_empty">هنوز مدل تماس صوتی وجود ندارد</string>
     <string name="realtime_empty_note">یکی را از پایین انتخاب کنید، یا یک سرویس صوتی که تماس را پشتیبانی می‌کند وصل کنید.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">پکن</string>
     <string name="voice_region_singapore">سنگاپور</string>
     <string name="voice_compat_lead">برای سرویس‌هایی که API صوتی OpenAI را پشتیبانی می‌کنند. مدل‌های موردنظر را پر کنید و بقیه را خالی بگذارید.</string>
-    <string name="voice_compat_models">مدل‌ها</string>
     <string name="voice_compat_models_note">اگر سرویس مدلی را ارائه نمی‌دهد، آن را خالی بگذارید.</string>
     <string name="voice_selfhosted_lead">یک سرور تشخیص جریانی در شبکه خودتان. نشانی آن را وارد کنید؛ حساب لازم نیست.</string>
     <string name="voice_field_api_key">کلید API</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">بررسی شد</string>
     <string name="calls_audio_unchecked">بررسی نشده</string>
     <string name="voice_stt_footer">تشخیص داخلی گوشی رایگان است. گزینه‌های آنلاین از سرویس‌های صوتی شما می‌آیند؛ پیش از انتخاب، یک جمله بگویید تا امتحانش کنید.</string>
+    <string name="voice_audition">شنیدن %1$s</string>
+    <string name="voice_fallback_footer_stt">اگر ورودی صوتی محدود شود، سرویس شلوغ باشد یا به‌موقع پاسخ ندهد، Mika همان ضبط را به‌ترتیب به مدل بعدی می‌فرستد. فقط مدل‌هایی که پس از پایان صحبت شما متن را می‌نویسند می‌توانند پشتیبان باشند.</string>
+    <string name="voice_fallback_footer_tts">اگر بلندخوانی محدود شود، سرویس شلوغ باشد یا به‌موقع پاسخ ندهد، Mika پیش از شروع پخش مدل بعدی را به‌ترتیب امتحان می‌کند. مدل‌های پشتیبان از صدای پیش‌فرض خودشان استفاده می‌کنند.</string>
+    <string name="voice_fallback_pick_title">پشتیبان برای %1$s</string>
+    <string name="voice_fallback_none">هنوز مدل دیگری نمی‌تواند پشتیبان باشد</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

@@ -28,6 +28,8 @@ enum class Fix {
     // 内置助手
     OpenPhoneSetup, RepairPhoneHelper, RetryPhoneHelper, UnpairPhoneHelper, OpenPhoneOps,
     OpenAboutPhone, OpenDeveloperOptions, OpenUsbDebugging, OpenWirelessDebugging, OpenWifi,
+    /** 打开设置页(「暂停 Mika」在设置首页就有入口):Mika 暂停着时横幅点的就是它。 */
+    OpenPause,
 }
 
 /** 顶部横幅的一行字和右侧链接。 */
@@ -88,6 +90,8 @@ object StatusCopy {
         Problem.NoModel -> Fix.AddModel
         // 引导页把每一步都讲清楚了,不再弹说明
         is Problem.PhoneHelper -> when {
+            // Mika 暂停着:这不是故障,是用户亲手要的,去能恢复的那页。
+            p.status == BuiltinShellStatus.Paused -> Fix.OpenPause
             PhoneSetupCopy.canReconnect(p.status) -> Fix.RetryPhoneHelper
             (p.status as? BuiltinShellStatus.Failed)?.reason == BuiltinShellFailure.ShizukuNotInstalled ||
                 (p.status as? BuiltinShellStatus.Failed)?.reason == BuiltinShellFailure.ShizukuPermissionNeeded -> Fix.OpenPhoneOps
@@ -170,6 +174,12 @@ object StatusCopy {
                     tr(R.string.banner_failed), PhoneSetupCopy.failure(st.reason).title,
                     if (PhoneSetupCopy.canReconnect(st)) PhoneSetupCopy.RECONNECT else tr(R.string.fix_it),
                 )
+            // Mika 暂停着:标题说在暂停,下面一句说停了什么。
+            BuiltinShellStatus.Paused -> BannerCopy(
+                tr(R.string.pause_paused_title),
+                tr(R.string.pause_paused_body),
+                tr(R.string.view),
+            )
             BuiltinShellStatus.Running -> error("not a problem")
         }
         is Problem.Accessibility -> when (p.state) {

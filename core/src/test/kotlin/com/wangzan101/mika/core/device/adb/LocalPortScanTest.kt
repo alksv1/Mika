@@ -25,14 +25,14 @@ class LocalPortScanTest {
     private class SlowScanner(val clock: LongArray, val sweepMs: Long, val probeMs: Long, val open: List<Int>) : LocalPortScanner {
         val swept = mutableListOf<String>()
         val probed = mutableListOf<Int>()
-        var range: IntRange? = null
+        val ranges = mutableListOf<IntRange>()
         var skip: Set<Int> = emptySet()
         override suspend fun openPorts(host: String, ports: IntRange, skip: Set<Int>, budgetMs: Long): List<Int> {
-            swept += host
-            range = ports
+            if (swept.lastOrNull() != host) swept += host
+            ranges += ports
             this.skip = skip
             clock[0] += minOf(sweepMs, budgetMs)
-            return open.filter { it !in skip }
+            return open.filter { it in ports && it !in skip }
         }
         override fun speaksAdbTls(host: String, port: Int, timeoutMs: Int): Boolean {
             probed += port
@@ -45,7 +45,7 @@ class LocalPortScanTest {
     fun timeCapStopsProbingAndSkipsTheNextHost() = runTest {
         val clock = longArrayOf(0)
         val scanner = SlowScanner(clock, sweepMs = 6_000, probeMs = 1_500, open = listOf(40001, 40002, 40003, 40004, 40005))
-        val scan = LocalPortScan(scanner, { listOf("127.0.0.1", "192.0.2.10") }, budgetMs = 10_000, now = { clock[0] })
+        val scan = LocalPortScan(scanner, { listOf("127.0.0.1", "192.0.2.10") }, range = { 40000..40005 }, budgetMs = 10_000, now = { clock[0] })
         val r = scan.scan(emptySet())
         assertEquals(listOf("127.0.0.1"), scanner.swept)
         // 6 s 扫描 + 3 次 1.5 s 核对就到 10.5 s,剩下的不再核对
@@ -58,7 +58,7 @@ class LocalPortScanTest {
     fun bothHostsScannedWithinBudgetWhenNothingAnswers() = runTest {
         val clock = longArrayOf(0)
         val scanner = SlowScanner(clock, sweepMs = 2_000, probeMs = 10, open = listOf(40001))
-        val r = LocalPortScan(scanner, { listOf("127.0.0.1", "192.0.2.10", "127.0.0.1") }, now = { clock[0] }).scan(emptySet())
+        val r = LocalPortScan(scanner, { listOf("127.0.0.1", "192.0.2.10", "127.0.0.1") }, range = { 40000..40005 }, now = { clock[0] }).scan(emptySet())
         assertEquals(listOf("127.0.0.1", "192.0.2.10"), scanner.swept)
         assertEquals(2, r.open)
         assertEquals(0, r.adb)
@@ -70,9 +70,75 @@ class LocalPortScanTest {
         val scanner = SlowScanner(clock, sweepMs = 1, probeMs = 1, open = listOf(40001, 40002, 40003))
         val scan = LocalPortScan(scanner, { listOf("127.0.0.1") }, range = { 32768..60999 }, ownPorts = { setOf(40002) }, now = { clock[0] })
         scan.scan(setOf(40001))
-        assertEquals(32768..60999, scanner.range)
+        // 分段扫,各段首尾相接、不重不漏,正好盖住给定的范围
+        assertEquals((32768..60999).toList(), scanner.ranges.flatMap { it.toList() })
+        assertTrue(scanner.ranges.all { it.count() <= LocalPortScan.PORT_BATCH_SIZE })
         assertEquals(setOf(40001, 40002), scanner.skip)
         assertEquals(listOf(40003), scanner.probed)
+    }
+
+    /** 扫得慢时一口气扫完整段会把预算花光:早就开着的 adbd 要在扫完它那一段后马上核对,不等后面的段。 */
+    @Test
+    fun anEarlyAdbdIsVerifiedBeforeTheWholeRangeUsesTheBudget() = runTest {
+        var now = 0L
+        val verified = mutableListOf<Int>()
+        val scanner = object : LocalPortScanner {
+            // 每扫一个端口花 1 ms,预算用完就停
+            override suspend fun openPorts(host: String, ports: IntRange, skip: Set<Int>, budgetMs: Long): List<Int> {
+                val scanned = minOf(ports.count().toLong(), budgetMs).toInt()
+                now += scanned
+                return listOf(44339).filter { it in ports.first until ports.first + scanned && it !in skip }
+            }
+            override fun speaksAdbTls(host: String, port: Int, timeoutMs: Int): Boolean {
+                verified += port
+                now += 50
+                return port == 44339
+            }
+        }
+        val r = LocalPortScan(scanner, { listOf("127.0.0.1") }, range = { 40000..60000 }, budgetMs = 10_000, now = { now })
+            .scan(emptySet())
+        assertEquals(listOf(44339), verified)
+        assertEquals(listOf(AdbEndpoint("127.0.0.1", 44339)), r.endpoints)
+        assertTrue(now <= 10_000)
+    }
+
+    /** 一段里核对出 adbd 就停:不扫后面的段,也不扫下一个地址。 */
+    @Test
+    fun scanningStopsAfterTheBatchThatFindsAdbd() = runTest {
+        val swept = mutableListOf<IntRange>()
+        val scanner = object : LocalPortScanner {
+            override suspend fun openPorts(host: String, ports: IntRange, skip: Set<Int>, budgetMs: Long): List<Int> {
+                swept += ports
+                return listOf(40500, 41500, 50000).filter { it in ports }
+            }
+            override fun speaksAdbTls(host: String, port: Int, timeoutMs: Int) = port != 50000
+        }
+        val r = LocalPortScan(scanner, { listOf("127.0.0.1", "192.0.2.10") }, range = { 40000..60000 }).scan(emptySet())
+        assertEquals(listOf(40000..41023), swept)
+        assertEquals(listOf(AdbEndpoint("127.0.0.1", 40500)), r.endpoints)
+        assertEquals(ScanResult(listOf(AdbEndpoint("127.0.0.1", 40500)), open = 1, adb = 1), r)
+    }
+
+    /** 端口一直扫不完也有界:预算用完就停,不再开新的一段。 */
+    @Test
+    fun batchesStopWhenTheBudgetRunsOut() = runTest {
+        val clock = longArrayOf(0)
+        val scanner = SlowScanner(clock, sweepMs = 3_000, probeMs = 1, open = emptyList())
+        val r = LocalPortScan(scanner, { listOf("127.0.0.1", "192.0.2.10") }, range = { 30000..65535 }, budgetMs = 10_000, now = { clock[0] })
+            .scan(emptySet())
+        assertEquals(4, scanner.ranges.size)
+        assertEquals(listOf("127.0.0.1"), scanner.swept)
+        assertEquals(ScanResult(emptyList(), 0, 0), r)
+        assertEquals(10_000, clock[0])
+    }
+
+    @Test
+    fun theLastPortOfTheRangeIsScannedWithoutOverflow() = runTest {
+        val clock = longArrayOf(0)
+        val scanner = SlowScanner(clock, sweepMs = 1, probeMs = 1, open = listOf(65535))
+        LocalPortScan(scanner, { listOf("127.0.0.1") }, range = { 65000..65535 }, now = { clock[0] }).scan(emptySet())
+        assertEquals(listOf(65000..65535), scanner.ranges)
+        assertEquals(listOf(65535), scanner.probed)
     }
 
     @Test

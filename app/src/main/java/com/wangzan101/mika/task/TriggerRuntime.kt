@@ -28,7 +28,9 @@ import com.wangzan101.mika.core.trigger.EditedSchedule
 import com.wangzan101.mika.core.trigger.afterCheck
 import com.wangzan101.mika.core.trigger.conditionCheckGoal
 import com.wangzan101.mika.core.trigger.revertFire
+import com.wangzan101.mika.core.run.PauseFlag
 import com.wangzan101.mika.settings.FeatureFlags
+import com.wangzan101.mika.settings.MikaPause
 import java.io.File
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -121,6 +123,14 @@ object TriggerRuntime {
         engine(context, store).rearm(System.currentTimeMillis())
     }
 
+    /** 暂停期间到了任务服务门口的时段(派发后、开跑前用户暂停了):记成「因暂停跳过」,恢复后不补跑。 */
+    @Synchronized fun skippedPaused(context: Context, key: String) {
+        val store = store(context)
+        if (store.windows().none { it.key == key }) return
+        store.mark(key, TriggerWindowState.Skipped, PauseFlag.REASON)
+        engine(context, store).rearm(System.currentTimeMillis())
+    }
+
     @Synchronized fun interrupted(context: Context, key: String, reason: String) {
         val store = store(context)
         if (!store.mark(key, TriggerWindowState.Unknown, reason)) return
@@ -148,6 +158,11 @@ object TriggerRuntime {
             return
         }
         outcome as ConditionOutcome.Checked
+        // 检查办完时用户已暂停:不执行动作,也不记这次检查的结论(恢复后的下一次检查照常比较)
+        if (MikaPause.get(context).paused()) {
+            store.mark(window.key, TriggerWindowState.Skipped, PauseFlag.REASON)
+            return
+        }
         val trigger = store.get(window.triggerId) ?: return
         val decision = trigger.afterCheck(outcome, System.currentTimeMillis(), slotMs = window.dueAtMs)
         store.upsert(decision.next)
@@ -193,6 +208,7 @@ object TriggerRuntime {
     @Synchronized fun runNow(context: Context, id: String) {
         val store = store(context)
         val trigger = store.get(id) ?: error(tr(R.string.trigger_deleted))
+        if (MikaPause.get(context).paused()) error(tr(R.string.pause_blocked_plan))
         val window = store.claimNow(id, System.currentTimeMillis()) ?: error(tr(R.string.trigger_busy))
         try {
             if (trigger.reminderText != null) deliverReminder(context, store, trigger, window.key)
@@ -234,7 +250,8 @@ object TriggerRuntime {
     }
 
     private fun engine(context: Context, store: FileTriggerStore) = TriggerEngine(store,
-        { at -> arm(context, at) }, isIdle = { !((context.applicationContext as MikaApp).taskState.busy.value) }) { trigger, window ->
+        { at -> arm(context, at) }, isIdle = { !((context.applicationContext as MikaApp).taskState.busy.value) },
+        paused = MikaPause.get(context)) { trigger, window ->
             if (trigger.reminderText != null) deliverReminder(context, store, trigger, window.key)
             else try { TaskService.startTrigger(context, trigger.goal, trigger.threadId, window.key,
                     trigger.conditionCheckGoal(ZoneId.systemDefault()), trigger.conditionGoal) }
@@ -325,6 +342,7 @@ object ExactAlarmGuide {
     fun shouldPrompt(granted: Boolean, prompted: Boolean): Boolean = !granted && !prompted
 }
 
+/** 闹钟广播的 goAsync 期间系统替 App 撑着 CPU;派发到任务服务那一段由 [TriggerHandoffWake] 接着撑。 */
 class TriggerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != "com.wangzan101.mika.task.TRIGGER_ALARM") return

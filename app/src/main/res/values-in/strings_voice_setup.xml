@@ -31,6 +31,8 @@
     <string name="voice_settings_of">Pengaturan %1$s</string>
     <string name="voice_voice">Suara</string>
     <string name="voice_voice_default">Default</string>
+    <string name="voice_tts_engine">Mesin TTS</string>
+    <string name="voice_engine_default">Default sistem</string>
     <string name="realtime_lead">Bicara dengan Mika dan sela kapan saja. Panggilan telepon AI memakai pilihan yang sama kecuali memilih sendiri.</string>
     <string name="realtime_empty">Belum ada model panggilan suara</string>
     <string name="realtime_empty_note">Pilih satu di bawah, atau hubungkan layanan suara yang mendukung panggilan.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">Beijing</string>
     <string name="voice_region_singapore">Singapura</string>
     <string name="voice_compat_lead">Untuk layanan yang mendukung API audio OpenAI. Isi model yang Anda inginkan; biarkan yang lain kosong.</string>
-    <string name="voice_compat_models">Model</string>
     <string name="voice_compat_models_note">Biarkan kosong jika layanan tidak menyediakan model itu.</string>
     <string name="voice_selfhosted_lead">Server pengenalan streaming di jaringan Anda sendiri. Masukkan alamatnya; tidak perlu akun.</string>
     <string name="voice_field_api_key">Kunci API</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">Sudah diperiksa</string>
     <string name="calls_audio_unchecked">Belum diperiksa</string>
     <string name="voice_stt_footer">Pengenalan bawaan ponsel gratis. Opsi online berasal dari layanan suara Anda; ucapkan satu kalimat untuk mencoba sebelum memilih.</string>
+    <string name="voice_audition">Dengarkan %1$s</string>
+    <string name="voice_fallback_footer_stt">Jika input suara dibatasi, layanan kelebihan beban, atau tidak menjawab tepat waktu, Mika mengirim rekaman yang sama ke model berikutnya secara berurutan. Hanya model yang mentranskripsi setelah Anda selesai bicara yang bisa menjadi cadangan.</string>
+    <string name="voice_fallback_footer_tts">Jika bacakan dibatasi, layanan kelebihan beban, atau tidak menjawab tepat waktu, Mika mencoba model berikutnya secara berurutan sebelum pemutaran dimulai. Cadangan memakai suara bawaannya sendiri.</string>
+    <string name="voice_fallback_pick_title">Cadangan untuk %1$s</string>
+    <string name="voice_fallback_none">Belum ada model lain yang bisa menjadi cadangan</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

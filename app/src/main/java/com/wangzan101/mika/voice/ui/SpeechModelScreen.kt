@@ -270,6 +270,7 @@ private fun MigratedSpeechModelContent(
                 onTest = { choice -> voiceVm.tryChoice(choice, "") },
             )
         }
+        VoiceFallbackSection(VoiceCapability.STT, catalog, ui.providers, voiceVm)
         onOpenServices?.let { VoiceMoreServices(it) }
         FooterNote(tr(R.string.voice_stt_footer), Modifier.padding(top = 8.dp))
     }

@@ -80,6 +80,10 @@
     <!-- list_apps 列出可启动的 App;解析系统权限框所在的包,用于判断「被切走」 -->
     <queries>
         <intent><action android:name="android.telecom.InCallService" /></intent>
+        <!-- 列出手机上登记的语音合成引擎,供系统朗读选择引擎(SystemTtsDiscovery) -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -282,6 +286,11 @@
                 android:value="Keeps the user-enabled incoming call assistant available while the screen is locked and carries one user-confirmed outgoing call across screen lock, with a visible ongoing notification and no idle audio capture" />
         </service>
 
+        <service
+            android:name=".calls.CallStandbyRecoveryJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <receiver android:name=".calls.CallNotificationAction" android:exported="false" />
         <!-- AI 电话里请示主人:通知里直接回复的落点,不导出(PendingIntent 指明本组件) -->
         <receiver android:name=".calls.OwnerReplyReceiver" android:exported="false" />
@@ -344,6 +353,17 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/web_files" />
+        </provider>
+
+        <!-- 聊天视频卡片:点开时把工作区视频复制到缓存 videoplay/,只把这份副本临时授权给系统播放器 -->
+        <provider
+            android:name=".media.VideoPlaybackFilesProvider"
+            android:authorities="${applicationId}.videoplay"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/video_playback_files" />
         </provider>
 
         <!-- 对话页附件:相机把照片写进缓存里的 camera/,点开已发附件时复制出的一份在 viewing/;不对外导出,用到时临时授权 -->

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Mika’yı duraklat</string>
+    <string name="pause_row_sub_active">Sürdürene kadar Mika’nın tüm işlerini durdur</string>
+    <string name="pause_row_sub_paused">Duraklatıldı: görev ve plan çalışmıyor</string>
+    <string name="pause_state_active">Açık</string>
+    <string name="pause_explain">Duraklatınca çalışan ve sırada bekleyen tüm görevler durur, zamanı gelen planlar atlanır ve sohbetten, bilgisayarlardan ve mesaj kanallarından gelen yeni görevler siz sürdürene kadar kabul edilmez. Ayrıca Mika’nın erişilebilirlik hizmeti ile kablosuz hata ayıklama kapatılır ve telefon yardımcısı durdurulur. Hiçbir şey kaldırılmaz veya silinmez; kablosuz hata ayıklama eşlemesi de kayıtlı kalır.</string>
+    <string name="pause_paused_title">Mika duraklatıldı</string>
+    <string name="pause_paused_body">Siz sürdürene kadar görev çalışmaz, planlar atlanır ve telefon yardımcısı durur.</string>
+    <string name="pause_active_title">Mika açık</string>
+    <string name="pause_active_body">Mika’yı bir süreliğine tamamen kapatmak istediğinizde duraklatın.</string>
+    <string name="pause_status_label">Duraklatmanın kapattıkları</string>
+    <string name="pause_action">Mika’yı duraklat</string>
+    <string name="pause_action_sub">Görevleri durdur, erişilebilirliği ve kablosuz hata ayıklamayı kapat, yardımcıyı durdur</string>
+    <string name="pause_resume">Mika’yı sürdür</string>
+    <string name="pause_resume_sub">Yardımcıyı kayıtlı eşlemeyle yeniden bağla</string>
+    <string name="pause_resumed">Mika yeniden açık.</string>
+    <string name="pause_resume_note">Mika her şeyi kendi başına yeniden açamadı. Aşağıdaki adımları tamamlayın.</string>
+    <string name="pause_a11y_restoring">Mika’nın erişilebilirlik hizmeti yeniden açılıyor…</string>
+    <string name="pause_a11y_label">Erişilebilirlik hizmeti</string>
+    <string name="pause_wireless_label">Kablosuz hata ayıklama</string>
+    <string name="pause_helper_label">Telefon yardımcısı</string>
+    <string name="pause_helper_running">Çalışıyor</string>
+    <string name="pause_helper_paused">Duraklatıldı</string>
+    <string name="pause_helper_not_running">Çalışmıyor</string>
+    <string name="pause_helper_connecting">Bağlanıyor…</string>
+    <string name="pause_tasks_stopped">Çalışan ve sırada bekleyen görevler durduruldu.</string>
+    <string name="pause_done">Erişilebilirlik ve kablosuz hata ayıklama kapalı, yardımcı durduruldu.</string>
+    <string name="pause_a11y_manual">Erişilebilirlik hizmeti buradan kapatılamadı. Erişilebilirlik ayarlarını açıp Mika’yı kapatın.</string>
+    <string name="pause_wireless_manual">Kablosuz hata ayıklama buradan kapatılamadı. Geliştirici seçeneklerini açıp kapatın.</string>
+    <string name="pause_save_failed">Değişiklik kaydedilemedi, bu yüzden hiçbir şey değişmedi. Tekrar deneyin.</string>
+    <string name="pause_step_a11y">Mika’yı Erişilebilirlik ayarlarında yeniden açın</string>
+    <string name="pause_step_wireless">Kablosuz hata ayıklamayı Geliştirici seçeneklerinde yeniden açın</string>
+    <string name="pause_step_repair">Telefon yardımcısını yeniden eşle</string>
+    <string name="pause_reconnect">Yardımcıyı şimdi yeniden bağla</string>
+    <string name="pause_blocked_task">Mika duraklatıldığı için bu görev başlamadı. Önce Ayarlar’da Mika’yı sürdürün.</string>
+    <string name="pause_blocked_plan">Mika duraklatıldığı için bu plan çalışmadı.</string>
+    <string name="pause_blocked_workflow">Mika duraklatıldığı için bu iş akışı çalışmadı. Önce Ayarlar’da Mika’yı sürdürün.</string>
+    <string name="pause_channel_reply">Telefondaki Mika duraklatıldığı için bu görev başlamadı. Mika sürdürüldükten sonra tekrar gönderin.</string>
+    <string name="plans_skipped_paused">Mika duraklatılmışken atlandı</string>
+    <string name="workflow_stopped_paused">Mika duraklatıldığı için durdu</string>
+</resources>

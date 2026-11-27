@@ -55,6 +55,7 @@ import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.RunApproval
 import com.wangzan101.mika.settings.imageModel
 import com.wangzan101.mika.settings.ttsModel
+import com.wangzan101.mika.settings.videoModel
 import com.wangzan101.mika.takeover.Takeover
 import com.wangzan101.mika.voice.model.settingsProtocol
 import java.util.UUID
@@ -294,6 +295,7 @@ class TaskRun(
     val audios: StateFlow<List<com.wangzan101.mika.core.chat.GeneratedAudio>> get() = runState.audios
     /** 本任务生成并留在工作区里的图;结束时随这一轮存进对话。 */
     val photos: StateFlow<List<com.wangzan101.mika.core.chat.GeneratedPhoto>> get() = runState.photos
+    val videos: StateFlow<List<com.wangzan101.mika.core.chat.GeneratedVideo>> get() = runState.videos
     val takeoverStage: StateFlow<Takeover.Stage> get() = runState.takeoverStage
     val frames: StateFlow<Bitmap?> get() = runState.frames
     /** 个人助手的缩略图只收本任务获准展示的手机画面。 */
@@ -504,6 +506,53 @@ class TaskRun(
         com.wangzan101.mika.media.ShareFileExporter(service).save(bytes, mime, trimmed.substringAfterLast('/'))
     }
 
+    /**
+     * 把工作区里的一段视频复制成别的 App 可读的 content URI(分享用),和图片走同一个 [com.wangzan101.mika.media.ShareFileExporter];
+     * 边读边写,不整段读进内存。越界、不是视频、太大时为 null。
+     */
+    internal suspend fun shareWorkspaceVideo(path: String): com.wangzan101.mika.media.ShareableFile? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val trimmed = path.trim()
+        val prefix = com.wangzan101.mika.core.workspace.SandboxPaths.WORKSPACE + "/"
+        if (!trimmed.startsWith(prefix)) return@withContext null
+        val rel = trimmed.removePrefix(prefix)
+        if (rel.isEmpty() || rel.split('/').any { it.isEmpty() || it == "." || it == ".." }) return@withContext null
+        val mime = android.webkit.MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(trimmed.substringAfterLast('.', "").lowercase())
+            ?.takeIf { it.startsWith("video/") } ?: return@withContext null
+        val dirs = com.wangzan101.mika.cap.sandbox.SandboxDirs(service)
+        dirs.tree.shared {
+            dirs.gate.openRead(dirs.workspace(com.wangzan101.mika.chat.WorkspaceResolver.resolveFor(service, conversationId)), rel).use { g ->
+                if (g.size > com.wangzan101.mika.media.AndroidVideoPort.MAX_BYTES) null
+                else com.wangzan101.mika.media.ShareFileExporter(service).save(g.input(), mime, trimmed.substringAfterLast('/'))
+            }
+        }
+    }
+
+    /** 本任务的视频端口:手机上开始的任务才给(视频看/存只对用户本机文件有意义)。 */
+    internal val videoPort by lazy {
+        if (provenance.origin != RunOrigin.Ui) null
+        else com.wangzan101.mika.media.AndroidVideoPort(service, conversationId)
+    }
+
+    internal val videoSettings by lazy { com.wangzan101.mika.settings.VideoSettings.get(service) }
+
+    /**
+     * 本任务的视频生成端口:用户打开了视频生成、选的服务商现在仍能生成视频、且这是手机上开始的任务时才建。
+     * 哪家、什么协议由 [com.wangzan101.mika.settings.videoModel] 按服务商的声明决定;选择对不上时不建,工具也就不出现。
+     */
+    internal val videoGenerationPort by lazy {
+        val state = videoSettings.state.value
+        if (!state.enabled || provenance.origin != RunOrigin.Ui) null
+        else com.wangzan101.mika.settings.ProviderStore.get(service).videoModel(state.choice)?.let { model ->
+            com.wangzan101.mika.media.AndroidVideoGenerationPort(
+                service, conversationId, model,
+                com.wangzan101.mika.settings.ProviderStore.modelHttp,
+                onProgress = { stage -> statusNote(tr(videoStageText(stage))) },
+                onGenerated = ::addVideo,
+            )
+        }
+    }
+
     internal val audioPort by lazy {
         val state = audioSettings.state.value
         if (!state.enabled || provenance.origin != RunOrigin.Ui) null
@@ -531,7 +580,7 @@ class TaskRun(
             val protocol = voiceModels.tts.requireModel(ref).model.tts?.protocol
                 ?.let { it.settingsProtocol() } ?: return null
             val caps = audioSettings.capabilities(protocol)
-            val model = voiceModels.tts.createTts(service, ref, caps)
+            val model = voiceModels.tts.createSpeaker(service, ref, caps)
             buildAudioPort(model, caps, state.voice, state.speed)
         } catch (_: com.wangzan101.mika.voice.model.VoiceModelError) {
             null
@@ -559,6 +608,8 @@ class TaskRun(
 
     /** 音频能力把一段音频存进了音乐库:当作这一轮导出的文件,聊天里出现卡片。 */
     fun addSavedAudio(s: com.wangzan101.mika.core.model.SavedAudio) = runState.addSavedAudio(s)
+
+    fun addVideo(v: com.wangzan101.mika.core.chat.GeneratedVideo) = runState.addVideo(v)
 
     fun addSaved(s: com.wangzan101.mika.core.cap.image.SavedImage) = runState.addSaved(s)
 
@@ -728,6 +779,18 @@ class TaskRun(
     @Volatile internal var noticeTainted = false
 
     suspend fun learnAfter(end: TaskState, outcome: RunOutcome?, conversations: ConversationStore) = runTeardown.learnAfter(end, outcome, conversations)
+
+    private fun videoStageText(stage: com.wangzan101.mika.core.model.VideoJobStage): Int = when (stage) {
+        com.wangzan101.mika.core.model.VideoJobStage.Submitted -> R.string.task_video_submitted
+        com.wangzan101.mika.core.model.VideoJobStage.Queued -> R.string.task_video_queued
+        com.wangzan101.mika.core.model.VideoJobStage.Running -> R.string.task_video_running
+    }
+
+    /** 后台一步的说明写到任务卡片上(当前这一步的 note);不在干活(已暂停/结束)时不动。 */
+    private fun statusNote(text: String) {
+        val s = state.value as? TaskState.Running ?: return
+        publish(s.copy(note = text))
+    }
 
     internal fun publish(state: TaskState) {
         // 被挪走后到 gate 拦下之前,循环可能还在推理:对外先显示暂停

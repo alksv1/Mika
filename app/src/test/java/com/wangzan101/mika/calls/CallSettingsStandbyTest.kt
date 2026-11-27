@@ -22,4 +22,18 @@ class CallSettingsStandbyTest {
         assertFalse(prefs.getBoolean(CallSettings.BACKGROUND_AUTHORIZED, true))
         assertFalse(CallSettings(prefs).state.value.backgroundStandbyAuthorized)
     }
+
+    @Test fun theStoredGrantSurvivesAReloadAndIsClearedOnlyByTurningStandbyOff() {
+        val prefs = MemoryPrefs()
+        prefs.edit().putBoolean("enabled", true).putBoolean("auto_answer", true)
+            .putBoolean(CallSettings.BACKGROUND_AUTHORIZED, true).commit()
+        // A new process (reboot, sticky restart, periodic check) reads the grant straight from storage.
+        assertTrue(CallSettings.hasStoredStandbyAuthorization(prefs))
+        CallSettings(prefs)
+        assertTrue(CallSettings.hasStoredStandbyAuthorization(prefs))
+
+        val settings = CallSettings(prefs)
+        settings.save(settings.state.value.copy(enabled = true, autoAnswer = false))
+        assertFalse(CallSettings.hasStoredStandbyAuthorization(prefs))
+    }
 }

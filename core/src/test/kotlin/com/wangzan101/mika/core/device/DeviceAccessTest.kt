@@ -476,4 +476,63 @@ class DeviceAccessTest {
         assertTrue(s.attemptBlocked)
         assertTrue(s.last!!.value.all { it == '\u0000' })
     }
+
+    @Test fun localUnlockRetriesDismissOnceRightAfterWake() = runTest {
+        var dismissAttempts = 0
+        val p = object : DeviceAccessPort {
+            var stateNow = DeviceState(interactive = false, keyguardShowing = true, deviceLocked = false, secure = false, helperAvailable = true, userUnlocked = true)
+            override suspend fun state() = stateNow
+            override suspend fun wake(): Boolean { stateNow = stateNow.copy(interactive = true); return true }
+            override suspend fun dismiss(): Boolean {
+                dismissAttempts++
+                if (dismissAttempts == 1) return false
+                stateNow = stateNow.copy(keyguardShowing = false)
+                return true
+            }
+            override suspend fun credentialReady(kind: CredentialKind) = false
+            override suspend fun enter(credential: DeviceCredential) = false
+        }
+        val s = Store().apply { localEnabled = true }
+        val res = DeviceAccess(p, s, pollMs = 10, waitMs = 100).unlockLocal()
+        assertEquals("unlocked", res.status)
+        assertTrue(res.performedUnlock)
+        assertEquals(2, dismissAttempts)
+    }
+
+    private class FlakyDismissPort(var failures: Int, interactive: Boolean) : DeviceAccessPort {
+        var dismissAttempts = 0
+        var stateNow = DeviceState(interactive = interactive, keyguardShowing = true, deviceLocked = false, secure = false, helperAvailable = true, userUnlocked = true)
+        override suspend fun state() = stateNow
+        override suspend fun wake(): Boolean { stateNow = stateNow.copy(interactive = true); return true }
+        override suspend fun dismiss(): Boolean {
+            dismissAttempts++
+            if (dismissAttempts <= failures) return false
+            stateNow = stateNow.copy(keyguardShowing = false)
+            return true
+        }
+        override suspend fun credentialReady(kind: CredentialKind) = false
+        override suspend fun enter(credential: DeviceCredential) = false
+    }
+
+    @Test fun dismissRetryAfterWakeIsBoundedByTheWaitWindow() = runTest {
+        val p = FlakyDismissPort(failures = Int.MAX_VALUE, interactive = false)
+        val res = DeviceAccess(p, Store().apply { localEnabled = true }, pollMs = 10, waitMs = 50).unlockLocal()
+        assertEquals("dismiss_failed", res.status)
+        assertEquals(6, p.dismissAttempts)
+    }
+
+    @Test fun dismissIsNotRetriedWhenTheScreenWasAlreadyOn() = runTest {
+        val p = FlakyDismissPort(failures = 1, interactive = true)
+        val res = DeviceAccess(p, Store().apply { localEnabled = true }, pollMs = 10, waitMs = 100).unlockLocal()
+        assertEquals("dismiss_failed", res.status)
+        assertEquals(1, p.dismissAttempts)
+    }
+
+    @Test fun dismissRetryStopsAsSoonAsAuthorizationIsRevoked() = runTest {
+        val p = FlakyDismissPort(failures = Int.MAX_VALUE, interactive = false)
+        val access = DeviceAccess(p, Store().apply { localEnabled = true }, pollMs = 10, waitMs = 1_000)
+        val res = access.unlockLocal { p.dismissAttempts < 2 }
+        assertEquals("disabled", res.status)
+        assertEquals(2, p.dismissAttempts)
+    }
 }

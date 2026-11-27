@@ -60,6 +60,8 @@ class WirelessDebuggingAutoOn(
     private val read: () -> Boolean?,
     /** 把无线调试开关写成打开;系统不让写时返回 false 或抛异常。 */
     private val write: () -> Boolean,
+    /** 把无线调试开关写成关闭:起助手时替用户打开过、随后用户暂停了 Mika,就关回去。写不了返回 false。 */
+    private val writeOff: () -> Boolean = { false },
     private val now: () -> Long = System::currentTimeMillis,
     private val settleMs: Long = SETTLE_MS,
     private val pollMs: Long = POLL_MS,
@@ -102,6 +104,9 @@ class WirelessDebuggingAutoOn(
             writing = false
         }
     }
+
+    /** 把替用户打开的无线调试关回去(用户在连接途中暂停了 Mika)。 */
+    fun turnOff(): Boolean = canWrite() && runCatching(writeOff).getOrDefault(false)
 
     /** 换了 Wi-Fi、用户亲手打开了无线调试或点了重试、助手起来了:从头算。 */
     @Synchronized

@@ -162,6 +162,13 @@ class TranslationCliTest(unittest.TestCase):
         self.assertIn("strings.xml", malformed.stderr)
         self.assertNotIn("Traceback", malformed.stderr)
 
+    def test_stray_text_between_resources_is_an_input_error(self):
+        self.write_resources("values", '<string name="save">Save</string> (pasted commit title)\n')
+        result = self.run_cli("check")
+        self.assertEqual(2, result.returncode)
+        self.assertIn("stray text", result.stderr)
+        self.assertIn("pasted commit title", result.stderr)
+
     def test_empty_resource_root_is_an_input_error(self):
         self.res_dir.mkdir()
         result = self.run_cli("check")

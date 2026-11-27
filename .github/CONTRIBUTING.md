@@ -18,6 +18,8 @@ When opening an issue, please include your **phone model, Android version and Mi
 
 PRs welcome. Start with [`docs/dev/architecture.md`](../docs/dev/architecture.md) (written against the current code, with class names and file paths) and [`docs/dev/roadmap.md`](../docs/dev/roadmap.md) (done, next, known issues). Please include unit tests with your changes. The developer docs are in Chinese for now.
 
+When you open a PR, keep **"Allow edits by maintainers"** checked (on by default for PRs from a personal fork). If a PR is close but needs a few fixes (an edge case, a missing translation, a rebase onto the latest `main`), a maintainer can add commits on top of yours on your PR branch and merge it, instead of you having to iterate on every change. Your commits stay as they are (no force-push), and the merge keeps you as the author. If edits are not allowed, a maintainer has to open a separate PR to make the fixes; you'll still be credited with `Co-authored-by`, but your original PR will be closed in favour of the new one. The `PR policy` check fails while the option is off.
+
 ### Build and test
 
 Requires JDK 17 and the Android SDK (`sdk.dir` in `local.properties`, or the `ANDROID_HOME` environment variable). CLI tests also require Python 3.10+; select an interpreter with `-PmikaPython=/path/to/python3`.
@@ -48,6 +50,7 @@ Pull requests and pushes to `main` run on GitHub Actions ([`ci.yml`](workflows/c
 - `cli (Python)`: `./gradlew :core:cliTest`, plus `tools/i18n` unit tests and translation resource checks (Python 3.10+; CI uses 3.12)
 - `app (Android)`: `./gradlew :app:testDebugUnitTest :app:assembleDebug`
 - `relay (Go)`: `./gradlew :core:relayTest`
+- `maintainer edits allowed` ([`pr-maintainer-edits.yml`](workflows/pr-maintainer-edits.yml)): PRs from a fork fail until "Allow edits by maintainers" is checked; ticking it doesn't start a new run, so push a commit or ask a maintainer to re-run it. Organization-owned forks, where GitHub doesn't offer the option, only get a warning.
 
 Reproduce locally with the commands above. The repository pins text files to LF in `.gitattributes`: goldens, prompts and the README are compared byte-for-byte, so line endings that vary by platform (for example an old Windows checkout with `core.autocrlf=true`) make tests and goldens disagree. If your working tree is not LF, re-checkout or convert it back to LF before running the tests or `-PupdateSnapshots`.
 

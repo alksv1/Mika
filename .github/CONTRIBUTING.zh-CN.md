@@ -18,6 +18,8 @@
 
 欢迎 PR。先读 [`docs/dev/architecture.md`](../docs/dev/architecture.md)（按代码现状写，带类名和文件路径）和 [`docs/dev/roadmap.md`](../docs/dev/roadmap.md)（已完成、接下来、已知问题）。改动请带单元测试。
 
+提 PR 时请保持勾选 **「Allow edits by maintainers」**（允许维护者编辑；从个人 fork 提的 PR 默认勾选）。PR 已经接近可合、只差一些修改（边界情况、漏掉的翻译、跟上最新的 `main`）时，维护者可以直接在你的 PR 分支上追加提交后合并，不用你一轮轮来回改。你原来的提交原样保留（不强推），合并后作者仍是你。如果没有开放编辑，维护者只能另开一个 PR 来改；你仍会以 `Co-authored-by` 署名，但原 PR 会关闭并指向新 PR。没勾选时 `PR policy` 检查会失败。
+
 ### 构建与测试
 
 需要 JDK 17 和 Android SDK（`local.properties` 里的 `sdk.dir`，或环境变量 `ANDROID_HOME`）。CLI 测试另需 Python 3.10+，可用 `-PmikaPython=/path/to/python3` 指定解释器。
@@ -48,6 +50,7 @@ PR 和合入 `main` 的提交会在 GitHub Actions 上跑（[`ci.yml`](workflows
 - `cli (Python)`：`./gradlew :core:cliTest`，另跑 `tools/i18n` 单元测试和翻译资源检查（Python 3.10+；CI 使用 3.12）
 - `app (Android)`：`./gradlew :app:testDebugUnitTest :app:assembleDebug`
 - `relay (Go)`：`./gradlew :core:relayTest`
+- `maintainer edits allowed`（[`pr-maintainer-edits.yml`](workflows/pr-maintainer-edits.yml)）：从 fork 提的 PR 没勾选「Allow edits by maintainers」时失败；勾选本身不会触发重跑，勾上后推一个提交或请维护者重新运行。组织名下的 fork 没有这个选项，只给警告。
 
 本地按上面的命令逐项复现即可。仓库用 `.gitattributes` 把文本文件固定成 LF：金样、提示词和 README 都按字节比较，换行随平台变（例如 `core.autocrlf=true` 的旧 Windows 检出）会让测试和金样对不上。工作区不是 LF 时，先重新检出或把换行改回 LF，再运行测试或 `-PupdateSnapshots`。
 

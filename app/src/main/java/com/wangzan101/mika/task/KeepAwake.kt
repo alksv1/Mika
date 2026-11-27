@@ -22,8 +22,16 @@ interface WakeLockPort {
  * 再保持 [GRACE_MS](用户多半正要处理,别让屏幕在他眼前熄掉)后释放,任务继续跑时重新持有。
  * 结束、失败、取消立即释放。锁随进程走:Mika 异常退出时系统自动收回,不需要持久化恢复。
  * 用户按电源键照样能熄屏(没带 ACQUIRE_CAUSES_WAKEUP),这时 gate 会让任务等待解锁。
+ *
+ * 任务的 CPU 锁([CpuWakeLock])用同一套规则,只是 keepThroughEnd:从开跑一直撑到任务收尾(结果送达、账本记好),
+ * 等你处理时同样过了宽限就放开,不让一个等回答的任务整晚撑着 CPU。
  */
-class KeepAwake(private val lock: WakeLockPort, private val scope: CoroutineScope) {
+class KeepAwake(
+    private val lock: WakeLockPort,
+    private val scope: CoroutineScope,
+    /** 到了终态(和开跑前的 Idle)也接着持有、直到 [close]:CPU 锁要撑到结果送达、定时账本记好;屏幕锁不用。 */
+    private val keepThroughEnd: Boolean = false,
+) {
     private var held = false
     private var pendingRelease: Job? = null
     private var closed = false
@@ -36,7 +44,7 @@ class KeepAwake(private val lock: WakeLockPort, private val scope: CoroutineScop
             // 排在别的任务后面等虚拟屏:还在干活、不用你处理,照样持有;
             // 宽限后放开的话,那个任务一结束、放开它那份,屏幕就可能当场熄掉,接着建屏开干时只能等解锁
             is TaskState.Held -> if (state.reason.queued) hold() else releaseLater()
-            TaskState.Idle, is TaskState.Succeeded, is TaskState.Failed, TaskState.Cancelled -> release()
+            TaskState.Idle, is TaskState.Succeeded, is TaskState.Failed, TaskState.Cancelled -> if (keepThroughEnd) hold() else release()
             else -> releaseLater()
         }
     }
@@ -135,4 +143,43 @@ class ScreenWakeLock(context: Context) : WakeLockPort {
         /** 兜底上限,防止哪条路径漏了释放;正常由任务状态释放。 */
         private const val MAX_HOLD_MS = 6 * 60 * 60 * 1000L
     }
+}
+
+/**
+ * CPU 唤醒锁(PARTIAL_WAKE_LOCK):熄屏、Doze 里也让任务的网络与推理接着走,不点亮屏幕。
+ * 和屏幕锁一样由 [SharedWakeLock] 分成每个任务各持一份、按任务状态拿放(见 [KeepAwake] 的 keepThroughEnd);
+ * [MAX_HOLD_MS] 只是漏了释放时的兜底。
+ */
+class CpuWakeLock(context: Context, tag: String) : WakeLockPort {
+    private val lock = context.getSystemService(PowerManager::class.java)
+        .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, tag)
+        .apply { setReferenceCounted(false) }
+
+    override fun acquire() = lock.acquire(MAX_HOLD_MS)
+    override fun release() { if (lock.isHeld) lock.release() }
+
+    companion object {
+        private const val MAX_HOLD_MS = 6 * 60 * 60 * 1000L
+    }
+}
+
+/**
+ * 定时派发到任务服务接手之间的 CPU 唤醒。闹钟广播结束后系统就不再替 App 撑着 CPU,
+ * 而前台服务的 onStartCommand、任务拿到自己那份 CPU 锁都在这之后:派发方([TaskService.startTrigger])先拿上,
+ * 服务处理完这次启动(开跑、排队或因暂停/退出不开)就放开;服务没起来时到 [HANDOFF_MS] 自动放开。
+ * 只有这一个派发窗口要撑,所以整个进程一把、不计数:连着来两次就把期限往后推。
+ */
+internal object TriggerHandoffWake {
+    private var lock: PowerManager.WakeLock? = null
+
+    @Synchronized fun hold(context: Context) {
+        val l = lock ?: context.applicationContext.getSystemService(PowerManager::class.java)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Mika:trigger-handoff")
+            .apply { setReferenceCounted(false) }.also { lock = it }
+        l.acquire(HANDOFF_MS)
+    }
+
+    @Synchronized fun release() { lock?.takeIf { it.isHeld }?.release() }
+
+    const val HANDOFF_MS = 60_000L
 }

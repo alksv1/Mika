@@ -162,4 +162,5 @@
     <string name="desk_report_failed">하지 못했어요: %1$s</string>
     <string name="desk_report_cancelled">취소됨</string>
     <string name="desk_task_not_started">작업을 시작하지 못했어요. Mika를 열고 다시 시도해 주세요.</string>
+    <string name="sheet_no_matches">일치하는 항목이 없습니다</string>
 </resources>

@@ -125,6 +125,8 @@ fun ChatScreen(
     onOpenDrawer: () -> Unit,
     /** 被拦下的提示里的「去设置」。 */
     openSettings: () -> Unit,
+    /** 用量面板里的「查看 Token 用量」:跳到设置里的 Token 用量页。 */
+    openUsage: () -> Unit = {},
     /** 「＋」面板里的「浏览器」:打开内置浏览器。 */
     onOpenBrowser: () -> Unit = {},
     openRun: (String) -> Unit = {},
@@ -686,7 +688,9 @@ fun ChatScreen(
             )
         }
 
-        if (showUsage) ConversationUsageSheet(ui.conversationId) { showUsage = false }
+        // 面板里的「当前模型」跟着本对话在主模型入口里存的选择走,和这个对话下一次任务用的一致
+        if (showUsage) ConversationUsageSheet(ui.conversationId, onDismiss = { showUsage = false }, onOpenUsage = openUsage,
+            mainOverride = ui.mainModel.override)
     if (showRecords) {
         CallRecordsSheet(
             callLog, current = callLog.lastOrNull { it.endMs == null }?.id.orEmpty(),

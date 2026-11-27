@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Taksi dan transportasi daring</string>
     <string name="calls_only_strangers">Hanya nomor di luar kontak</string>
     <string name="calls_strangers_note">Izinkan Mika membaca kontak. AI hanya menjawab jika nomor dipastikan belum tersimpan. Nomor tersembunyi atau yang gagal diperiksa dapat Anda jawab sendiri.</string>
+    <string name="calls_show_dialpad">Tampilkan papan nomor</string>
+    <string name="calls_hide_dialpad">Sembunyikan papan nomor</string>
+    <string name="calls_delete_digit">Hapus</string>
+    <string name="calls_clear_draft">Kosongkan draf</string>
+    <string name="calls_reset_history_filters">Setel ulang filter</string>
 </resources>

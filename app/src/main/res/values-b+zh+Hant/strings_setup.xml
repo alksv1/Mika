@@ -103,4 +103,37 @@
     <string name="model_fallback_add_another">繼續添加備用模型 (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">當 %1$s 遇到速率或配額超限時，Mika 會按順序自動嘗試鏈中的備用模型，保障後台任務順利完成。</string>
     <string name="model_fallback_collapse_hint">已展開故障轉移鏈 · 點擊收起</string>
+    <string name="model_keys_title">API Key</string>
+    <string name="model_keys_pool_one">API Key 池 · 1 個 Key</string>
+    <string name="model_keys_pool_many">API Key 池 · %1$s · 自動輪換</string>
+    <string name="model_keys_hide">隱藏 Key</string>
+    <string name="model_keys_show">顯示 Key</string>
+    <string name="model_key_not_configured">還沒有填 Key</string>
+    <string name="model_key_not_configured_hint">添加一個 Key 才能連接這家服務商</string>
+    <string name="model_key_required">必須填</string>
+    <string name="model_key_number">Key %1$d</string>
+    <string name="model_key_active">生效中</string>
+    <string name="model_key_add">添加 API Key</string>
+    <string name="model_key_add_first_hint">貼上你的 Key 來連接</string>
+    <string name="model_key_add_another_hint">再添加一個 Key 到輪換池</string>
+    <string name="model_keys_rotate_note">Key 會自動輪換。遇到 429 限流或逾時的 Key 會被跳過，等它恢復再用，任務不中斷。</string>
+    <string name="model_keys_add_more_note">再添加幾個 Key，就能自動故障轉移輪換。</string>
+    <string name="model_key_add_note">貼上一個 Key；也可以一次貼上多個，用逗號或換行分隔，會全部添加。</string>
+    <string name="model_keys_detected_add">偵測到 %1$s，會全部加入輪換池</string>
+    <string name="model_key_one_ready">1 個 Key 已就緒，可以添加</string>
+    <string name="model_provider_line_pool">%1$s · Key 池（%2$s）</string>
+    <string name="model_keys_detected_setup">偵測到 %1$s，遇到限流或逾時會自動輪換</string>
+    <string name="model_providers_none">還沒有連接服務商</string>
+    <string name="model_providers_keys_in_pool">%1$s · 池裡有 %2$s</string>
+    <string name="model_key_remove">移除</string>
+    <string name="model_fallback_remove_desc">移除備用模型</string>
+    <plurals name="model_keys_count">
+        <item quantity="other">%1$d 個 Key</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="other">✓ Key 池：偵測到 %1$d 個 API Key（遇到 429 限流或逾時會自動輪換）</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="other">添加 %1$d 個 Key</item>
+    </plurals>
 </resources>

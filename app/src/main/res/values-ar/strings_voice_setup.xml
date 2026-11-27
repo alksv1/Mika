@@ -31,6 +31,8 @@
     <string name="voice_settings_of">إعدادات %1$s</string>
     <string name="voice_voice">الصوت</string>
     <string name="voice_voice_default">افتراضي</string>
+    <string name="voice_tts_engine">محرك تحويل النص إلى كلام</string>
+    <string name="voice_engine_default">افتراضي النظام</string>
     <string name="realtime_lead">تحدث مع Mika وقاطعها في أي وقت. تستخدم المكالمات الهاتفية بالذكاء الاصطناعي الاختيار نفسه ما لم تختر واحدًا خاصًا بها.</string>
     <string name="realtime_empty">لا يوجد نموذج للمكالمات الصوتية بعد</string>
     <string name="realtime_empty_note">اختر واحدًا أدناه، أو اربط خدمة صوت تدعم المكالمات.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">بكين</string>
     <string name="voice_region_singapore">سنغافورة</string>
     <string name="voice_compat_lead">للخدمات التي تدعم واجهات OpenAI الصوتية. املأ النماذج التي تريدها واترك الباقي فارغًا.</string>
-    <string name="voice_compat_models">النماذج</string>
     <string name="voice_compat_models_note">اترك النموذج فارغًا إذا كانت الخدمة لا توفره.</string>
     <string name="voice_selfhosted_lead">خادم تعرّف متدفق على شبكتك الخاصة. أدخل عنوانه؛ لا حاجة إلى حساب.</string>
     <string name="voice_field_api_key">مفتاح API</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">تم التحقق</string>
     <string name="calls_audio_unchecked">لم يُتحقق</string>
     <string name="voice_stt_footer">التعرّف المدمج في الهاتف مجاني. تأتي الخيارات عبر الإنترنت من خدمات الصوت لديك؛ قل جملة لتجربة أحدها قبل اختياره.</string>
+    <string name="voice_audition">استمع إلى %1$s</string>
+    <string name="voice_fallback_footer_stt">إذا تم تقييد الإدخال الصوتي أو كانت الخدمة مثقلة أو لم ترد في الوقت المناسب، يرسل Mika التسجيل نفسه إلى النموذج التالي بالترتيب. لا يمكن أن تكون احتياطية إلا النماذج التي تنسخ بعد انتهائك من الكلام.</string>
+    <string name="voice_fallback_footer_tts">إذا تم تقييد القراءة بصوت عالٍ أو كانت الخدمة مثقلة أو لم ترد في الوقت المناسب، يجرّب Mika النموذج التالي بالترتيب قبل بدء التشغيل. تستخدم النماذج الاحتياطية صوتها الافتراضي.</string>
+    <string name="voice_fallback_pick_title">احتياطي لـ %1$s</string>
+    <string name="voice_fallback_none">لا يوجد نموذج آخر يمكن أن يكون احتياطيًا بعد</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

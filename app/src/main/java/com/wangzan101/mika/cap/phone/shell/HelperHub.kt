@@ -39,6 +39,8 @@ class HelperHub internal constructor(
     initialShell: IMikaShell? = null,
 ) {
     private val app = context.applicationContext
+    /** 用户暂停了 Mika:交接一律拒绝,见 [offer]、[attachShizuku]。读持久化的暂停标记,每次交接时现读。 */
+    private val pause = com.wangzan101.mika.settings.MikaPause.get(app)
 
     private val _shell = MutableStateFlow<IMikaShell?>(initialShell)
     /** 现在手里的助手接口;助手进程死了就变回 null。 */
@@ -149,6 +151,8 @@ class HelperHub internal constructor(
             appApk = app.applicationInfo.sourceDir,
             hasBinder = binder != null,
         )?.let { return reject(callingUid, it) }
+        // 暂停时不碰口令也不碰 Binder:助手被拒后自己退出,恢复后由看门狗按已配对的连接重起
+        if (pause.paused()) return reject(callingUid, HelperHandoff.Reject.Paused)
         val gate = nonces
         val nonce = extras?.getString(HelperHandoff.KEY_NONCE)
         // 口令不对就不碰对方给的 Binder
@@ -189,6 +193,11 @@ class HelperHub internal constructor(
      */
     @Synchronized
     fun attachShizuku(binder: IBinder): IMikaShell? {
+        // 启动前查过暂停、Binder 却在暂停之后才到:不收,调用方见 null 会解绑
+        if (pause.paused()) {
+            Log.w(TAG, "shizuku helper refused: Mika is paused")
+            return null
+        }
         val shell = IMikaShell.Stub.asInterface(binder) ?: return null
         val ids = runCatching { shell.identity() }.getOrNull()
         if (ids == null || ids.size < 2 || (ids[0] != HelperHandoff.SHELL_UID && ids[0] != 0)) {

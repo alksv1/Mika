@@ -308,4 +308,6 @@
     <plurals name="settings_workspace_size_limit_gb_n">
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">Cari pengaturan</string>
+    <string name="settings_search_empty">Tidak ada pengaturan yang cocok</string>
 </resources>

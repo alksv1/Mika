@@ -43,6 +43,7 @@ fun ProviderStore.connect(
     signIn: String? = null,
     typed: Set<String> = emptySet(),
     untested: Boolean = false,
+    nickname: String? = null,
 ): Provider {
     return synchronized(this) {
         val found = findOrAddProvider(name, kind, baseUrl, signIn)
@@ -53,12 +54,27 @@ fun ProviderStore.connect(
             verifiedModels = found.verifiedModels + verified, typedModels = found.typedModels + typed,
             // 这次没测、这家也没有核实过的模型、也没列过列表,才是「没测过」;别的情况一律按测过
             savedUntested = untested && verified.isEmpty() && found.verifiedModels.isEmpty() && listed.isEmpty(),
+            // 这次没填备注就留着原来的;备注不参与找同一家(见 [Provider.nickname])
+            nickname = Provider.cleanNickname(nickname) ?: found.nickname,
         )
         _providers.value = _providers.value.map { if (it.id == p.id) p else it }
         repairUnavailableReasoningEfforts()
         if (apiKey != null) setKey(p.id, apiKey)
         writeConfig()
         return p
+    }
+}
+
+/** 改这家的备注(见 [Provider.nickname]);空的就是去掉备注。和其它改动一样在锁里改、写同一个配置文件。 */
+fun ProviderStore.setProviderNickname(providerId: String, nickname: String?) {
+    synchronized(this) {
+        val p = provider(providerId) ?: return
+        val clean = Provider.cleanNickname(nickname)
+        if (p.nickname == clean) return
+        _providers.value = _providers.value.map {
+            if (it.id == providerId) it.copy(nickname = clean) else it
+        }
+        writeConfig()
     }
 }
 

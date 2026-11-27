@@ -5,6 +5,7 @@ import com.wangzan101.mika.core.remote.RemoteTasks
 import com.wangzan101.mika.core.remote.RemoteTask
 import com.wangzan101.mika.core.remote.RemoteTaskService
 import com.wangzan101.mika.core.remote.RemoteTaskError
+import com.wangzan101.mika.core.remote.refuseRemote
 import com.wangzan101.mika.core.device.DeviceAccess
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -134,9 +135,13 @@ class McpTaskTools(
                     }
                 }
             }
-            else -> if (deviceTools?.tools?.any { it.name == name } == true) deviceTools.call(name, args)
+            else -> {
+                // 会动手机的设备与通话工具:暂停时和任务工具同样拒;读状态、挂断、交还听筒照常
+                if (name in PAUSE_REFUSED) service.paused.refuseRemote()
+                if (deviceTools?.tools?.any { it.name == name } == true) deviceTools.call(name, args)
                 else if (callTools?.tools?.any { it.name == name } == true) callTools.call(name, args)
                 else throw ToolError("Unknown tool: $name")
+            }
         }
     } catch (e: RemoteTaskError) {
         // 按错误类型换回原 MCP 客户端看到的说法(带 MCP 工具名);共用服务不包含 MCP 命令名。
@@ -177,6 +182,8 @@ class McpTaskTools(
     }
 
     companion object {
+        /** 暂停时拒绝的设备与通话工具(任务工具的拒绝在 [RemoteTaskService] 与任务入口里)。 */
+        private val PAUSE_REFUSED = setOf(McpDeviceTools.WAKE, McpDeviceTools.UNLOCK, McpCallTools.DIAL, McpCallTools.ANSWER)
         const val RUN = "mika_run_task"
         const val STEER = "mika_steer_task"
         const val STATUS = "mika_task_status"

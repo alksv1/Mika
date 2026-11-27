@@ -30,7 +30,11 @@ import java.util.UUID
     val result: String get() = if (phase == WorkflowPhase.Completed) attempts.last().last().result else ""
 }
 @Serializable data class WorkflowData(val templates: List<WorkflowTemplate> = emptyList(), val runs: List<WorkflowRun> = emptyList())
-enum class WorkflowProblem { Invalid, Full, Changed, Busy, Read, Write, ResultTooLong }
+enum class WorkflowProblem {
+    Invalid, Full, Changed, Busy, Read, Write, ResultTooLong,
+    /** 用户暂停了 Mika:不开始、不继续,恢复后再操作。 */
+    Paused,
+}
 class WorkflowException(val problem: WorkflowProblem) : Exception(problem.name)
 data class WorkflowDispatch(val runId: String, val attemptId: String, val conversationId: String, val step: WorkflowStep, val input: String, val previous: String)
 

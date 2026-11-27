@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Pausar Mika</string>
+    <string name="pause_row_sub_active">Detén todo el trabajo de Mika hasta que lo reanudes</string>
+    <string name="pause_row_sub_paused">En pausa: no se ejecutan tareas ni planes</string>
+    <string name="pause_state_active">Activo</string>
+    <string name="pause_explain">Al pausar se detienen todas las tareas en curso y en cola, se omiten los planes que toquen y se rechazan las tareas nuevas del chat, de computadoras y de canales de mensajes hasta que reanudes. También se desactivan el servicio de accesibilidad de Mika y la depuración inalámbrica, y se detiene el asistente del teléfono. No se desinstala ni se borra nada, y la vinculación de depuración inalámbrica se conserva.</string>
+    <string name="pause_paused_title">Mika está en pausa</string>
+    <string name="pause_paused_body">No se ejecutan tareas, se omiten los planes y el asistente del teléfono está detenido hasta que reanudes.</string>
+    <string name="pause_active_title">Mika está activo</string>
+    <string name="pause_active_body">Pausa Mika cuando quieras apagarlo del todo por un tiempo.</string>
+    <string name="pause_status_label">Lo que se desactiva al pausar</string>
+    <string name="pause_action">Pausar Mika</string>
+    <string name="pause_action_sub">Detener tareas, desactivar accesibilidad y depuración inalámbrica, detener el asistente</string>
+    <string name="pause_resume">Reanudar Mika</string>
+    <string name="pause_resume_sub">Reconectar el asistente con la vinculación guardada</string>
+    <string name="pause_resumed">Mika vuelve a estar activo.</string>
+    <string name="pause_resume_note">Mika no pudo volver a activarlo todo por sí sola. Completa los pasos de abajo.</string>
+    <string name="pause_a11y_restoring">Volviendo a activar el servicio de accesibilidad de Mika…</string>
+    <string name="pause_a11y_label">Servicio de accesibilidad</string>
+    <string name="pause_wireless_label">Depuración inalámbrica</string>
+    <string name="pause_helper_label">Asistente del teléfono</string>
+    <string name="pause_helper_running">En ejecución</string>
+    <string name="pause_helper_paused">En pausa</string>
+    <string name="pause_helper_not_running">Sin ejecutar</string>
+    <string name="pause_helper_connecting">Conectando…</string>
+    <string name="pause_tasks_stopped">Se detuvieron las tareas en curso y en cola.</string>
+    <string name="pause_done">La accesibilidad y la depuración inalámbrica están desactivadas y el asistente está detenido.</string>
+    <string name="pause_a11y_manual">No se pudo desactivar el servicio de accesibilidad desde aquí. Abre los ajustes de Accesibilidad y desactiva Mika.</string>
+    <string name="pause_wireless_manual">No se pudo desactivar la depuración inalámbrica desde aquí. Abre las Opciones para desarrolladores y desactívala.</string>
+    <string name="pause_save_failed">No se pudo guardar el cambio, así que no cambió nada. Inténtalo de nuevo.</string>
+    <string name="pause_step_a11y">Vuelve a activar Mika en los ajustes de Accesibilidad</string>
+    <string name="pause_step_wireless">Vuelve a activar la depuración inalámbrica en Opciones para desarrolladores</string>
+    <string name="pause_step_repair">Vincular de nuevo el asistente del teléfono</string>
+    <string name="pause_reconnect">Reconectar el asistente ahora</string>
+    <string name="pause_blocked_task">Mika está en pausa, así que esta tarea no empezó. Primero reanuda Mika en Ajustes.</string>
+    <string name="pause_blocked_plan">Mika está en pausa, así que este plan no se ejecutó.</string>
+    <string name="pause_blocked_workflow">Mika está en pausa, así que este flujo de trabajo no se ejecutó. Primero reanuda Mika en Ajustes.</string>
+    <string name="pause_channel_reply">Mika está en pausa en el teléfono, así que no empezó esta tarea. Envíala de nuevo cuando Mika se reanude.</string>
+    <string name="plans_skipped_paused">Omitido mientras Mika estaba en pausa</string>
+    <string name="workflow_stopped_paused">Detenido porque Mika se pausó</string>
+</resources>

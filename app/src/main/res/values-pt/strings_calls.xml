@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Táxis e transporte por aplicação</string>
     <string name="calls_only_strangers">Apenas números fora dos contatos</string>
     <string name="calls_strangers_note">Permita que o Mika leia seus contatos. A IA só atende se confirmar que o número não está salvo. Números ocultos ou que não puderem ser verificados ficam para você atender.</string>
+    <string name="calls_show_dialpad">Mostrar teclado de chamadas</string>
+    <string name="calls_hide_dialpad">Ocultar teclado de chamadas</string>
+    <string name="calls_delete_digit">Apagar</string>
+    <string name="calls_clear_draft">Limpar rascunho</string>
+    <string name="calls_reset_history_filters">Redefinir filtros</string>
 </resources>

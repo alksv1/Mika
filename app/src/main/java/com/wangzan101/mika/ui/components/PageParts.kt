@@ -3,6 +3,7 @@ package com.wangzan101.mika.ui.components
 import com.wangzan101.mika.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -71,7 +73,10 @@ fun RowActions(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     ) { content() }
 }
 
-/** 搜索框:浅填充底、圆角 14、高 40,左边放大镜。给了 [onSubmit] 时键盘上是「前往」,按下交给它。 */
+/**
+ * 搜索框:浅填充底、圆角 14、高 40,左边放大镜。给了 [onSubmit] 时键盘上是「前往」,按下交给它。
+ * 给了 [onClear] 时,有字就在右边放一个清除按钮([clearTag] 是它的测试标签)。
+ */
 @Composable
 fun SearchField(
     value: String,
@@ -79,6 +84,8 @@ fun SearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     onSubmit: (() -> Unit)? = null,
+    onClear: (() -> Unit)? = null,
+    clearTag: String? = null,
 ) {
     val c = MikaTheme.colors
     Row(
@@ -95,6 +102,12 @@ fun SearchField(
                 keyboardOptions = if (onSubmit != null) KeyboardOptions(imeAction = ImeAction.Go) else KeyboardOptions.Default,
                 keyboardActions = KeyboardActions(onGo = { onSubmit?.invoke() }),
             )
+        }
+        if (onClear != null && value.isNotEmpty()) {
+            // IconButton keeps the 48dp touch target even though the field itself is only 40dp tall.
+            IconButton(onClick = onClear, modifier = if (clearTag != null) Modifier.testTag(clearTag) else Modifier) {
+                Icon(MikaIcons.Close, stringResource(R.string.clear), Modifier.size(18.dp), tint = c.ink3)
+            }
         }
     }
 }

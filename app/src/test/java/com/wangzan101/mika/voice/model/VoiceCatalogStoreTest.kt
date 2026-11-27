@@ -193,6 +193,54 @@ class VoiceCatalogStoreTest {
         assertEquals(attemptsBefore, backend.writeAttempts)
     }
 
+    @Test
+    fun `fallback chains persist, drop the primary and models that are gone`() {
+        val backend = FakeBackend()
+        val store = VoiceCatalogStore(backend)
+        store.upsertService(testService)
+        store.upsertModel(testModel(stt = sttBinding, tts = ttsBinding))
+        store.upsertModel(VoiceModel("svc", "b", "B", stt = sttBinding, tts = ttsBinding))
+        store.upsertModel(VoiceModel("svc", "c", "C", stt = sttBinding))
+        store.upsertModel(VoiceModel("svc", "live", "Live", stt = SttBinding(SttProtocol.DoubaoStreaming)))
+        val b = VoiceModelRef("svc", "b", VoiceCapability.STT)
+        val c = VoiceModelRef("svc", "c", VoiceCapability.STT)
+        store.setSttSelection(SttSelection.Model(sttRef))
+
+        assertTrue(store.setFallback(VoiceCapability.STT, 0, b))
+        assertTrue(store.setFallback(VoiceCapability.STT, 1, c))
+        assertFalse("链头不能当自己的备援", store.setFallback(VoiceCapability.STT, 2, sttRef))
+        assertFalse("流式识别进不了链", store.setFallback(VoiceCapability.STT, 2, VoiceModelRef("svc", "live", VoiceCapability.STT)))
+        assertFalse("能力不对", store.setFallback(VoiceCapability.STT, 2, ttsRef))
+        assertTrue(store.moveFallback(VoiceCapability.STT, 1, 0))
+        assertFalse(store.moveFallback(VoiceCapability.STT, 1, 2))
+        assertTrue(store.setFallback(VoiceCapability.TTS, 0, VoiceModelRef("svc", "b", VoiceCapability.TTS)))
+        assertEquals(listOf(c, b), VoiceCatalogStore(backend).state.value.selections.sttFallbacks)
+
+        store.setSttSelection(SttSelection.Model(c))
+        assertEquals("新链头从链里拿掉", listOf(b), store.state.value.selections.sttFallbacks)
+
+        store.deleteModel(VoiceModelRef("svc", "b", VoiceCapability.STT))
+        val after = VoiceCatalogStore(backend).state.value.selections
+        assertEquals(emptyList<VoiceModelRef>(), after.sttFallbacks)
+        assertEquals(emptyList<VoiceModelRef>(), after.ttsFallbacks)
+    }
+
+    @Test
+    fun `catalog written before fallback chains existed still loads with empty chains`() {
+        val backend = FakeBackend()
+        val store = VoiceCatalogStore(backend)
+        store.upsertService(testService)
+        store.upsertModel(testModel(stt = sttBinding, tts = ttsBinding))
+        store.setTtsSelection(ttsRef)
+        val old = backend.value!!.replace(Regex(""","?"(stt|tts)Fallbacks":\[[^\]]*\]"""), "")
+        assertFalse(old.contains("Fallbacks"))
+
+        val restored = VoiceCatalogStore(FakeBackend(old))
+        assertNull(restored.state.value.error)
+        assertEquals(ttsRef, restored.state.value.selections.tts)
+        assertEquals(emptyList<VoiceModelRef>(), restored.state.value.selections.ttsFallbacks)
+    }
+
     private data class Fixture(val store: VoiceCatalogStore, val backend: FakeBackend)
 
     private fun populatedStore(): Fixture {

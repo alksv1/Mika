@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Jeda Mika</string>
+    <string name="pause_row_sub_active">Hentikan semua pekerjaan Mika sampai Anda melanjutkannya</string>
+    <string name="pause_row_sub_paused">Dijeda: tidak ada tugas atau rencana yang berjalan</string>
+    <string name="pause_state_active">Aktif</string>
+    <string name="pause_explain">Menjeda akan menghentikan semua tugas yang berjalan dan mengantre, melewati rencana yang sudah waktunya, dan menolak tugas baru dari chat, komputer, dan saluran pesan sampai Anda melanjutkan. Layanan aksesibilitas Mika dan proses debug nirkabel juga dimatikan, dan pembantu ponsel dihentikan. Tidak ada yang dicopot atau dihapus, dan penyambungan proses debug nirkabel tetap tersimpan.</string>
+    <string name="pause_paused_title">Mika dijeda</string>
+    <string name="pause_paused_body">Sampai Anda melanjutkan, tidak ada tugas yang berjalan, rencana dilewati, dan pembantu ponsel berhenti.</string>
+    <string name="pause_active_title">Mika aktif</string>
+    <string name="pause_active_body">Jeda Mika saat Anda ingin mematikannya sepenuhnya untuk sementara.</string>
+    <string name="pause_status_label">Yang dimatikan saat dijeda</string>
+    <string name="pause_action">Jeda Mika</string>
+    <string name="pause_action_sub">Hentikan tugas, matikan aksesibilitas dan proses debug nirkabel, hentikan pembantu</string>
+    <string name="pause_resume">Lanjutkan Mika</string>
+    <string name="pause_resume_sub">Sambungkan ulang pembantu dengan penyambungan yang tersimpan</string>
+    <string name="pause_resumed">Mika aktif kembali.</string>
+    <string name="pause_resume_note">Mika tidak dapat mengaktifkan semuanya kembali sendiri. Selesaikan langkah di bawah.</string>
+    <string name="pause_a11y_restoring">Mengaktifkan kembali layanan aksesibilitas Mika…</string>
+    <string name="pause_a11y_label">Layanan aksesibilitas</string>
+    <string name="pause_wireless_label">Proses debug nirkabel</string>
+    <string name="pause_helper_label">Pembantu ponsel</string>
+    <string name="pause_helper_running">Berjalan</string>
+    <string name="pause_helper_paused">Dijeda</string>
+    <string name="pause_helper_not_running">Tidak berjalan</string>
+    <string name="pause_helper_connecting">Menyambungkan…</string>
+    <string name="pause_tasks_stopped">Tugas yang berjalan dan mengantre telah dihentikan.</string>
+    <string name="pause_done">Aksesibilitas dan proses debug nirkabel mati, pembantu dihentikan.</string>
+    <string name="pause_a11y_manual">Tidak dapat mematikan layanan aksesibilitas dari sini. Buka setelan Aksesibilitas dan matikan Mika.</string>
+    <string name="pause_wireless_manual">Tidak dapat mematikan proses debug nirkabel dari sini. Buka Opsi developer dan matikan.</string>
+    <string name="pause_save_failed">Perubahan tidak dapat disimpan, jadi tidak ada yang berubah. Coba lagi.</string>
+    <string name="pause_step_a11y">Nyalakan kembali Mika di setelan Aksesibilitas</string>
+    <string name="pause_step_wireless">Nyalakan kembali proses debug nirkabel di Opsi developer</string>
+    <string name="pause_step_repair">Sambungkan ulang pembantu ponsel</string>
+    <string name="pause_reconnect">Sambungkan ulang pembantu sekarang</string>
+    <string name="pause_blocked_task">Mika sedang dijeda, jadi tugas ini tidak dimulai. Lanjutkan Mika di Setelan terlebih dahulu.</string>
+    <string name="pause_blocked_plan">Mika sedang dijeda, jadi rencana ini tidak dijalankan.</string>
+    <string name="pause_blocked_workflow">Mika sedang dijeda, jadi alur kerja ini tidak dijalankan. Lanjutkan Mika di Setelan terlebih dahulu.</string>
+    <string name="pause_channel_reply">Mika di ponsel sedang dijeda, jadi tugas ini tidak dimulai. Kirim lagi setelah Mika dilanjutkan.</string>
+    <string name="plans_skipped_paused">Dilewati saat Mika dijeda</string>
+    <string name="workflow_stopped_paused">Dihentikan karena Mika dijeda</string>
+</resources>

@@ -67,6 +67,13 @@ class ModelRouterTest {
         assertSame(seeing, ModelRouter(main, seeing).pick(clean(5).copy(hasImages = true)))
     }
 
+    @Test fun userSteerKeepsThatStepOnMainOnly() {
+        val r = ModelRouter(main, light)
+        assertSame(main, r.pick(clean(5).copy(userSpoke = true)))
+        // 不算出状况:下一步照常给轻量模型
+        assertSame(light, r.pick(clean(6)))
+    }
+
     @Test fun troubleForcesMainForTwoSteps() {
         for (trouble in listOf(clean(3).copy(lastOk = false), clean(3).copy(lastHadGuard = true), clean(3).copy(lastChanged = false))) {
             val r = ModelRouter(main, light)
@@ -101,6 +108,12 @@ class ModelRouterTest {
         val r = ModelRouter(main, NamedModel("plain", toolCalls = false))
         assertSame(main, r.pick(clean(2)))
         assertSame(main, ModelRouter(main, null).pick(clean(2)))
+    }
+
+    // root 下跑的命令是模型写的,和 phone_system_command 一样只让主模型给
+    @Test fun rootCommandIsMainOnly() {
+        assertTrue(ModelRouter.mainOnly("root_run_command", com.wangzan101.mika.core.tool.Verb.RootCommand))
+        assertTrue(ModelRouter.mainOnly("phone_system_command", com.wangzan101.mika.core.tool.Verb.PhoneCommand))
     }
 
     @Test fun sandboxToolsAreMainOnlyAndNotBatchable() {

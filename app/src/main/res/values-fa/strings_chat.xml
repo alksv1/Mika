@@ -225,6 +225,8 @@
     <string name="pip_closed_hint">نمای این کار بسته شد. روی «نمایش صفحه» در پایین سمت راست بزنید، یا «صفحه‌های پس‌زمینه» را در منوی کناری باز کنید.</string>
     <string name="chat_conversation_tokens">این گفتگو: %1$s</string>
     <string name="chat_conversation_tokens_partial">این گفتگو: حداقل %1$s</string>
+    <string name="chat_current_model">مدل فعلی</string>
+    <string name="chat_usage_view_details">مشاهده مصرف توکن</string>
     <string name="follow_up_steer">هدایت کار</string>
     <string name="follow_up_queue">قرار دادن در صف</string>
     <string name="follow_up_steer_hint">مرحلهٔ بعد کار فعلی را بر اساس پیام شما تنظیم می‌کند</string>
@@ -346,4 +348,6 @@
     <string name="chat_example_share_title">Mika را با یک دوست به اشتراک بگذار</string>
     <string name="chat_example_share_blurb">به کسی که لازمش دارد معرفی کن</string>
     <string name="chat_example_share">لینک پروژه Mika https://github.com/wangzan101/mika را با یک دوست به اشتراک بگذار و بگو که می‌تواند گوشی را برایش کار کند.</string>
+    <string name="chat_video">ویدیو</string>
+    <string name="chat_video_play">پخش</string>
 </resources>

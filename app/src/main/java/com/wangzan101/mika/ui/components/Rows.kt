@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -48,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
@@ -67,6 +69,7 @@ import com.wangzan101.mika.ui.theme.MikaSize
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.ui.theme.pressScale
+import kotlin.math.roundToInt
 
 /** 分组小标题:13 / 500,辅助文字色。 */
 @Composable
@@ -200,27 +203,56 @@ fun ListRow(
             .heightIn(min = MikaSize.RowMin)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        if (icon != null) IconTile(icon, tone, brandTile)
+        if (icon != null) {
+            IconTile(icon, tone, brandTile)
+            Spacer(Modifier.width(RowGap))
+        }
         Column(Modifier.weight(1f).padding(vertical = 11.dp)) {
             Text(title, style = MikaType.Body, color = titleColor.takeOrElse { c.ink },
                 maxLines = titleMaxLines, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             if (!sub.isNullOrEmpty()) Text(sub, Modifier.padding(top = 2.dp), style = MikaType.Caption, color = c.ink3)
             if (!detail.isNullOrEmpty()) Text(detail, Modifier.padding(top = 2.dp), style = MikaType.Hint, color = detailColor.takeOrElse { c.ink3 })
         }
-        trailing()
+        // 行尾最多占标题旁可用宽度的一半出头:值再长也只省略值,标题不被挤没
+        Row(
+            Modifier.trailingSlot(TrailingMaxFraction, RowGap),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(RowGap),
+            content = trailing,
+        )
     }
+}
+
+/** 行里图标块、标题、行尾之间的间距。 */
+private val RowGap = 14.dp
+
+/** 行尾([ListRow] 的 trailing)最多占图标块以外宽度的比例。 */
+private const val TrailingMaxFraction = 0.52f
+
+/**
+ * 行尾的位置:宽度不超过父布局给的最大宽度的 [fraction](宽度不受限时不管),有内容时前面空出 [gap],
+ * 没内容时整块不占地方(和以前一样,标题一直排到行尾)。一次测量,不用子组合。
+ */
+private fun Modifier.trailingSlot(fraction: Float, gap: Dp) = layout { measurable, constraints ->
+    val gapPx = gap.roundToPx()
+    val c = if (constraints.hasBoundedWidth) {
+        val max = ((constraints.maxWidth * fraction).roundToInt() - gapPx).coerceAtLeast(0)
+        constraints.copy(minWidth = 0, maxWidth = max)
+    } else constraints.copy(minWidth = 0)
+    val p = measurable.measure(c)
+    if (p.width == 0) layout(0, p.height) {}
+    else layout(p.width + gapPx, p.height) { p.placeRelative(gapPx, 0) }
 }
 
 enum class ValueTone { Plain, Ok, Warn, Bad, Link }
 
-/** 行尾的值。 */
+/** 行尾的值。放不下时省略,把位置先让给同一行尾的开关、箭头。 */
 @Composable
-fun RowValue(text: String, tone: ValueTone = ValueTone.Plain) {
+fun RowScope.RowValue(text: String, tone: ValueTone = ValueTone.Plain, modifier: Modifier = Modifier) {
     val c = MikaTheme.colors
     Text(
-        text, style = MikaType.Value,
+        text, modifier.weight(1f, fill = false), style = MikaType.Value,
         fontWeight = if (tone == ValueTone.Link) FontWeight.Medium else FontWeight.Normal,
         color = when (tone) {
             ValueTone.Plain -> c.ink3
@@ -231,6 +263,7 @@ fun RowValue(text: String, tone: ValueTone = ValueTone.Plain) {
             ValueTone.Link -> c.accent
         },
         maxLines = 1,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
     )
 }
 
@@ -354,6 +387,35 @@ fun InputRow(
             if (onClear != null) FieldClearButton(clearDescription, onClear, clearModifier.padding(start = 4.dp))
         }
         if (trailing != null) Box(Modifier.padding(start = 8.dp)) { trailing() }
+    }
+}
+
+/**
+ * 卡片里和 [InputRow] 排成一列的选择行:左边同样宽的标题,现在选的值从输入框里文字的位置起排,行尾一个小箭头;
+ * 点了由调用方弹出选择。同一张卡片里既有输入行又有选择行时用它,两种行的内容上下对齐。
+ */
+@Composable
+fun PickRow(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    first: Boolean = false,
+    labelWidth: Dp = 84.dp,
+    modifier: Modifier = Modifier,
+) {
+    val c = MikaTheme.colors
+    Row(
+        modifier.fillMaxWidth().topHairline(first, TextStartPlain, c.hair)
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = MikaSize.RowMin).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.width(labelWidth), style = MikaType.Body, color = c.ink)
+        Text(
+            value, Modifier.weight(1f), style = MikaType.Body, color = c.ink,
+            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        )
+        RowChevron()
     }
 }
 

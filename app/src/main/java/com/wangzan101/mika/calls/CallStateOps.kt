@@ -153,7 +153,8 @@ internal fun CallRuntime.prerequisite(
     !settings.state.value.enabled -> "AI 电话已关闭"
     configuring -> "AI 电话正在配置"
     !armed || !access.hasPhonePermissions() -> "请先准备 AI 电话"
-    shell == null -> "Mika 内置助手未连接"
+    // Also shown on the standby checklist the blocked-standby notification opens (FlashPhone v1.1.15).
+    shell == null -> app.getString(R.string.calls_setup_shell)
     standardCalls && cascade.blocker(CallUse.Phone) != null -> "请先在语音设置里选好通话的听写、朗读和思考模型"
     !activeVoiceProfile().credentialsConfigured -> "请先配置实时语音凭据"
     !activeVoiceProfile().connectionTested -> "请先测试实时语音连接"

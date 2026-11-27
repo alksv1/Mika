@@ -324,4 +324,33 @@
     <string name="models_group_used_by">Used as %1$s</string>
     <string name="models_group_member_context">Context</string>
     <string name="model_not_chat_capable">Mika can’t use this model for chat. You can still mark it as speech-only below.</string>
+    <string name="tool_video_frames">Look at video</string>
+    <string name="tool_video_info">Video info</string>
+    <string name="tool_video_save">Save video</string>
+    <string name="tool_share_video">Share video to app</string>
+    <string name="role_video">Video model</string>
+    <string name="role_video_what">Lets Mika generate short videos</string>
+    <string name="video_hint">Mika can generate short videos from a prompt with your own video model. Prompts are sent to the service you pick, and each video is billed by that service.</string>
+    <string name="video_enable">Allow Mika to generate videos</string>
+    <string name="video_enable_note">Off by default. Each generation is billed by the service</string>
+    <string name="video_provider">Service</string>
+    <string name="video_no_providers">Add a model service first (video uses the same service and key).</string>
+    <string name="video_model_name">Model</string>
+    <string name="video_duration">Duration (seconds)</string>
+    <string name="video_max_per_task">Videos per task</string>
+    <string name="video_aspect">Aspect ratio</string>
+    <string name="video_resolution">Resolution</string>
+    <string name="video_footer">Generation runs as a background job and can take a few minutes. The finished video is saved in the workspace under out/video.</string>
+    <string name="video_no_compatible">None of your model services can generate videos. Add one that can first: %1$s.</string>
+    <string name="video_choice_stale">The service you chose before can no longer generate videos (it was removed or its address changed). Pick one below; until then Mika won’t generate videos.</string>
+    <string name="video_duration_range" translatable="false">%1$d–%2$d</string>
+    <string name="tool_video_generate">Generate video</string>
+    <string name="provider_nickname_label">Account nickname</string>
+    <string name="provider_rename_title">Rename account</string>
+    <string name="provider_nickname_hint">Optional, e.g. Work or Personal</string>
+    <string name="provider_name_with_note">%1$s (%2$s)</string>
+    <string name="model_fallback_move_up">Move up</string>
+    <string name="model_fallback_move_down">Move down</string>
+    <string name="model_fallback_move_up_desc">Move backup #%1$d up</string>
+    <string name="model_fallback_move_down_desc">Move backup #%1$d down</string>
 </resources>

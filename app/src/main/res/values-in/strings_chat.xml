@@ -254,6 +254,8 @@
     <string name="pip_closed_hint">Ditutup untuk tugas ini. Ketuk “Tampilkan layar” di kanan bawah, atau buka “Layar latar belakang” di menu samping.</string>
     <string name="chat_conversation_tokens">Percakapan ini: %1$s</string>
     <string name="chat_conversation_tokens_partial">Percakapan ini: setidaknya %1$s</string>
+    <string name="chat_current_model">Model saat ini</string>
+    <string name="chat_usage_view_details">Lihat penggunaan token</string>
     <string name="chat_task_cost_estimate">Perkiraan %1$s</string>
     <string name="chat_task_cost_partial">%1$s (sebagian)</string>
     <string name="chat_task_cost_unavailable">Biaya tidak tersedia</string>
@@ -332,4 +334,6 @@
     <string name="chat_example_share_title">Bagikan Mika ke teman</string>
     <string name="chat_example_share_blurb">Rekomendasikan ke yang butuh</string>
     <string name="chat_example_share">Bagikan tautan proyek Mika https://github.com/wangzan101/mika ke seorang teman, dan bilang Mika bisa mengoperasikan ponsel untuknya.</string>
+    <string name="chat_video">Video</string>
+    <string name="chat_video_play">Putar</string>
 </resources>

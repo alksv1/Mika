@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Taksi ve araç çağırma</string>
     <string name="calls_only_strangers">Yalnızca rehberde olmayan numaralar</string>
     <string name="calls_strangers_note">Mika uygulamasına kişileri okuma izni verin. Yapay zekâ yalnızca numaranın kayıtlı olmadığını doğrularsa yanıtlar. Gizli numaraları ve sorgulanamayan aramaları siz yanıtlarsınız.</string>
+    <string name="calls_show_dialpad">Tuş takımını göster</string>
+    <string name="calls_hide_dialpad">Tuş takımını gizle</string>
+    <string name="calls_delete_digit">Sil</string>
+    <string name="calls_clear_draft">Taslağı temizle</string>
+    <string name="calls_reset_history_filters">Filtreleri sıfırla</string>
 </resources>

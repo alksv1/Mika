@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Taxis and ride services</string>
     <string name="calls_only_strangers">Only numbers outside contacts</string>
     <string name="calls_strangers_note">Allow Mika to read contacts. AI answers only when the number can be checked and is not saved. Hidden numbers and failed lookups are left for you.</string>
+    <string name="calls_show_dialpad">Show dial pad</string>
+    <string name="calls_hide_dialpad">Hide dial pad</string>
+    <string name="calls_delete_digit">Delete</string>
+    <string name="calls_clear_draft">Clear draft</string>
+    <string name="calls_reset_history_filters">Reset filters</string>
 </resources>

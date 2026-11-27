@@ -11,17 +11,31 @@
   - `core/src/main/kotlin/com/wangzan101/mika/core/calls/`
   - `app/src/test/java/com/wangzan101/mika/calls/`
   - `app/src/test/java/com/wangzan101/mika/cap/phone/shell/ShellCallAudioTest.kt`
-  - `app/src/test/java/com/wangzan101/mika/ui/CallDeviceReadinessTest.kt`
   - `core/src/test/kotlin/com/wangzan101/mika/core/mcp/McpCallToolsTest.kt`
 - Modifications: 默认问候语等产品文案按 Mika 调整为「Mika AI 电话助手」,相关测试断言随之同步。
 - Additional port: FlashPhone v1.1.6–v1.1.12 (through `8bcd8d89a20141f47d4d24c61debc42dabaa2676`):
-  foreground voice briefing (`calls/briefing/`, `ui/CallVoiceBriefingHost.kt`), call-bound DTMF
-  (`CallDtmfExecutor`, `ui/CallDtmfKeypad.kt`), protocol/ASR fixes and their unit/UI tests.
+  foreground voice briefing (`calls/briefing/`, `calls/ui/CallVoiceBriefingHost.kt`), call-bound DTMF
+  (`CallDtmfExecutor`, `calls/ui/CallDtmfKeypad.kt`), protocol/ASR fixes and their unit/UI tests.
   Adapted to Mika voice profiles, provider interface, existing task form, theme and translations;
   FlashPhone standalone navigation, recording and remote-device services are not included.
 - Follow-up port: FlashPhone v1.1.13 (`554e69207de151329f71821f915cde997f8e69fc`),
   per-carrier-call task binding and compact latest-transcript context; adapted to Mika's
   existing call card and transcript role labels, with ownership/lifetime regressions.
+- Follow-up port: FlashPhone v1.1.14 (`4f61f27fc3fc7c5b71262e775090ee9724d8bb6b`) and v1.1.15
+  (`9b7b8fb75d0323e33a2bdd6a38ebb417b058eb78`, including `b19eed6a73505adbfa766ec6f1e117ae1ed0df78`), background standby
+  recovery: a periodic, persisted JobScheduler check (`calls/CallStandbyRecoveryJob.kt`) that re-requests
+  only the incoming standby the owner already granted, one start rule shared with the visible-resume
+  path (`calls/CallStandbyPolicy.kt`), translated helper guidance, and the blocked-standby notification
+  opening the existing standby checklist (`calls/CallStandbyService.kt`, `calls/ui/CallSettingsScreen.kt`,
+  `ui/MainActivity.kt`, with `app/src/androidTest/java/com/wangzan101/mika/calls/ui/CallStandbyNotificationRouteTest.kt`).
+  Adapted to Mika's split call runtime, full-exit semantics and existing translations, with policy unit tests.
+- Follow-up port: FlashPhone v1.1.16 (`2a46887f26a6f09f7fc664702d4e193c0b81e5b4`), dialer and
+  call-history interactions: a collapsible dial pad whose keys and backspace edit at the
+  cursor/selection (`calls/ui/CallDialNumberEdit.kt`, `calls/ui/CallTaskScreen.kt`), clearing
+  the one-off task draft with an in-memory undo, and clearing the history search / resetting
+  filters (`calls/ui/CallHistorySection.kt`), with their unit/UI tests. Adapted to Mika's existing
+  task form, theme and translations; SIM choice, outgoing review and locked dialling are unchanged.
+  FlashPhone's standalone dialer layout, recording storage/playback and persisted drafts are not included.
 - Service: 实时语音经火山引擎（Volcengine）的 WebSocket 接口,凭证由用户在通话设置页填写。
 
 ## scrcpy

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">توقف موقت Mika</string>
+    <string name="pause_row_sub_active">همهٔ کارهای Mika را تا وقتی ادامه دهید متوقف کنید</string>
+    <string name="pause_row_sub_paused">متوقف شده: هیچ کار یا برنامه‌ای اجرا نمی‌شود</string>
+    <string name="pause_state_active">روشن</string>
+    <string name="pause_explain">با توقف موقت، همهٔ کارهای در حال اجرا و در صف متوقف می‌شوند، برنامه‌هایی که موعدشان برسد رد می‌شوند و کارهای تازه از گفتگو، رایانه‌ها و کانال‌های پیام تا وقتی ادامه دهید پذیرفته نمی‌شوند. سرویس دسترس‌پذیری Mika و اشکال‌زدایی بی‌سیم هم خاموش می‌شوند و برنامهٔ کمکی گوشی متوقف می‌شود. هیچ چیزی حذف یا پاک نمی‌شود و جفت‌سازی اشکال‌زدایی بی‌سیم ذخیره می‌ماند.</string>
+    <string name="pause_paused_title">Mika متوقف شده است</string>
+    <string name="pause_paused_body">تا وقتی ادامه دهید، هیچ کاری اجرا نمی‌شود، برنامه‌ها رد می‌شوند و برنامهٔ کمکی گوشی متوقف است.</string>
+    <string name="pause_active_title">Mika روشن است</string>
+    <string name="pause_active_body">هر وقت خواستید Mika را مدتی کاملاً خاموش کنید، آن را موقتاً متوقف کنید.</string>
+    <string name="pause_status_label">چیزهایی که توقف موقت خاموش می‌کند</string>
+    <string name="pause_action">توقف موقت Mika</string>
+    <string name="pause_action_sub">توقف کارها، خاموش کردن دسترس‌پذیری و اشکال‌زدایی بی‌سیم، توقف برنامهٔ کمکی</string>
+    <string name="pause_resume">ادامهٔ Mika</string>
+    <string name="pause_resume_sub">اتصال دوبارهٔ برنامهٔ کمکی با جفت‌سازی ذخیره‌شده</string>
+    <string name="pause_resumed">Mika دوباره روشن شد.</string>
+    <string name="pause_resume_note">Mika نتوانست همه چیز را خودش دوباره روشن کند. مراحل زیر را کامل کنید.</string>
+    <string name="pause_a11y_restoring">در حال روشن کردن دوبارهٔ سرویس دسترس‌پذیری Mika…</string>
+    <string name="pause_a11y_label">سرویس دسترس‌پذیری</string>
+    <string name="pause_wireless_label">اشکال‌زدایی بی‌سیم</string>
+    <string name="pause_helper_label">برنامهٔ کمکی گوشی</string>
+    <string name="pause_helper_running">در حال اجرا</string>
+    <string name="pause_helper_paused">متوقف شده</string>
+    <string name="pause_helper_not_running">در حال اجرا نیست</string>
+    <string name="pause_helper_connecting">در حال اتصال…</string>
+    <string name="pause_tasks_stopped">کارهای در حال اجرا و در صف متوقف شدند.</string>
+    <string name="pause_done">دسترس‌پذیری و اشکال‌زدایی بی‌سیم خاموش شدند و برنامهٔ کمکی متوقف شد.</string>
+    <string name="pause_a11y_manual">از اینجا نشد سرویس دسترس‌پذیری را خاموش کرد. تنظیمات دسترس‌پذیری را باز کنید و Mika را خاموش کنید.</string>
+    <string name="pause_wireless_manual">از اینجا نشد اشکال‌زدایی بی‌سیم را خاموش کرد. گزینه‌های توسعه‌دهنده را باز کنید و آن را خاموش کنید.</string>
+    <string name="pause_save_failed">تغییر ذخیره نشد، پس چیزی عوض نشد. دوباره امتحان کنید.</string>
+    <string name="pause_step_a11y">Mika را در تنظیمات دسترس‌پذیری دوباره روشن کنید</string>
+    <string name="pause_step_wireless">اشکال‌زدایی بی‌سیم را در گزینه‌های توسعه‌دهنده دوباره روشن کنید</string>
+    <string name="pause_step_repair">جفت‌سازی دوبارهٔ برنامهٔ کمکی گوشی</string>
+    <string name="pause_reconnect">همین حالا برنامهٔ کمکی را دوباره وصل کنید</string>
+    <string name="pause_blocked_task">Mika متوقف شده است، پس این کار شروع نشد. اول Mika را در تنظیمات ادامه دهید.</string>
+    <string name="pause_blocked_plan">Mika متوقف شده است، پس این برنامه اجرا نشد.</string>
+    <string name="pause_blocked_workflow">Mika متوقف شده است، پس این گردش کار اجرا نشد. اول Mika را در تنظیمات ادامه دهید.</string>
+    <string name="pause_channel_reply">Mika روی گوشی متوقف شده است، پس این کار را شروع نکرد. بعد از ادامهٔ Mika دوباره بفرستید.</string>
+    <string name="plans_skipped_paused">در زمان توقف Mika رد شد</string>
+    <string name="workflow_stopped_paused">به‌خاطر توقف Mika متوقف شد</string>
+</resources>

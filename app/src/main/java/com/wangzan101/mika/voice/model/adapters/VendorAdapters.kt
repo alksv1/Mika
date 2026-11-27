@@ -44,6 +44,13 @@ class VendorSttAdapter(
         }
     }
 
+    override fun utterance(context: Context, model: ResolvedVoiceModel, language: String?): UtteranceTranscribe {
+        spec(model)
+        val tag = languageTag(context, language)
+        val recognizer = recognizer(model)
+        return { wav -> recognizer.recognize(wav, tag) }
+    }
+
     internal fun recognizer(model: ResolvedVoiceModel): UtteranceRecognizer {
         val binding = model.sttBinding(protocol)
         val c = model.account.credentials

@@ -3,11 +3,13 @@ package com.wangzan101.mika.voice.model
 import com.wangzan101.mika.calls.OpenAiCallProtocol
 import com.wangzan101.mika.calls.VolcRealtimeConfig
 import com.wangzan101.mika.calls.VolcRealtimeProtocol
+import com.wangzan101.mika.voice.AsrLanguage
 import com.wangzan101.mika.voice.BailianProtocol
 import com.wangzan101.mika.voice.BailianRegion
 import com.wangzan101.mika.voice.DoubaoProtocol
 import com.wangzan101.mika.voice.FunAsrProtocol
 import java.net.URI
+import java.security.MessageDigest
 
 /**
  * A known kind of voice service and only the fields it needs. [VoicePresets.plan] turns it into ordinary catalog
@@ -32,7 +34,11 @@ sealed interface VoicePreset {
         val model: String = BailianProtocol.DEFAULT_MODEL,
     ) : VoicePreset
 
-    /** Any service speaking the OpenAI audio APIs; each blank model is left out. */
+    /**
+     * Any service speaking the OpenAI audio APIs; each blank model is left out. [ttsVoice] is the voice the speech
+     * model uses until the user picks one (a self-hosted server has its own voice ids and refuses a request without
+     * one); [realtimeVoice] is the same for the realtime model.
+     */
     data class OpenAiCompatible(
         val name: String,
         val baseUrl: String,
@@ -40,10 +46,15 @@ sealed interface VoicePreset {
         val sttModel: String = "",
         val ttsModel: String = "",
         val realtimeModel: String = "",
+        val ttsVoice: String = "",
+        val realtimeVoice: String = "",
     ) : VoicePreset
 
-    /** A self-hosted streaming recognition server on the local network; no account. */
-    data class SelfHostedStt(val url: String) : VoicePreset
+    /**
+     * A self-hosted streaming recognition server on the local network; no account.
+     * [language] is what the server is told to expect; [AsrLanguage.Auto] tells it nothing and lets it decide.
+     */
+    data class SelfHostedStt(val url: String, val language: AsrLanguage = AsrLanguage.Auto) : VoicePreset
 }
 
 enum class VolcSttPlan(val resourceId: String) {
@@ -64,6 +75,8 @@ data class VoicePresetPlan(
 object VoicePresets {
     const val VOLC_SERVICE = "volc"
     const val VOLC_STT_MODEL = "doubao-streaming"
+    private val HTTP_SCHEMES = setOf("http", "https")
+    private val SECRET_ID_UNSAFE = Regex("[^A-Za-z0-9._:-]")
 
     /** Builds the catalog entries; throws [VoiceModelError.IncompleteConfig] naming what is missing. */
     fun plan(preset: VoicePreset): VoicePresetPlan = when (preset) {
@@ -133,12 +146,21 @@ object VoicePresets {
 
     private fun openAiCompatible(p: VoicePreset.OpenAiCompatible): VoicePresetPlan {
         val base = p.baseUrl.trim().trimEnd('/')
+        // 自己在本机、局域网跑的服务多半只有 http,和添加聊天服务商时一样收下;Key 照旧必填、照旧加密保存
         val uri = runCatching { URI(base) }.getOrNull()
-        if (uri?.scheme != "https" || uri.host.isNullOrBlank()) throw VoiceModelError.IncompleteConfig("Address must start with https://")
+            ?.takeIf { it.scheme?.lowercase() in HTTP_SCHEMES && !it.host.isNullOrBlank() }
+            ?: throw VoiceModelError.IncompleteConfig("Address must start with http:// or https://")
+        // query、fragment、账号密码不知道服务想拿它们做什么,不猜,一律不收
+        if (uri.rawQuery != null || uri.rawFragment != null || uri.rawUserInfo != null) {
+            throw VoiceModelError.IncompleteConfig("Address must not contain a query, fragment or user info")
+        }
         val key = p.apiKey.trim().ifEmpty { throw VoiceModelError.IncompleteConfig("Enter the API key") }
-        val id = "compat:${uri.host}${uri.path.orEmpty().trimEnd('/')}"
-        val name = p.name.trim().ifEmpty { uri.host }
-        val service = VoiceService(id, name, VoiceAccount.VoiceOwned("preset:$id"))
+        // 同一台机器上不同端口是不同的服务(各存各的,后存的不顶掉先存的);没写端口、或写的就是默认端口的,编号和以前一样
+        val defaultPort = if (uri.scheme.equals("https", ignoreCase = true)) 443 else 80
+        val host = uri.host + if (uri.port >= 0 && uri.port != defaultPort) ":${uri.port}" else ""
+        val id = "compat:$host${uri.path.orEmpty().trimEnd('/')}"
+        val name = p.name.trim().ifEmpty { host }
+        val service = VoiceService(id, name, VoiceAccount.VoiceOwned(secretId(id)))
         val stt = p.sttModel.trim()
         val tts = p.ttsModel.trim()
         val realtime = p.realtimeModel.trim()
@@ -149,11 +171,26 @@ object VoicePresets {
             byId[modelId] = change(byId[modelId] ?: VoiceModel(id, modelId, modelId))
         }
         if (stt.isNotEmpty()) put(stt) { it.copy(stt = SttBinding(SttProtocol.AudioTranscriptions, endpoint = base)) }
-        if (tts.isNotEmpty()) put(tts) { it.copy(tts = TtsBinding(TtsProtocol.OpenAiSpeech, endpoint = base)) }
+        if (tts.isNotEmpty()) put(tts) { it.copy(tts = TtsBinding(TtsProtocol.OpenAiSpeech, endpoint = base, voice = p.ttsVoice.trim())) }
         if (realtime.isNotEmpty()) put(realtime) {
-            it.copy(realtime = RealtimeBinding(RealtimeProtocol.OpenAiRealtime, realtimeEndpoint(uri), OpenAiCallProtocol.VOICE))
+            it.copy(realtime = RealtimeBinding(
+                RealtimeProtocol.OpenAiRealtime, realtimeEndpoint(uri), p.realtimeVoice.trim().ifEmpty { OpenAiCallProtocol.VOICE },
+            ))
         }
         return VoicePresetPlan(service, VoiceCredentials(apiKey = key), byId.values.toList())
+    }
+
+    /**
+     * 存这个服务的 Key 用的编号。凭据编号只收字母、数字和 `._:-`,而带路径的地址(…/v1)做成的服务编号里有 `/`:
+     * 能直接用的照旧(以前存下的 Key 还找得到);不能的把别的字符换成 `_`、截短,再接一段服务编号的摘要,
+     * 两个地址不会换出同一个编号。
+     */
+    internal fun secretId(serviceId: String): String {
+        val plain = "preset:$serviceId"
+        if (VoiceCredentialStore.validSecretId(plain)) return plain
+        val digest = MessageDigest.getInstance("SHA-256").digest(serviceId.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }.take(12)
+        return "preset:" + serviceId.replace(SECRET_ID_UNSAFE, "_").take(120) + "." + digest
     }
 
     /** The OpenAI realtime socket lives next to the REST API: same host and path, `wss` and `/realtime`. */
@@ -165,7 +202,10 @@ object VoicePresets {
         val host = runCatching { URI(endpoint).authority }.getOrNull().orEmpty().ifEmpty { endpoint }
         val id = "selfhosted:$host"
         val service = VoiceService(id, host, VoiceAccount.None)
-        val model = VoiceModel(id, "funasr", "Fun-ASR Streaming", stt = SttBinding(SttProtocol.FunAsrStreaming, endpoint = endpoint))
+        val model = VoiceModel(
+            id, "funasr", "Fun-ASR Streaming",
+            stt = SttBinding(SttProtocol.FunAsrStreaming, endpoint = endpoint, language = p.language.code),
+        )
         return VoicePresetPlan(service, null, listOf(model))
     }
 }

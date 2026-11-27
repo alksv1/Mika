@@ -13,6 +13,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.wangzan101.mika.ui.components.MikaDialog
+import com.wangzan101.mika.voice.AsrLanguage
 import com.wangzan101.mika.voice.model.VoiceListRefresh
 import com.wangzan101.mika.voice.model.VoiceModelLists
 import com.wangzan101.mika.voice.model.VoiceModelOrigin
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.settings.Provider
 import com.wangzan101.mika.settings.ProviderStore
+import com.wangzan101.mika.settings.VoiceSettings
 import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.FooterNote
@@ -341,6 +343,7 @@ private fun VendorModelRow(
     voiceModels: VoiceModelEnvironment, onTest: (VoiceModelRef) -> Unit,
 ) {
     val ref = VoiceModelRef(model.serviceId, model.id, cap)
+    val voiceSettings = VoiceSettings.get(LocalContext.current)
     val inUse = when (cap) {
         VoiceCapability.STT -> snapshot.selections.stt == SttSelection.Model(ref)
         VoiceCapability.TTS -> snapshot.selections.tts == ref
@@ -359,7 +362,7 @@ private fun VendorModelRow(
             onClick = {
                 when (cap) {
                     VoiceCapability.STT -> voiceModels.stt.select(ref)
-                    VoiceCapability.TTS -> voiceModels.tts.select(ref)
+                    VoiceCapability.TTS -> selectReadAloud(voiceModels, voiceSettings, ref)
                     VoiceCapability.REALTIME -> voiceModels.realtime.select(ref)
                 }
                 // 列表拉来的、手填的模型协议是借来的,选上就去测一次
@@ -455,6 +458,9 @@ private fun VendorForm(vendor: VoiceVendor, onBack: () -> Unit, onSave: (VoicePr
                     onSave(vendor.plan(values.toMap()))
                 } catch (e: VoiceModelError) {
                     error = e.detail
+                } catch (e: Exception) {
+                    // 存储那一层的检查不过(凭据、目录写不进去之类)抛的不是 VoiceModelError:一样写在页上,不让它冒出去
+                    error = VoiceModelError.from(e).detail
                 }
             },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("vendor-save"),
@@ -472,6 +478,9 @@ private fun PresetForm(kind: PresetKind, onBack: () -> Unit, onSave: (VoicePrese
     var sttModel by rememberSaveable { mutableStateOf("") }
     var ttsModel by rememberSaveable { mutableStateOf("") }
     var rtModel by rememberSaveable { mutableStateOf("") }
+    var ttsVoice by rememberSaveable { mutableStateOf("") }
+    var rtVoice by rememberSaveable { mutableStateOf("") }
+    var language by rememberSaveable { mutableStateOf(AsrLanguage.Auto.code) }
     var error by remember { mutableStateOf<String?>(null) }
     val title = stringResource(
         when (kind) {
@@ -497,17 +506,30 @@ private fun PresetForm(kind: PresetKind, onBack: () -> Unit, onSave: (VoicePrese
                     InputRow(stringResource(R.string.voice_field_api_key), apiKey, { apiKey = it }, "sk-…", secret = true)
                     InputRow(stringResource(R.string.voice_field_name), name, { name = it }, optional)
                 }
-                GroupLabel(stringResource(R.string.voice_compat_models))
+                // 识别、朗读、实时语音各一组,各放各的配置;哪一组的模型留空,那一项就不接
+                val modelLabel = stringResource(R.string.voice_model_id)
+                val voiceLabel = stringResource(R.string.voice_voice)
+                GroupLabel(stringResource(R.string.voice_cap_stt))
                 GroupCard {
-                    InputRow(stringResource(R.string.voice_cap_stt), sttModel, { sttModel = it }, "gpt-4o-transcribe", first = true)
-                    InputRow(stringResource(R.string.voice_cap_tts), ttsModel, { ttsModel = it }, "gpt-4o-mini-tts")
-                    InputRow(stringResource(R.string.voice_cap_realtime), rtModel, { rtModel = it }, "gpt-realtime")
+                    InputRow(modelLabel, sttModel, { sttModel = it }, "gpt-4o-transcribe", first = true, modifier = Modifier.testTag("preset-stt-model"))
+                }
+                GroupLabel(stringResource(R.string.voice_cap_tts))
+                GroupCard {
+                    InputRow(modelLabel, ttsModel, { ttsModel = it }, "gpt-4o-mini-tts", first = true, modifier = Modifier.testTag("preset-tts-model"))
+                    InputRow(voiceLabel, ttsVoice, { ttsVoice = it }, "alloy", modifier = Modifier.testTag("preset-tts-voice"))
+                }
+                GroupLabel(stringResource(R.string.voice_cap_realtime))
+                GroupCard {
+                    InputRow(modelLabel, rtModel, { rtModel = it }, "gpt-realtime", first = true, modifier = Modifier.testTag("preset-rt-model"))
+                    InputRow(voiceLabel, rtVoice, { rtVoice = it }, optional, modifier = Modifier.testTag("preset-rt-voice"))
                 }
                 FooterNote(stringResource(R.string.voice_compat_models_note))
             }
             PresetKind.SelfHosted -> {
                 GroupCard {
                     InputRow(stringResource(R.string.voice_field_url), url, { url = it }, "192.168.1.5:10095", first = true, keyboard = KeyboardType.Uri)
+                    // 识别语言:默认「自动」,不指定、由服务自己判断;服务能认哪些语言看它跑的模型
+                    AsrLanguageRow(AsrLanguage.of(language), { language = it.code })
                 }
             }
         }
@@ -516,13 +538,16 @@ private fun PresetForm(kind: PresetKind, onBack: () -> Unit, onSave: (VoicePrese
             stringResource(R.string.voice_save_and_test),
             onClick = {
                 val preset = when (kind) {
-                    PresetKind.Compatible -> VoicePreset.OpenAiCompatible(name, url, apiKey, sttModel, ttsModel, rtModel)
-                    PresetKind.SelfHosted -> VoicePreset.SelfHostedStt(url)
+                    PresetKind.Compatible -> VoicePreset.OpenAiCompatible(name, url, apiKey, sttModel, ttsModel, rtModel, ttsVoice, rtVoice)
+                    PresetKind.SelfHosted -> VoicePreset.SelfHostedStt(url, AsrLanguage.of(language))
                 }
                 try {
                     onSave(VoicePresets.plan(preset))
                 } catch (e: VoiceModelError) {
                     error = e.detail
+                } catch (e: Exception) {
+                    // 存储那一层的检查不过(凭据、目录写不进去之类)抛的不是 VoiceModelError:一样写在页上,不让它冒出去
+                    error = VoiceModelError.from(e).detail
                 }
             },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("preset-save"),
@@ -539,6 +564,7 @@ private fun PresetResult(
 ) {
     val c = MikaTheme.colors
     val probes by viewModel.probes.collectAsState()
+    val voiceSettings = VoiceSettings.get(LocalContext.current)
     val sample = stringResource(R.string.voice_try_sample)
     Page(stringResource(R.string.voice_result_title), onDone) {
         Text(stringResource(R.string.voice_result_lead), Modifier.padding(top = 4.dp, bottom = 12.dp), style = MikaType.Body, color = c.ink2)
@@ -595,7 +621,7 @@ private fun PresetResult(
                         onClick = {
                             when (ref.capability) {
                                 VoiceCapability.STT -> voiceModels.stt.select(ref)
-                                VoiceCapability.TTS -> voiceModels.tts.select(ref)
+                                VoiceCapability.TTS -> selectReadAloud(voiceModels, voiceSettings, ref)
                                 VoiceCapability.REALTIME -> voiceModels.realtime.select(ref)
                             }
                         },

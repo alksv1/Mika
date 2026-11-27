@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Такси и перевозки</string>
     <string name="calls_only_strangers">Только номера вне контактов</string>
     <string name="calls_strangers_note">Разрешите Mika читать контакты. ИИ ответит, только если проверит номер и не найдёт его в контактах. На звонки со скрытых номеров и при сбое проверки вы отвечаете сами.</string>
+    <string name="calls_show_dialpad">Показать клавиатуру набора</string>
+    <string name="calls_hide_dialpad">Скрыть клавиатуру набора</string>
+    <string name="calls_delete_digit">Удалить</string>
+    <string name="calls_clear_draft">Очистить черновик</string>
+    <string name="calls_reset_history_filters">Сбросить фильтры</string>
 </resources>

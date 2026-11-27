@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Pausar o Mika</string>
+    <string name="pause_row_sub_active">Pare todo o trabalho do Mika até você retomar</string>
+    <string name="pause_row_sub_paused">Pausado: nenhuma tarefa ou plano é executado</string>
+    <string name="pause_state_active">Ativo</string>
+    <string name="pause_explain">Ao pausar, todas as tarefas em andamento e na fila param, os planos que vencerem são pulados e novas tarefas do chat, de computadores e de canais de mensagens são recusadas até você retomar. O serviço de acessibilidade do Mika e a depuração sem fio também são desativados, e o assistente do celular é parado. Nada é desinstalado ou apagado, e o pareamento da depuração sem fio continua salvo.</string>
+    <string name="pause_paused_title">O Mika está pausado</string>
+    <string name="pause_paused_body">Nenhuma tarefa é executada, os planos são pulados e o assistente do celular fica parado até você retomar.</string>
+    <string name="pause_active_title">O Mika está ativo</string>
+    <string name="pause_active_body">Pause o Mika quando quiser desligá-lo por completo por um tempo.</string>
+    <string name="pause_status_label">O que a pausa desativa</string>
+    <string name="pause_action">Pausar o Mika</string>
+    <string name="pause_action_sub">Parar tarefas, desativar acessibilidade e depuração sem fio, parar o assistente</string>
+    <string name="pause_resume">Retomar o Mika</string>
+    <string name="pause_resume_sub">Reconectar o assistente com o pareamento salvo</string>
+    <string name="pause_resumed">O Mika está ativo de novo.</string>
+    <string name="pause_resume_note">O Mika não conseguiu reativar tudo sozinho. Conclua os passos abaixo.</string>
+    <string name="pause_a11y_restoring">Reativando o serviço de acessibilidade do Mika…</string>
+    <string name="pause_a11y_label">Serviço de acessibilidade</string>
+    <string name="pause_wireless_label">Depuração sem fio</string>
+    <string name="pause_helper_label">Assistente do celular</string>
+    <string name="pause_helper_running">Em execução</string>
+    <string name="pause_helper_paused">Pausado</string>
+    <string name="pause_helper_not_running">Parado</string>
+    <string name="pause_helper_connecting">Conectando…</string>
+    <string name="pause_tasks_stopped">As tarefas em andamento e na fila foram paradas.</string>
+    <string name="pause_done">A acessibilidade e a depuração sem fio estão desativadas e o assistente está parado.</string>
+    <string name="pause_a11y_manual">Não foi possível desativar o serviço de acessibilidade por aqui. Abra as configurações de Acessibilidade e desative o Mika.</string>
+    <string name="pause_wireless_manual">Não foi possível desativar a depuração sem fio por aqui. Abra as Opções do desenvolvedor e desative-a.</string>
+    <string name="pause_save_failed">Não foi possível salvar a alteração, então nada mudou. Tente de novo.</string>
+    <string name="pause_step_a11y">Reative o Mika nas configurações de Acessibilidade</string>
+    <string name="pause_step_wireless">Reative a depuração sem fio nas Opções do desenvolvedor</string>
+    <string name="pause_step_repair">Parear o assistente do celular de novo</string>
+    <string name="pause_reconnect">Reconectar o assistente agora</string>
+    <string name="pause_blocked_task">O Mika está pausado, então esta tarefa não começou. Retome o Mika nas Configurações primeiro.</string>
+    <string name="pause_blocked_plan">O Mika está pausado, então este plano não foi executado.</string>
+    <string name="pause_blocked_workflow">O Mika está pausado, então este fluxo de trabalho não foi executado. Retome o Mika nas Configurações primeiro.</string>
+    <string name="pause_channel_reply">O Mika está pausado no celular, então não começou esta tarefa. Envie de novo depois que o Mika for retomado.</string>
+    <string name="plans_skipped_paused">Pulado enquanto o Mika estava pausado</string>
+    <string name="workflow_stopped_paused">Parado porque o Mika foi pausado</string>
+</resources>

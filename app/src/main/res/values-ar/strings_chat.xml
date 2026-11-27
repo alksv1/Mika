@@ -301,6 +301,8 @@
     <string name="chat_retry_failed">%1$s: تعذّر النسخ</string>
     <string name="chat_conversation_tokens">هذه المحادثة: %1$s</string>
     <string name="chat_conversation_tokens_partial">هذه المحادثة: %1$s على الأقل</string>
+    <string name="chat_current_model">النموذج الحالي</string>
+    <string name="chat_usage_view_details">عرض استخدام الرموز</string>
     <string name="chat_select_hint">اضغط مطولًا على النص لتحديده</string>
     <string name="chat_quote_remove">إزالة الاقتباس</string>
     <string name="chat_quoting_mika">اقتباس من Mika: %1$s</string>
@@ -402,4 +404,6 @@
     <string name="chat_example_share_title">شارك Mika مع صديق</string>
     <string name="chat_example_share_blurb">انصح به من سيستفيد منه</string>
     <string name="chat_example_share">شارك رابط مشروع Mika https://github.com/wangzan101/mika مع صديق، وأخبره أنه يستطيع تشغيل الهاتف نيابةً عنه.</string>
+    <string name="chat_video">فيديو</string>
+    <string name="chat_video_play">تشغيل</string>
 </resources>

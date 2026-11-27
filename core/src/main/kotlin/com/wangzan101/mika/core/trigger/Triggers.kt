@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.trigger
 
+import com.wangzan101.mika.core.run.PauseFlag
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalTime
@@ -306,6 +307,8 @@ fun upcoming(def: TriggerDefinition, afterMs: Long, count: Int): List<Long> {
 /** 排期由宿主实现；核心负责先记账再派发，异常重启时不会重复执行已认领的时段。 */
 class TriggerEngine(private val store: TriggerStore, private val scheduleAlarm: (Long?) -> Unit,
     private val isIdle: () -> Boolean = { true }, private val idleRetryMs: Long = 60_000L,
+    /** 用户暂停了 Mika:到点的时段照样认领、记成「因暂停跳过」,不派发;恢复后不补跑。 */
+    private val paused: PauseFlag = PauseFlag.Never,
     private val dispatch: (TriggerDefinition, TriggerWindow) -> Unit) {
     fun rearm(nowMs: Long) {
         store.windows().filter { it.state == TriggerWindowState.Claimed }
@@ -358,6 +361,13 @@ class TriggerEngine(private val store: TriggerStore, private val scheduleAlarm: 
     }
 
     fun fire(nowMs: Long) {
+        if (paused.paused()) {
+            // 暂停时不等空闲:等着的时段若留到恢复以后,就成了恢复时自动补跑的暗队列
+            store.claimDue(nowMs) { it.executionAtOrAfter(nowMs) == nowMs }
+                .forEach { store.mark(it.key, TriggerWindowState.Skipped, PauseFlag.REASON) }
+            rearm(nowMs)
+            return
+        }
         val idle = isIdle()
         store.claimDue(nowMs) { (!it.idleOnly || idle) && it.executionAtOrAfter(nowMs) == nowMs }.forEach { window ->
             val trigger = store.get(window.triggerId) ?: return@forEach

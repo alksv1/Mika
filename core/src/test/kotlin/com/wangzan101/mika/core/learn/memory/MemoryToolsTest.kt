@@ -332,6 +332,31 @@ class MemoryToolsTest {
         assertEquals("true", attempt("把外卖那条改成:如果我说老样子,就是不要香菜", "update").s("ok"))
     }
 
+    // 分句的句读也认日文逗号、阿拉伯文逗号和问号:引后半句时只压着后半句
+    @Test fun clauseEndsIncludeJapaneseAndArabicPunctuation() {
+        fun clauses(said: String, quote: String) = UserUtterances().apply { add(said) }.quotedClauses(quote).single().map { it.trim() }
+        assertEquals(listOf("好きな色は覚えておいて"), clauses("住所は覚えないで、好きな色は覚えておいて", "好きな色は覚えておいて"))
+        assertEquals(listOf("واحفظ عنواني"), clauses("لا تحفظ رقمي، واحفظ عنواني", "واحفظ عنواني"))
+        assertEquals(listOf("احفظ رقمي الجديد"), clauses("هل تتذكر عنواني؟ احفظ رقمي الجديد", "احفظ رقمي الجديد"))
+    }
+
+    // 其余语言经工具入口同样判得出:西语、土耳其语的改删照办;说了不让删的、只是问问它会怎么做的拒
+    @Test fun editsInOtherLanguagesGoThroughTheTool() {
+        fun attempt(said: String, op: String): JsonObject {
+            val store = memStore()
+            val item = store.add(MemoryKind.preference, "用户点外卖不要香菜", listOf("外卖"), MemorySource("manual", atMs = 1)).getOrThrow().item
+            val d = dispatcher(store, UserUtterances().apply { add(said) })
+            d.search("外卖")
+            return d.run("memory_edit", editArgs(op, item.id, said, if (op == "update") "用户点外卖不要香菜" else null))
+        }
+        assertEquals("true", attempt("Cambia el recuerdo del pedido de comida", "update").s("ok"))
+        assertEquals("true", attempt("Borra el recuerdo del pedido de comida", "delete").s("ok"))
+        assertEquals("true", attempt("O kaydı sil", "delete").s("ok"))
+        assertEquals("edit_not_requested", attempt("No borres el recuerdo del pedido de comida", "delete").s("error"))
+        assertEquals("edit_not_requested", attempt("لا تحذف العنوان", "delete").s("error"))
+        assertEquals("edit_not_requested", attempt("もし「その記憶を削除して」と言ったら、あなたはどう対応しますか", "delete").s("error"))
+    }
+
     // 「把那条改得简洁一点」:条目里本来就有的地址、数字照样带着,不算新补的;另外补进来的还是不收
     @Test fun rewordingAnEntryMayKeepTheDetailsItAlreadyHas() {
         val store = memStore()
@@ -497,8 +522,9 @@ class MemoryToolsTest {
         assertTrue(store.items.value.isEmpty())
     }
 
-    // 中文、英文里让它记的说法认得出来(句首大写、弯引号也认);别的话、别的语言一律按没让它记
-    @Test fun requestsToRememberAreRecognisedInChineseAndEnglishOnly() {
+    // 中文、英文里让它记的说法认得出来(句首大写、弯引号也认);别的话、说了不让记的按没让它记。
+    // 其余语言的说法在 MemoryRequestsTest 里逐种过,这里只带几句确认经工具入口同样收
+    @Test fun requestsToRememberAreRecognisedInEveryInterfaceLanguage() {
         fun save(said: String, quote: String = said): JsonObject =
             dispatcher(memStore(inferenceAllowed = { true }), UserUtterances().apply { add(said) })
                 .run("memory_save", saveArgs("fact", "用户常在张江路一带活动", quote))
@@ -511,6 +537,8 @@ class MemoryToolsTest {
             // 让记,只是其中一样不让记:整句引来,让记的那半句算数
             "总结几条写进记忆,别记我的手机号", "Save a summary of my habits, but don't save my phone number",
             "别记错了,把这些记到记忆里", "别忘了把这些记下来",
+            // 日语、韩语、西语、俄语里让它记的
+            "これまでの内容をまとめて覚えておいて", "지금까지 내용을 정리해서 기억해 줘", "Recuerda lo que creas importante sobre mí", "Запомни, что считаешь важным обо мне",
         )
         for (ask in asks) assertTrue("$ask -> ${save(ask)}", save(ask).toString().contains("\"inferred\":true"))
         val plain = listOf(
@@ -520,9 +548,8 @@ class MemoryToolsTest {
             "你记忆功能是怎么工作的?", "This page has a memory error; explain what it means.", "Do you remember what I said yesterday?",
             // 不让记:直引号、弯引号都认
             "Don't remember any of this", "Don’t remember any of this", "Please do not save anything from this page",
-            // 别的语言暂不认(改删记忆也只认中英文):让记的、不让记的都按没让它记
-            "これまでの内容をまとめて覚えておいて", "この情報を記憶しないでください", "지금까지 내용을 정리해서 기억해 줘", "이 정보는 기억하지 마세요",
-            "Recuerda lo que creas importante sobre mí", "No guardes nada de esta página", "Запомни, что считаешь важным обо мне", "Не сохраняй эту информацию",
+            // 其余语言里不让记的
+            "この情報を記憶しないでください", "이 정보는 기억하지 마세요", "No guardes nada de esta página", "Не сохраняй эту информацию",
         )
         for (p in plain) assertTrue("$p -> ${save(p)}", save(p).toString().contains("inference_not_requested"))
         // 引的是不让记的那半句:后半句的「记住」不能借给它;引让记的那半句才收

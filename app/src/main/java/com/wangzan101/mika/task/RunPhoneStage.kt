@@ -195,6 +195,7 @@ internal suspend fun TaskRun.connectPhone(a: RunAssembly, appAccess: com.wangzan
         appAccess = appAccess,
         shareAudioFile = { path -> phoneRuntime.shareWorkspaceAudio(path) },
         shareImageFile = { path -> shareWorkspaceImage(path) },
+        shareVideoFile = { path -> shareWorkspaceVideo(path) },
     )
     val side0 = PhoneSide(shell, a11y, screen, agentDisplay, muter)
     phone = side0
@@ -255,8 +256,10 @@ internal suspend fun TaskRun.assembleGate(ph: RunPhone): TaskGate {
         refreshLocked = states::refresh,
         unattendedUnlock = unlockAuthorized?.let { authorized ->
             {
-                // 回锁走无障碍的全局动作、守卫走通知;两样都不在就立不住「锁回去」的义务,不去解锁
-                if (ScreenAccessibility.instance.value == null) {
+                // 回锁走无障碍的全局动作、守卫走通知;两样都不在就立不住「锁回去」的义务,不去解锁。
+                // 熄屏一夜后无障碍服务可能正断开重连或在自动修复:和接手机时同一个有界等待,等不到照旧不解锁
+                if (AccessibilityRepair.awaitService(ScreenAccessibility.instance,
+                        phoneServices.recovery.accessibilityRepair.phase, A11Y_WAIT_MS) == null) {
                     states.refresh()
                     "accessibility_unavailable"
                 } else if (!service.startUnlockGuard()) {

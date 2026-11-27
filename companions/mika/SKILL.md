@@ -20,7 +20,9 @@ Wi-Fi/private VPN: use `--url http://PHONE:8765 --token-file /path/to/token-file
 
 Notes:
 - ADB mode needs Android platform-tools; the APK must include task API v1 (an older MCP-only APK is insufficient). Humans can run `mika ui` for a local task desk; agents should use the commands below.
-- If the user selects a parallel Mika build, add `--package APPLICATION_ID` to `connect`, `doctor` and each `task` command. The default ADB package is `com.wangzan101.mika`.
+- If the user selects a parallel Mika build, add `--package APPLICATION_ID` to `connect`, `doctor`, `screen`, `ui` and each `task` command (not `devices` or `--url`). The default ADB package is `com.wangzan101.mika`.
+- To look at what is on the phone's screen over ADB without starting a task, run `mika screen --device SERIAL --json` (read-only; password fields are omitted; check `truncated`). Never use `adb shell uiautomator dump`: it disconnects Mika's accessibility service.
+- If the user says another program occupies the computer's ADB server port, add `--adb-server-port PORT` to every ADB command (`devices`, `connect`, `doctor`, `screen`, `task`, `ui`, `notification-doctor`). It cannot be combined with `--url`.
 
 ## Common failures
 

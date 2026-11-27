@@ -157,4 +157,9 @@
     <string name="calls_type_transport">出租车与网约车</string>
     <string name="calls_only_strangers">仅接听陌生号码</string>
     <string name="calls_strangers_note">请允许 Mika 读取通讯录。只有查到号码未保存时，AI 才会接听。隐藏号码、通讯录无法读取时，由你本人接听。</string>
+    <string name="calls_show_dialpad">显示拨号盘</string>
+    <string name="calls_hide_dialpad">收起拨号盘</string>
+    <string name="calls_delete_digit">退格</string>
+    <string name="calls_clear_draft">清空草稿</string>
+    <string name="calls_reset_history_filters">重置筛选</string>
 </resources>

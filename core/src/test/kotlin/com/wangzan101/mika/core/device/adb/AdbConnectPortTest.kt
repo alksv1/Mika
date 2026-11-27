@@ -113,8 +113,8 @@ class AdbConnectPortTest {
 
     @Test
     fun rejectedEverywhereIsUnauthorized() = runTest {
-        // 唯一一个回话的端口试两次都拒,其余是旧端口:钥匙确实不被认,要重新配对;不再扫本机端口
-        val scanner = FakeScanner(mapOf("127.0.0.1" to listOf(41000)), setOf(AdbEndpoint("127.0.0.1", 41000)))
+        // 唯一一个回话的端口试两次都拒,其余是旧端口,扫本机也找不到别的 adbd:钥匙确实不被认,要重新配对
+        val scanner = FakeScanner(mapOf("127.0.0.1" to listOf(41000)), emptySet())
         val port = AdbConnectPort(
             { 4000 }, { _, _ -> listOf(5000) }, Cache(3000),
             scan = LocalPortScan(scanner, { listOf("127.0.0.1") }),
@@ -126,6 +126,32 @@ class AdbConnectPortTest {
             assertEquals(Reason.UNAUTHORIZED, e.reason)
         }
         assertEquals(listOf(3000, 4000, 4000, 5000), attempts)
+        assertEquals(listOf("127.0.0.1"), scanner.swept)
+        // 拒过我们的端口已经试过,扫描时跳过
+        assertTrue(4000 in scanner.skipped)
+    }
+
+    @Test
+    fun aStaleEndpointThatRejectsStillLetsTheScanFindTheCurrentPort() = runTest {
+        // 缓存的旧端口上还有服务回话、却不认当前钥匙;adbd 已经换到 41000
+        val scanner = FakeScanner(mapOf("127.0.0.1" to listOf(4000, 41000)), setOf(AdbEndpoint("127.0.0.1", 41000)))
+        val cache = Cache(4000)
+        val seen = mutableListOf<ConnectCandidates>()
+        val port = AdbConnectPort({ null }, { _, _ -> emptyList() }, cache, report = { seen += it },
+            scan = LocalPortScan(scanner, { listOf("127.0.0.1") }))
+        assertEquals("conn@41000", port.connect(opener(41000, unauthorized = 4000)))
+        assertEquals(listOf(4000, 4000, 41000), attempts)
+        assertEquals(41000, cache.port)
+        assertTrue(seen.single().scanned)
+    }
+
+    @Test
+    fun aManualPortStillSkipsTheScanAfterARejection() = runTest {
+        val scanner = FakeScanner(mapOf("127.0.0.1" to listOf(41000)), setOf(AdbEndpoint("127.0.0.1", 41000)))
+        val port = AdbConnectPort({ null }, { _, _ -> emptyList() }, Cache(4000),
+            scan = LocalPortScan(scanner, { listOf("127.0.0.1") }), manual = { 42000 })
+        assertEquals("conn@42000", port.connect(opener(42000, unauthorized = 4000)))
+        assertEquals(listOf(4000, 4000, 42000), attempts)
         assertTrue(scanner.swept.isEmpty())
     }
 
@@ -180,7 +206,7 @@ class AdbConnectPortTest {
         val swept = mutableListOf<String>()
         var skipped: Set<Int> = emptySet()
         override suspend fun openPorts(host: String, ports: IntRange, skip: Set<Int>, budgetMs: Long): List<Int> {
-            swept += host
+            if (swept.lastOrNull() != host) swept += host
             skipped = skip
             return open[host].orEmpty().filter { it in ports && it !in skip }
         }

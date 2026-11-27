@@ -50,11 +50,12 @@ fun ModelsScreen(
     onOpenSpeech: (() -> Unit)? = null,
     onOpenVoice: (() -> Unit)? = null,
     onOpenImage: (() -> Unit)? = null,
+    onOpenVideo: (() -> Unit)? = null,
     onOpenUsage: (() -> Unit)? = null,
     onOpenVoiceCatalog: (() -> Unit)? = null,
     onOpenCallMode: (() -> Unit)? = null,
 ) {
-    ModelSetupScreen(store, onboarding = false, onBack = onBack, onDone = onBack, onOpenSpeech = onOpenSpeech, onOpenVoice = onOpenVoice, onOpenImage = onOpenImage, onOpenUsage = onOpenUsage, onOpenVoiceCatalog = onOpenVoiceCatalog, onOpenCallMode = onOpenCallMode)
+    ModelSetupScreen(store, onboarding = false, onBack = onBack, onDone = onBack, onOpenSpeech = onOpenSpeech, onOpenVoice = onOpenVoice, onOpenImage = onOpenImage, onOpenVideo = onOpenVideo, onOpenUsage = onOpenUsage, onOpenVoiceCatalog = onOpenVoiceCatalog, onOpenCallMode = onOpenCallMode)
 }
 
 /** 子页面共用的骨架:顶栏 + 可滚动内容。 */
@@ -111,6 +112,7 @@ private val RoleTileShape = MikaShapes.Chip
 @Composable
 internal fun ProviderRow(p: Provider, line: String, first: Boolean, warning: String? = null, onClick: () -> Unit) {
     val c = MikaTheme.colors
+    val shownName = ModelsCopy.providerName(p)
     Column {
         if (!first) Hairline()
         Row(
@@ -118,13 +120,12 @@ internal fun ProviderRow(p: Provider, line: String, first: Boolean, warning: Str
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(Modifier.size(MikaSize.Tile).background(c.neutralSoft, MikaShapes.Tile), contentAlignment = Alignment.Center) {
-                Text(p.name.take(1).uppercase(), style = MikaType.Caption.copy(fontWeight = FontWeight.Bold), color = c.ink)
+                Text(shownName.take(1).uppercase(), style = MikaType.Caption.copy(fontWeight = FontWeight.Bold), color = c.ink)
             }
             Column(Modifier.weight(1f)) {
-                Text(ModelsCopy.providerName(p), style = MikaType.Body, color = c.ink, maxLines = 1)
+                Text(shownName, style = MikaType.Body, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val poolCount = com.wangzan101.mika.core.model.KeyPoolManager.shared.keyCount(p.id)
-                val poolTag = if (poolCount > 1) " · Key Pool ($poolCount keys)" else ""
-                Text(line + poolTag, Modifier.padding(top = 2.dp), style = MikaType.Caption, color = if (poolCount > 1) c.ok else c.ink3)
+                Text(KeyPoolCopy.providerLine(line, poolCount), Modifier.padding(top = 2.dp), style = MikaType.Caption, color = if (poolCount > 1) c.ok else c.ink3)
                 warning?.let { Text(it, Modifier.padding(top = 2.dp).testTag("provider-warning-${p.name}"), style = MikaType.Caption, color = c.warn) }
             }
             RowChevron()

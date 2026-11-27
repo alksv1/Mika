@@ -254,6 +254,8 @@
     <string name="pip_closed_hint">このタスクでは閉じました。右下の「画面を表示」をタップするか、サイドメニューの「バックグラウンドの画面」を開いてください。</string>
     <string name="chat_conversation_tokens">この会話: %1$s</string>
     <string name="chat_conversation_tokens_partial">この会話: %1$s 以上</string>
+    <string name="chat_current_model">現在のモデル</string>
+    <string name="chat_usage_view_details">トークン使用量を表示</string>
     <string name="chat_task_cost_estimate">約 %1$s</string>
     <string name="chat_task_cost_partial">%1$s（一部）</string>
     <string name="chat_task_cost_unavailable">費用を見積もれません</string>
@@ -332,4 +334,6 @@
     <string name="chat_example_share_title">Mika を友だちにシェア</string>
     <string name="chat_example_share_blurb">役立ちそうな友だちに紹介</string>
     <string name="chat_example_share">Mika のプロジェクトリンク https://github.com/wangzan101/mika を友だちにシェアして、スマホを代わりに操作してくれると伝えて</string>
+    <string name="chat_video">動画</string>
+    <string name="chat_video_play">再生</string>
 </resources>

@@ -63,6 +63,11 @@ internal fun CapsuleController.zoom(on: Boolean) {
  */
 internal fun CapsuleController.send() {
     val app = context.applicationContext as? com.wangzan101.mika.MikaApp
+    // 暂停了 Mika:输入框里的话原样留着,不清掉、不发,恢复后还能接着发
+    if (com.wangzan101.mika.settings.MikaPause.get(context).paused()) {
+        android.widget.Toast.makeText(context, com.wangzan101.mika.i18n.tr(com.wangzan101.mika.R.string.pause_blocked_task), android.widget.Toast.LENGTH_LONG).show()
+        return
+    }
     if (app != null && app.teachReady && app.teach.blocksTasks()) {
         android.widget.Toast.makeText(context, com.wangzan101.mika.i18n.tr(com.wangzan101.mika.R.string.teach_blocked_task), android.widget.Toast.LENGTH_LONG).show()
         return

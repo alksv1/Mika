@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pause Mika (Settings > Pause Mika), and what paused entry points say when they turn work away. -->
+    <string name="pause_title">Pause Mika</string>
+    <string name="pause_row_sub_active">Stop all of Mika’s work until you resume</string>
+    <string name="pause_row_sub_paused">Paused: no tasks or plans run</string>
+    <string name="pause_state_active">On</string>
+    <string name="pause_explain">Pausing stops every running and queued task, skips plans that come due, and turns away new tasks from chat, computers and message channels until you resume. It also turns off Mika’s accessibility service and wireless debugging and stops the phone helper. Nothing is uninstalled or deleted, and the wireless-debugging pairing stays saved.</string>
+    <string name="pause_paused_title">Mika is paused</string>
+    <string name="pause_paused_body">No tasks run, plans are skipped, and the phone helper is stopped until you resume.</string>
+    <string name="pause_active_title">Mika is on</string>
+    <string name="pause_active_body">Pause Mika when you want it fully off for a while.</string>
+    <string name="pause_status_label">What pausing turns off</string>
+    <string name="pause_action">Pause Mika</string>
+    <string name="pause_action_sub">Stop tasks, turn off accessibility and wireless debugging, stop the helper</string>
+    <string name="pause_resume">Resume Mika</string>
+    <string name="pause_resume_sub">Reconnect the helper using the saved pairing</string>
+    <string name="pause_resumed">Mika is back on.</string>
+    <string name="pause_resume_note">Mika could not turn everything back on by itself. Finish the steps below.</string>
+    <string name="pause_a11y_restoring">Turning Mika’s accessibility service back on…</string>
+    <string name="pause_a11y_label">Accessibility service</string>
+    <string name="pause_wireless_label">Wireless debugging</string>
+    <string name="pause_helper_label">Phone helper</string>
+    <string name="pause_helper_running">Running</string>
+    <string name="pause_helper_paused">Paused</string>
+    <string name="pause_helper_not_running">Not running</string>
+    <string name="pause_helper_connecting">Connecting…</string>
+    <string name="pause_tasks_stopped">Running and queued tasks were stopped.</string>
+    <string name="pause_done">Accessibility and wireless debugging are off and the helper is stopped.</string>
+    <string name="pause_a11y_manual">Could not turn the accessibility service off from here. Open Accessibility settings and turn Mika off.</string>
+    <string name="pause_wireless_manual">Could not turn wireless debugging off from here. Open Developer options and turn it off.</string>
+    <string name="pause_save_failed">Could not save the change, so nothing was changed. Try again.</string>
+    <string name="pause_step_a11y">Turn Mika back on in Accessibility settings</string>
+    <string name="pause_step_wireless">Turn wireless debugging back on in Developer options</string>
+    <string name="pause_step_repair">Pair the phone helper again</string>
+    <string name="pause_reconnect">Reconnect the helper now</string>
+    <string name="pause_blocked_task">Mika is paused, so this task did not start. Resume Mika in Settings first.</string>
+    <string name="pause_blocked_plan">Mika is paused, so this plan did not run.</string>
+    <string name="pause_blocked_workflow">Mika is paused, so this workflow did not run. Resume Mika in Settings first.</string>
+    <string name="pause_channel_reply">Mika is paused on the phone, so it did not start this task. Send it again after Mika is resumed.</string>
+    <string name="plans_skipped_paused">Skipped while Mika was paused</string>
+    <string name="workflow_stopped_paused">Stopped because Mika was paused</string>
+</resources>

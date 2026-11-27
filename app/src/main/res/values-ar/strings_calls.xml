@@ -157,4 +157,9 @@
     <string name="calls_type_transport">سيارات الأجرة وخدمات النقل</string>
     <string name="calls_only_strangers">الأرقام غير المحفوظة فقط</string>
     <string name="calls_strangers_note">اسمح لتطبيق Mika بقراءة جهات الاتصال. يرد الذكاء الاصطناعي فقط إذا تأكد أن الرقم غير محفوظ. تتولى أنت الرد إذا كان الرقم مخفيًا أو تعذر التحقق منه.</string>
+    <string name="calls_show_dialpad">إظهار لوحة الاتصال</string>
+    <string name="calls_hide_dialpad">إخفاء لوحة الاتصال</string>
+    <string name="calls_delete_digit">حذف</string>
+    <string name="calls_clear_draft">مسح المسودة</string>
+    <string name="calls_reset_history_filters">إعادة ضبط الفلاتر</string>
 </resources>

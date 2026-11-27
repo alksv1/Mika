@@ -103,4 +103,37 @@
     <string name="model_fallback_add_another">さらにバックアップモデルを追加 (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">%1$s がレート制限やクォータに達した場合、Mika は自動的に順次バックアップモデルへ切り替え、タスクを中断なく完了させます。</string>
     <string name="model_fallback_collapse_hint">フェイルオーバーチェーン展開中 · タップして折りたたむ</string>
+    <string name="model_keys_title">API キー</string>
+    <string name="model_keys_pool_one">API キープール · 1 件</string>
+    <string name="model_keys_pool_many">API キープール · %1$s · 自動で切り替え</string>
+    <string name="model_keys_hide">キーを非表示</string>
+    <string name="model_keys_show">キーを表示</string>
+    <string name="model_key_not_configured">キーが未設定です</string>
+    <string name="model_key_not_configured_hint">このプロバイダーに接続するにはキーを追加してください</string>
+    <string name="model_key_required">必須</string>
+    <string name="model_key_number">キー %1$d</string>
+    <string name="model_key_active">有効</string>
+    <string name="model_key_add">API キーを追加</string>
+    <string name="model_key_add_first_hint">キーを貼り付けて接続</string>
+    <string name="model_key_add_another_hint">ローテーションに別のキーを追加</string>
+    <string name="model_keys_rotate_note">キーは自動で切り替わります。429 のレート制限やタイムアウトになったキーは、回復するまでスキップされます。タスクは止まりません。</string>
+    <string name="model_keys_add_more_note">キーを追加すると、自動フェイルオーバーが有効になります。</string>
+    <string name="model_key_add_note">キーを 1 つ貼り付けてください。複数のキーはカンマか改行で区切ると、まとめて追加できます。</string>
+    <string name="model_keys_detected_add">%1$s を検出しました。すべてローテーションに追加されます</string>
+    <string name="model_key_one_ready">1 件のキーを追加できます</string>
+    <string name="model_provider_line_pool">%1$s · キープール（%2$s）</string>
+    <string name="model_keys_detected_setup">%1$s を検出しました。レート制限やタイムアウト時は自動で切り替わります</string>
+    <string name="model_providers_none">プロバイダーが接続されていません</string>
+    <string name="model_providers_keys_in_pool">%1$s · プールに %2$s</string>
+    <string name="model_key_remove">削除</string>
+    <string name="model_fallback_remove_desc">バックアップモデルを削除</string>
+    <plurals name="model_keys_count">
+        <item quantity="other">%1$d件のキー</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="other">✓ キープール: %1$d件の API キーを検出しました（429 やタイムアウト時に自動で切り替え）</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="other">%1$d件のキーを追加</item>
+    </plurals>
 </resources>

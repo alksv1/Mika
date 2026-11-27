@@ -147,6 +147,15 @@ internal fun AddProviderForm(ui: ModelSetupUi, actions: ModelSetupActions, stand
                 if (f.urlProblem == null) f.defaultName else ModelSetupCopy.NAME_HINT,
                 modifier = Modifier.testTag("setup-name"),
             )
+        } else {
+            InputRow(
+                stringResource(R.string.provider_nickname_label),
+                f.nickname,
+                actions.setNickname,
+                stringResource(R.string.provider_nickname_hint),
+                first = !f.urlEditable && !f.isCloudflare,
+                modifier = Modifier.testTag("setup-nickname"),
+            )
         }
         // ── API Key input — multi-line, large, prominent ──────────────────
         val parsedKeys = remember(f.apiKey) { com.wangzan101.mika.core.model.KeyPoolManager.shared.parseKeys(f.apiKey) }
@@ -208,7 +217,7 @@ internal fun AddProviderForm(ui: ModelSetupUi, actions: ModelSetupActions, stand
             // Live pool feedback
             when {
                 poolActive -> Text(
-                    "${parsedKeys.size} keys detected — pool will auto-rotate on rate-limit or timeout",
+                    KeyPoolCopy.detectedSetup(parsedKeys.size),
                     Modifier.padding(top = 6.dp).testTag("setup-key-notice"),
                     style = MikaType.Caption, color = c.ok,
                 )
@@ -223,7 +232,7 @@ internal fun AddProviderForm(ui: ModelSetupUi, actions: ModelSetupActions, stand
                     style = MikaType.Caption, color = c.ink2,
                 )
                 f.apiKey.isNotBlank() -> Text(
-                    "1 key ready",
+                    stringResource(R.string.model_key_one_ready),
                     Modifier.padding(top = 6.dp),
                     style = MikaType.Caption, color = c.ok,
                 )

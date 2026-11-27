@@ -179,17 +179,22 @@ object ModelsCopy {
     val SIGN_IN_USE_KEY: String get() = tr(R.string.signin_use_key)
     val SIGN_IN_BUSY: String get() = tr(R.string.signin_busy)
 
-    /** 界面上服务商的名字:授权来的 OpenRouter 加一句来历,和用户自己填 Key 的那一家分得开。 */
+    /**
+     * 界面上服务商的名字,各处都用这一个:授权来的 OpenRouter 加一句来历,和用户自己填 Key 的那一家分得开;
+     * 起了备注(见 [Provider.nickname])写成「名字(备注)」;没起备注的 Cloudflare 用账号编号的头尾区分。
+     * 括号怎么写由各语言的 provider_name_with_note 决定。
+     */
     fun providerName(p: Provider): String {
-        if (p.signIn == ProviderStore.OPENROUTER_SIGN_IN) return tr(R.string.signin_openrouter_name, p.name)
+        val base = if (p.signIn == ProviderStore.OPENROUTER_SIGN_IN) tr(R.string.signin_openrouter_name, p.name) else p.name
+        p.nickname?.let { return tr(R.string.provider_name_with_note, base, it) }
         if (p.name == "Cloudflare Workers AI" && p.baseUrl.contains("/accounts/")) {
             val acc = p.baseUrl.substringAfter("/accounts/").substringBefore("/").trim()
             if (acc.isNotEmpty() && !acc.contains("{")) {
                 val shortId = if (acc.length >= 8) "${acc.take(4)}…${acc.takeLast(4)}" else acc
-                return "${p.name} ($shortId)"
+                return tr(R.string.provider_name_with_note, base, shortId)
             }
         }
-        return p.name
+        return base
     }
     val XAI_CODE_TITLE: String get() = tr(R.string.signin_xai_code_title)
     val XAI_CODE_BODY: String get() = tr(R.string.signin_xai_code_body)
@@ -337,6 +342,11 @@ object ModelsCopy {
     val IMAGE_ICON: ImageVector get() = MikaIcons.Photo
 
     fun imageLine(ui: ModelSetupUi): RoleLine = RoleLine(tr(R.string.role_image), tr(R.string.role_image_what), unset = true)
+
+    /** 「视频模型」:生成短视频,同样不在 [ModelRole] 里。 */
+    val VIDEO_ICON: ImageVector get() = MikaIcons.Camera
+
+    fun videoLine(): RoleLine = RoleLine(tr(R.string.role_video), tr(R.string.role_video_what), unset = true)
 
     fun roleIcon(role: ModelRole): ImageVector = when (role) {
         ModelRole.Main -> MikaIcons.Spark

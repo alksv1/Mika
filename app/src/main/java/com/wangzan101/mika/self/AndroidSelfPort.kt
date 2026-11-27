@@ -330,6 +330,7 @@ class AndroidSelfPort(
         BuiltinShellStatus.Connecting -> "connecting"
         BuiltinShellStatus.NotPaired -> "not_paired"
         BuiltinShellStatus.WirelessDebuggingOff -> "wireless_debugging_off"
+        BuiltinShellStatus.Paused -> "paused"
         is BuiltinShellStatus.Failed -> "failed"
     }
 

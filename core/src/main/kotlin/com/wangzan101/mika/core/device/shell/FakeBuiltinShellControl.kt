@@ -41,6 +41,16 @@ class FakeBuiltinShellControl(
         status.value = retryResult
     }
 
+    /** 测试里直接拨这个标记,再调 [pauseChanged],模拟持久化的暂停标记变了。 */
+    var pausedFlag = false
+
+    override val paused: Boolean get() = pausedFlag
+
+    override fun pauseChanged() {
+        calls += if (pausedFlag) "pause" else "resume"
+        status.value = if (pausedFlag) BuiltinShellStatus.Paused else retryResult
+    }
+
     override suspend fun unpair() {
         calls += "unpair"
         status.value = BuiltinShellStatus.NotPaired

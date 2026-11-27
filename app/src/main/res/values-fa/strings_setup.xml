@@ -103,4 +103,40 @@
     <string name="model_fallback_add_another">افزودن مدل پشتیبان دیگر (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">اگر %1$s به محدودیت نرخ یا سهمیه برخورد کند، Mika به‌طور خودکار به مدل‌های بعدی زنجیره سوئیچ می‌کند تا کارها بدون وقفه به پایان برسند.</string>
     <string name="model_fallback_collapse_hint">زنجیره فعال · برای بستن ضربه بزنید</string>
+    <string name="model_keys_title">کلیدهای API</string>
+    <string name="model_keys_pool_one">استخر کلیدهای API · ۱ کلید</string>
+    <string name="model_keys_pool_many">استخر کلیدهای API · %1$s · تعویض خودکار</string>
+    <string name="model_keys_hide">پنهان کردن کلیدها</string>
+    <string name="model_keys_show">نمایش کلیدها</string>
+    <string name="model_key_not_configured">کلیدی تنظیم نشده است</string>
+    <string name="model_key_not_configured_hint">برای اتصال به این ارائه‌دهنده یک کلید اضافه کنید</string>
+    <string name="model_key_required">الزامی</string>
+    <string name="model_key_number">کلید %1$d</string>
+    <string name="model_key_active">فعال</string>
+    <string name="model_key_add">افزودن کلید API</string>
+    <string name="model_key_add_first_hint">کلید خود را جای‌گذاری کنید تا وصل شوید</string>
+    <string name="model_key_add_another_hint">کلید دیگری به استخر تعویض اضافه کنید</string>
+    <string name="model_keys_rotate_note">کلیدها به‌طور خودکار تعویض می‌شوند. کلیدی که به محدودیت نرخ 429 یا زمان انتظار بخورد، تا زمان بازیابی نادیده گرفته می‌شود و کاری قطع نمی‌شود.</string>
+    <string name="model_keys_add_more_note">برای فعال شدن تعویض خودکار در صورت خطا، کلیدهای بیشتری اضافه کنید.</string>
+    <string name="model_key_add_note">یک کلید جای‌گذاری کنید، یا چند کلید را با ویرگول یا خط جدید جدا کنید تا همه یک‌جا اضافه شوند.</string>
+    <string name="model_keys_detected_add">%1$s شناسایی شد — همه به استخر تعویض اضافه می‌شوند</string>
+    <string name="model_key_one_ready">۱ کلید آماده افزودن است</string>
+    <string name="model_provider_line_pool">%1$s · استخر کلیدها (%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s شناسایی شد — در صورت محدودیت نرخ یا زمان انتظار، کلیدها به‌طور خودکار تعویض می‌شوند</string>
+    <string name="model_providers_none">هیچ ارائه‌دهنده‌ای وصل نشده است</string>
+    <string name="model_providers_keys_in_pool">%1$s · %2$s در استخر</string>
+    <string name="model_key_remove">حذف</string>
+    <string name="model_fallback_remove_desc">حذف مدل پشتیبان</string>
+    <plurals name="model_keys_count">
+        <item quantity="one">%1$d کلید</item>
+        <item quantity="other">%1$d کلید</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="one">✓ استخر کلیدها: %1$d کلید API شناسایی شد (تعویض خودکار در صورت 429 یا زمان انتظار)</item>
+        <item quantity="other">✓ استخر کلیدها: %1$d کلید API شناسایی شد (تعویض خودکار در صورت 429 یا زمان انتظار)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="one">افزودن %1$d کلید</item>
+        <item quantity="other">افزودن %1$d کلید</item>
+    </plurals>
 </resources>

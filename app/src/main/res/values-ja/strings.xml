@@ -162,4 +162,5 @@
     <string name="desk_report_failed">できませんでした：%1$s</string>
     <string name="desk_report_cancelled">キャンセルしました</string>
     <string name="desk_task_not_started">タスクを開始できませんでした。Mika を開いてもう一度お試しください</string>
+    <string name="sheet_no_matches">一致する項目はありません</string>
 </resources>

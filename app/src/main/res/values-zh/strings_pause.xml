@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">暂停 Mika</string>
+    <string name="pause_row_sub_active">恢复之前，Mika 什么都不做</string>
+    <string name="pause_row_sub_paused">已暂停：不跑任务和计划</string>
+    <string name="pause_state_active">运行中</string>
+    <string name="pause_explain">暂停后，在跑和排队的任务都会停下，到点的计划跳过不补，聊天、电脑和消息渠道发来的新任务一律不接，直到你恢复。同时关掉 Mika 的无障碍和无线调试，停下手机助手。不卸载、不删除任何东西，无线调试的配对也留着。</string>
+    <string name="pause_paused_title">Mika 已暂停</string>
+    <string name="pause_paused_body">恢复之前，不跑任务，计划跳过，手机助手停着。</string>
+    <string name="pause_active_title">Mika 运行中</string>
+    <string name="pause_active_body">想让 Mika 彻底停一阵时，就暂停它。</string>
+    <string name="pause_status_label">暂停会关掉的</string>
+    <string name="pause_action">暂停 Mika</string>
+    <string name="pause_action_sub">停下任务，关掉无障碍和无线调试，停下手机助手</string>
+    <string name="pause_resume">恢复 Mika</string>
+    <string name="pause_resume_sub">用已保存的配对重连手机助手</string>
+    <string name="pause_resumed">Mika 已恢复。</string>
+    <string name="pause_resume_note">有几项 Mika 没能自己重新打开，请按下面的步骤完成。</string>
+    <string name="pause_a11y_restoring">正在重新打开 Mika 的无障碍…</string>
+    <string name="pause_a11y_label">无障碍</string>
+    <string name="pause_wireless_label">无线调试</string>
+    <string name="pause_helper_label">手机助手</string>
+    <string name="pause_helper_running">运行中</string>
+    <string name="pause_helper_paused">已暂停</string>
+    <string name="pause_helper_not_running">没在运行</string>
+    <string name="pause_helper_connecting">连接中…</string>
+    <string name="pause_tasks_stopped">在跑和排队的任务已停下。</string>
+    <string name="pause_done">无障碍和无线调试已关掉，手机助手已停下。</string>
+    <string name="pause_a11y_manual">这里关不掉无障碍。请打开无障碍设置，把 Mika 关掉。</string>
+    <string name="pause_wireless_manual">这里关不掉无线调试。请打开开发者选项，把它关掉。</string>
+    <string name="pause_save_failed">没能保存这次改动，所以什么都没变。请再试一次。</string>
+    <string name="pause_step_a11y">到无障碍设置里重新打开 Mika</string>
+    <string name="pause_step_wireless">到开发者选项里重新打开无线调试</string>
+    <string name="pause_step_repair">重新配对手机助手</string>
+    <string name="pause_reconnect">现在重连手机助手</string>
+    <string name="pause_blocked_task">Mika 已暂停，这个任务没有开始。请先在设置里恢复 Mika。</string>
+    <string name="pause_blocked_plan">Mika 已暂停，这个计划没有运行。</string>
+    <string name="pause_blocked_workflow">Mika 已暂停，这个工作流没有运行。请先在设置里恢复 Mika。</string>
+    <string name="pause_channel_reply">Mika 在手机上已暂停，这个任务没有开始办。恢复 Mika 之后请再发一次。</string>
+    <string name="plans_skipped_paused">Mika 暂停期间跳过</string>
+    <string name="workflow_stopped_paused">因 Mika 暂停而停下</string>
+</resources>

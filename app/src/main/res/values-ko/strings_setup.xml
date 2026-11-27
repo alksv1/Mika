@@ -103,4 +103,37 @@
     <string name="model_fallback_add_another">백업 모델 추가 (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">%1$s의 요금 한도나 쿼터가 초과되면 Mika가 체인을 따라 자동으로 백업 모델로 전환하여 작업이 중단 없이 완료됩니다。</string>
     <string name="model_fallback_collapse_hint">장애 조치 체인 펼침 · 눌러서 접기</string>
+    <string name="model_keys_title">API 키</string>
+    <string name="model_keys_pool_one">API 키 풀 · 키 1개</string>
+    <string name="model_keys_pool_many">API 키 풀 · %1$s · 자동으로 번갈아 사용</string>
+    <string name="model_keys_hide">키 숨기기</string>
+    <string name="model_keys_show">키 표시</string>
+    <string name="model_key_not_configured">키가 설정되지 않음</string>
+    <string name="model_key_not_configured_hint">이 제공업체에 연결하려면 키를 추가하세요</string>
+    <string name="model_key_required">필수</string>
+    <string name="model_key_number">키 %1$d</string>
+    <string name="model_key_active">활성</string>
+    <string name="model_key_add">API 키 추가</string>
+    <string name="model_key_add_first_hint">키를 붙여넣어 연결하세요</string>
+    <string name="model_key_add_another_hint">번갈아 사용할 키를 하나 더 추가</string>
+    <string name="model_keys_rotate_note">키는 자동으로 번갈아 사용해요. 429 레이트 리밋이나 시간 초과가 발생한 키는 복구될 때까지 건너뛰어 작업이 끊기지 않아요.</string>
+    <string name="model_keys_add_more_note">키를 더 추가하면 자동 장애 조치 전환이 활성화돼요.</string>
+    <string name="model_key_add_note">키 하나를 붙여넣으세요. 여러 개면 쉼표나 줄바꿈으로 구분하면 한 번에 모두 추가돼요.</string>
+    <string name="model_keys_detected_add">%1$s를 감지했어요. 모두 번갈아 사용할 풀에 추가돼요</string>
+    <string name="model_key_one_ready">키 1개를 추가할 준비가 됐어요</string>
+    <string name="model_provider_line_pool">%1$s · 키 풀(%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s를 감지했어요. 요청 한도나 시간 초과 시 자동으로 번갈아 사용해요</string>
+    <string name="model_providers_none">연결된 제공업체가 없어요</string>
+    <string name="model_providers_keys_in_pool">%1$s · 풀에 %2$s</string>
+    <string name="model_key_remove">삭제</string>
+    <string name="model_fallback_remove_desc">백업 모델 삭제</string>
+    <plurals name="model_keys_count">
+        <item quantity="other">%1$d개의 키</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="other">✓ 키 풀: API 키 %1$d개를 감지했어요(429나 시간 초과 시 자동으로 번갈아 사용)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="other">키 %1$d개 추가</item>
+    </plurals>
 </resources>

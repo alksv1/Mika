@@ -180,4 +180,5 @@
     <string name="desk_report_failed">Didn\'t work out: %1$s</string>
     <string name="desk_report_cancelled">Cancelled</string>
     <string name="desk_task_not_started">The task never started. Open Mika and try again.</string>
+    <string name="sheet_no_matches">No matches</string>
 </resources>

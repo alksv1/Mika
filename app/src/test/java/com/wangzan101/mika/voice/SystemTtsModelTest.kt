@@ -73,6 +73,13 @@ class SystemTtsModelTest {
             return TextToSpeech.SUCCESS
         }
 
+        var voiceName: String? = null
+        var voiceResult = SystemVoiceResult.Applied
+        override fun setVoice(voiceName: String): SystemVoiceResult {
+            this.voiceName = voiceName
+            return voiceResult
+        }
+
         override fun setOnUtteranceProgressListener(onDone: (String) -> Unit, onError: (String) -> Unit) {
             doneCallback = onDone
             errorCallback = onError
@@ -109,6 +116,8 @@ class SystemTtsModelTest {
         engineFactory = { engine },
         resolvedLanguage = language,
         outputDir = { tmp.root },
+        initTimeoutMs = 1_000,
+        synthesisTimeoutMs = 5_000,
     )
 
     @Test
@@ -253,5 +262,83 @@ class SystemTtsModelTest {
         val controller = voiceTestEnvironment(catalog).tts
 
         assertEquals(cloud, controller.current())
+    }
+
+    @Test
+    fun `a picked voice is applied and replaces the language choice`() = runTest {
+        val engine = FakeEngine().apply { languageResult = TextToSpeech.LANG_NOT_SUPPORTED }
+        val tts = model(engine, language = { AppLanguage.Japanese })
+
+        val response = tts.synthesize(TtsRequest("test", voice = " en-us-x-voice-local "))
+
+        assertEquals("audio/wav", response.mime)
+        assertEquals("en-us-x-voice-local", engine.voiceName)
+        assertNull(engine.language)
+    }
+
+    @Test
+    fun `a voice the engine does not offer falls back to the app language`() = runTest {
+        val engine = FakeEngine().apply { voiceResult = SystemVoiceResult.NotOffered }
+        val tts = model(engine)
+
+        // 旧设置里留下的云端音色名、换引擎前选的音色
+        val response = tts.synthesize(TtsRequest("test", voice = "alloy"))
+
+        assertEquals("audio/wav", response.mime)
+        assertEquals("alloy", engine.voiceName)
+        assertEquals(Locale.forLanguageTag("en-US"), engine.language)
+    }
+
+    @Test
+    fun `no picked voice never touches the engine voice`() = runTest {
+        val engine = FakeEngine()
+        model(engine).synthesize(TtsRequest("test", voice = " "))
+
+        assertNull(engine.voiceName)
+        assertEquals(Locale.forLanguageTag("en-US"), engine.language)
+    }
+
+    @Test
+    fun `a failing voice switch is a system-unavailable failure and releases the engine`() = runTest {
+        val engine = FakeEngine().apply { voiceResult = SystemVoiceResult.Failed }
+
+        val error = runCatching { model(engine).synthesize(TtsRequest("test", voice = "v1")) }.exceptionOrNull()
+
+        assertEquals(VoiceErrorCategory.SYSTEM_UNAVAILABLE, (error as VoiceModelError).category)
+        assertNull(engine.synthesizedText)
+        assertTrue(engine.shutdown)
+    }
+
+    @Test
+    fun `an engine that never finishes initializing times out and is released`() = runTest {
+        val engine = FakeEngine().apply { asyncInit = true }
+
+        val error = runCatching { model(engine).synthesize(TtsRequest("hello")) }.exceptionOrNull()
+
+        assertEquals(VoiceErrorCategory.TIMEOUT, (error as VoiceModelError).category)
+        assertNull(engine.synthesizedText)
+        assertTrue(engine.shutdown)
+    }
+
+    @Test
+    fun `init error other than ERROR still counts as unavailable`() = runTest {
+        val engine = FakeEngine().apply { initStatus = -3 }
+
+        val error = runCatching { model(engine).synthesize(TtsRequest("hello")) }.exceptionOrNull()
+
+        assertEquals(VoiceErrorCategory.SYSTEM_UNAVAILABLE, (error as VoiceModelError).category)
+        assertTrue(engine.shutdown)
+    }
+
+    @Test
+    fun `an engine that dies mid-synthesis times out, deletes the temp wav and is released`() = runTest {
+        val engine = FakeEngine().apply { neverComplete = true }
+
+        val error = runCatching { model(engine).synthesize(TtsRequest("hello")) }.exceptionOrNull()
+
+        assertEquals(VoiceErrorCategory.TIMEOUT, (error as VoiceModelError).category)
+        assertTrue(engine.stopped)
+        assertTrue(engine.shutdown)
+        assertFalse(engine.synthesizedFile?.exists() ?: true)
     }
 }

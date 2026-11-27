@@ -54,4 +54,13 @@ class ModelsCopyTest {
         assertEquals("主力组", line.title)
         assertEquals("2 个模型", line.subtitle)
     }
+
+    @Test fun providerNameAddsNicknameThroughOneFormat() {
+        assertEquals("DeepSeek", ModelsCopy.providerName(ds))
+        assertEquals("DeepSeek（工作）", ModelsCopy.providerName(ds.copy(nickname = "工作")))
+        val cf = Provider("p3", "Cloudflare Workers AI", ProviderConfig.Kind.OpenAiCompat,
+            "https://api.cloudflare.com/client/v4/accounts/abcd1234efgh5678/ai/v1")
+        assertEquals("Cloudflare Workers AI（abcd…5678）", ModelsCopy.providerName(cf))
+        assertEquals("Cloudflare Workers AI（个人）", ModelsCopy.providerName(cf.copy(nickname = "个人")))
+    }
 }

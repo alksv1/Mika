@@ -59,7 +59,16 @@ interface SttAdapter {
     val protocol: SttProtocol
     fun spec(model: ResolvedVoiceModel): SpeechEngineSpec
     fun start(context: Context, model: ResolvedVoiceModel, language: String?, hooks: SttHooks = SttHooks()): SpeechSession
+
+    /**
+     * 整段上传识别的协议给出「一段 WAV 进、文字出」的转写(失败抛 [com.wangzan101.mika.core.model.ModelError]);
+     * 备援链和密钥池轮换按它把同一段录音交给下一个模型/下一把密钥。流式和系统识别为 null。
+     */
+    fun utterance(context: Context, model: ResolvedVoiceModel, language: String?): UtteranceTranscribe? = null
 }
+
+/** 一段 WAV 进、文字出。 */
+typealias UtteranceTranscribe = suspend (wav: ByteArray) -> String
 
 private class CategorizedSpeechSession(
     private val delegate: SpeechSession,
@@ -149,6 +158,9 @@ class ProviderSttAdapter(
         return categorizedSession { sessionFactory(context, model, languageTag(context, language), hooks) }
     }
 
+    override fun utterance(context: Context, model: ResolvedVoiceModel, language: String?): UtteranceTranscribe =
+        providerTranscribe(model, languageTag(context, language))
+
     companion object {
         private val PROVIDER_PROTOCOLS = setOf(
             SttProtocol.AudioTranscriptions,
@@ -230,11 +242,15 @@ private val defaultSystemSession: SttSessionFactory = { context, _, tag, hooks -
 }
 
 private val defaultProviderSession: SttSessionFactory = { _, model, tag, hooks ->
+    ProviderSpeech(hooks.recorder ?: PcmRecorder(), providerTranscribe(model, tag))
+}
+
+private fun providerTranscribe(model: ResolvedVoiceModel, tag: String): UtteranceTranscribe {
     val spec = model.speechSpec<SpeechEngineSpec.Provider>()
     val headers = (model.account as? ResolvedAccount.ExistingProvider)?.headers.orEmpty()
     val key = model.account.credentials.apiKey.ifBlank { null }
     val transcriber = Transcriber(ProviderStore.modelHttp, headers)
-    ProviderSpeech(hooks.recorder ?: PcmRecorder(), { wav ->
+    return { wav ->
         transcriber.transcribe(
             spec.provider,
             key,
@@ -243,7 +259,7 @@ private val defaultProviderSession: SttSessionFactory = { _, model, tag, hooks -
             wav,
             SystemSpeech.isoCode(tag),
         )
-    })
+    }
 }
 
 private val defaultDoubaoSession: SttSessionFactory = { _, model, _, hooks ->
@@ -276,7 +292,8 @@ private val defaultBailianSession: SttSessionFactory = { _, model, tag, hooks ->
 internal fun languageTag(context: Context, language: String?): String =
     language ?: SystemSpeech.speechTag(AppLanguage.current(context))
 
-private fun asrLanguage(tag: String): AsrLanguage = AsrLanguage.of(SystemSpeech.isoCode(tag))
+/** 流式识别要告诉服务的语言;[tag] 为空(这个服务设的是「自动」)时不指定。 */
+internal fun asrLanguage(tag: String): AsrLanguage = AsrLanguage.of(SystemSpeech.isoCode(tag))
 
 private fun bailianRegion(binding: SttBinding): BailianRegion =
     BailianRegion.entries.firstOrNull { it.name.equals(binding.region, ignoreCase = true) }

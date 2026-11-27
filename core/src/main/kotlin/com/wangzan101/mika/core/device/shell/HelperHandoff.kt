@@ -175,6 +175,8 @@ object HelperHandoff {
         BadNonce,
         /** Binder 所在的进程不是来交接的那个。 */
         BinderElsewhere,
+        /** 用户暂停了 Mika:不收任何助手(包括暂停前起的、晚到的交接),助手被拒后自己退出。 */
+        Paused,
     }
 
     /** 不碰 Binder 就能做的检查;通过返回 null。口令另由 [HandoffNonces] 核对。 */

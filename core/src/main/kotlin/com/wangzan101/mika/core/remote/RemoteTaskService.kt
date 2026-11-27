@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.remote
 
+import com.wangzan101.mika.core.run.PauseFlag
 import kotlinx.coroutines.delay
 import java.util.UUID
 
@@ -15,6 +16,14 @@ sealed class RemoteTaskError(val code: Code, message: String) : Exception(messag
     class QuestionClosed : RemoteTaskError(Code.CONFLICT, "The question is no longer open; check the task's status.")
 }
 
+/**
+ * 电脑来的请求(MCP 与 CLI 接口共用)在用户暂停了 Mika 时的唯一拒法:UNAVAILABLE 加 [PauseFlag.REMOTE_MESSAGE]。
+ * 不记回执、不排队;恢复后电脑要重新发。
+ */
+fun PauseFlag.refuseRemote() {
+    if (paused()) throw RemoteTaskError.General(RemoteTaskError.Code.UNAVAILABLE, PauseFlag.REMOTE_MESSAGE)
+}
+
 data class RemoteWait(val task: RemoteTask, val changed: Boolean)
 data class RemoteCancellation(val taskId: String, val accepted: Boolean, val status: String? = null)
 data class RemoteSteerReceipt(val taskId: String, val messageId: String)
@@ -24,6 +33,8 @@ class RemoteTaskService(
     private val tasks: RemoteTasks,
     private val pollMs: Long = 250,
     private val records: RunExportSource? = null,
+    /** 用户暂停了 Mika:回答和插话直接拒([refuseRemote]);开始新任务由 [tasks] 在查过重发之后拒,同一请求的重发照样拿到原来的任务。 */
+    val paused: PauseFlag = PauseFlag.Never,
 ) {
     init { require(pollMs > 0) }
 
@@ -86,6 +97,7 @@ class RemoteTaskService(
     }
 
     fun answer(id: String, text: String): String {
+        paused.refuseRemote()
         val task = get(id)
         val clean = required(text, "text", MAX_ANSWER)
         when (RemoteStatus.of(task.state)) {
@@ -98,6 +110,7 @@ class RemoteTaskService(
     }
 
     fun steer(id: String, text: String): RemoteSteerReceipt {
+        paused.refuseRemote()
         val task = get(id)
         val clean = required(text, "text", MAX_STEER)
         val status = RemoteStatus.of(task.state)

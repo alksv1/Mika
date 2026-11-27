@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -29,8 +30,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -46,7 +49,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /** App 里的页面。对话是根页面,其余都从它(或从设置)进去,返回时回到进来的那一页。 */
-enum class Route { Chat, Personal, Settings, Memory, Plans, Browser, Files, Run, Source, PhoneSetup, Models, Usage, SpeechModel, VoiceModel, ImageModel, Welcome, ModelSetup, About, License, UpdateMirrors, Screens, Teach, Calls, Report, Playback, Persona, VoiceCatalog, RealtimeVoice, VoiceServices, CallMode, VoiceCall }
+enum class Route { Chat, Personal, Settings, Memory, Plans, Browser, Files, Run, Source, PhoneSetup, Models, Usage, SpeechModel, VoiceModel, ImageModel, Welcome, ModelSetup, About, License, UpdateMirrors, Screens, Teach, Calls, Report, Playback, Persona, VoiceCatalog, RealtimeVoice, VoiceServices, CallMode, VoiceCall, VideoModel }
 
 /**
  * 页面栈:最底下永远是对话页。[push] 进一页,[back] 回上一页(已在对话页时返回 false,交给系统退出)。
@@ -164,15 +167,61 @@ private object NavAnim {
 private data class PredictiveBackPose(val progress: Float, val physicalSign: Float)
 
 /**
+ * 换页时各页的界面状态(滚动位置、输入框、展开的子页……)。规则跟返回栈一致:
+ * 页面还压在栈里(比当前页浅)时留着,按返回回去原样恢复;退出栈(返回到更浅的页、同层换成别的页)就丢掉,
+ * 下次从入口重新进来是新的一页。[keep] 为真的页面一直留着(对话页、个人助理这类根页面来回切)。
+ *
+ * 由调用方 remember 在换页动效外面:页面框架(侧栏常驻/抽屉)换形态时 [NavSlide] 会重新组合,状态不能跟着丢。
+ */
+@Stable
+class PageStates internal constructor(
+    internal val holder: SaveableStateHolder,
+    private val depths: HashMap<String, Int>,
+    private val keep: (String) -> Boolean,
+) {
+    /** 进入 [key] 这一页(层级 [depth]):同层及更深的其他页已出栈,扔掉它们存着的状态。 */
+    internal fun enter(key: String, depth: Int) {
+        for (gone in stalePages(depths, key, depth, keep)) {
+            depths -= gone
+            holder.removeState(gone)
+        }
+        depths[key] = depth
+    }
+
+    internal companion object {
+        /** 进入 [key]/[depth] 时该丢掉的页面:层级不比它浅、不是它自己、也不是常驻页。 */
+        fun stalePages(known: Map<String, Int>, key: String, depth: Int, keep: (String) -> Boolean): List<String> =
+            known.filter { (k, d) -> k != key && d >= depth && !keep(k) }.keys.toList()
+
+        val DepthsSaver: Saver<HashMap<String, Int>, ArrayList<String>> = Saver(
+            save = { m -> ArrayList(m.map { (k, d) -> "$d:$k" }) },
+            restore = { list -> HashMap(list.associate { it.substringAfter(':') to it.substringBefore(':').toInt() }) },
+        )
+    }
+}
+
+@Composable
+fun rememberPageStates(keep: (String) -> Boolean = { false }): PageStates {
+    val holder = rememberSaveableStateHolder()
+    val depths = rememberSaveable(saver = PageStates.DepthsSaver) { HashMap() }
+    return remember(holder, depths) { PageStates(holder, depths, keep) }
+}
+
+/**
  * 页面切换的滑动推入过渡:[depth] 变深时新页从右滑入、旧页小幅左移并微缩淡压(视差),变浅时反向且旧页覆盖在返回页上方滑出。
  * 提供 [canGoBack] 与 [onBack] 时自带系统预测性返回手势;系统关了动画([MikaTheme.reduceMotion])时直接替换。
  * 内容里要用 [targetState] 的值(动画期间旧页还在),别读导航的实时状态。
+ *
+ * 给了 [states] 时每页的界面状态按 [pageKey] 存进去(规则见 [PageStates]),[pageKey] 相同视为同一页:
+ * 只是页面数据变了不重演换页动效,也不会两份同名页同时在组合树里。
  */
 @Composable
 fun <T> NavSlide(
     targetState: T,
     depth: (T) -> Int,
     modifier: Modifier = Modifier,
+    states: PageStates? = null,
+    pageKey: (T) -> String = { it.toString() },
     canGoBack: Boolean = false,
     onBack: (() -> Unit)? = null,
     content: @Composable AnimatedContentScope.(T) -> Unit,
@@ -180,14 +229,21 @@ fun <T> NavSlide(
     val reduce = MikaTheme.reduceMotion
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val scope = rememberCoroutineScope()
+    val keyOf: (T) -> Any? = { if (states != null) pageKey(it) else it }
+    val currentKey = keyOf(targetState)
+    if (states != null) {
+        val key = pageKey(targetState)
+        val level = depth(targetState)
+        SideEffect { states.enter(key, level) }
+    }
     val backProgress = remember { Animatable(0f) }
     var backPhysicalSign by remember { mutableFloatStateOf(if (rtl) -1f else 1f) }
-    val frozenBack = remember { mutableStateMapOf<T, PredictiveBackPose>() }
-    val latestTargetState = rememberUpdatedState(targetState)
+    val frozenBack = remember { mutableStateMapOf<Any?, PredictiveBackPose>() }
+    val latestTargetKey by rememberUpdatedState(currentKey)
     val latestOnBack by rememberUpdatedState(onBack)
 
-    LaunchedEffect(targetState) {
-        frozenBack.remove(targetState)
+    LaunchedEffect(currentKey) {
+        frozenBack.remove(currentKey)
     }
 
     val backEnabled = canGoBack && onBack != null
@@ -204,17 +260,17 @@ fun <T> NavSlide(
                 backProgress.snapTo(event.progress)
             }
             val p = backProgress.value.coerceIn(0f, 1f)
-            val committedFrom = latestTargetState.value
+            val committedKey = latestTargetKey
             val pose = if (receivedDragEvent || p > 0.01f) PredictiveBackPose(p, backPhysicalSign) else null
-            if (pose != null) frozenBack[committedFrom] = pose
+            if (pose != null) frozenBack[committedKey] = pose
             latestOnBack?.invoke()
             backProgress.snapTo(0f)
             if (pose != null) {
                 // 若 onBack 仅弹确认框而未切换页面,平滑弹回原位并清理冻结姿态,避免下次点击返回误用。
                 scope.launch {
                     withFrameNanos { }
-                    if (latestTargetState.value == committedFrom &&
-                        frozenBack.remove(committedFrom) != null &&
+                    if (latestTargetKey == committedKey &&
+                        frozenBack.remove(committedKey) != null &&
                         backProgress.value == 0f &&
                         pose.progress > 0f
                     ) {
@@ -230,7 +286,7 @@ fun <T> NavSlide(
     }
     var prevState by remember { mutableStateOf(targetState) }
     var prevZ by remember { mutableFloatStateOf(0f) }
-    val nextZ = remember(targetState) {
+    val nextZ = remember(currentKey) {
         val z = if (targetState == prevState) prevZ
         else if (depth(targetState) >= depth(prevState)) prevZ + 1f
         else prevZ - 1f
@@ -255,7 +311,7 @@ fun <T> NavSlide(
                             fadeOut(underFade, targetAlpha = 0.78f)))
                         .apply { targetContentZIndex = nextZ }
                 } else {
-                    val frozen = frozenBack[initialState]
+                    val frozen = frozenBack[keyOf(initialState)]
                     if (frozen != null) {
                         // 顺着手指拖动的物理方向继续平滑滑出、微缩并淡出,与松手前的冻结姿态零跳变衔接。
                         val layoutSign = frozen.physicalSign * (if (rtl) -1f else 1f)
@@ -287,14 +343,16 @@ fun <T> NavSlide(
             }
         },
         label = "nav-slide",
+        contentKey = { keyOf(it) },
     ) { state ->
-        DisposableEffect(state) {
-            onDispose { frozenBack.remove(state) }
+        val stateKey = keyOf(state)
+        DisposableEffect(stateKey) {
+            onDispose { frozenBack.remove(stateKey) }
         }
         Box(
             Modifier.graphicsLayer {
-                val pose = frozenBack[state]
-                val p = pose?.progress ?: if (state == latestTargetState.value) backProgress.value.coerceIn(0f, 1f) else 0f
+                val pose = frozenBack[stateKey]
+                val p = pose?.progress ?: if (stateKey == latestTargetKey) backProgress.value.coerceIn(0f, 1f) else 0f
                 if (p > 0f) {
                     val sign = pose?.physicalSign ?: backPhysicalSign
                     translationX = sign * size.width * NavAnim.BACK_DRAG_SHIFT * p
@@ -307,7 +365,13 @@ fun <T> NavSlide(
                 }
             },
         ) {
-            this@AnimatedContent.content(state)
+            if (states != null) {
+                states.holder.SaveableStateProvider(pageKey(state)) {
+                    this@AnimatedContent.content(state)
+                }
+            } else {
+                this@AnimatedContent.content(state)
+            }
         }
     }
 }

@@ -180,7 +180,7 @@ fun ModelGroupEditorScreen(
                 val cfg = ui.configOf(m.configId)
                 val p = cfg?.let { ui.providerOf(it) }
                 ListRow(null, cfg?.model ?: m.configId, first = i == 0) {
-                    RowValue(p?.name.orEmpty())
+                    RowValue(p?.let(ModelsCopy::providerName).orEmpty())
                     MikaSwitch(m.enabled, { on -> members = members.toMutableList().also { it[i] = m.copy(enabled = on) } })
                 }
                 Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

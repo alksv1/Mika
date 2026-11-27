@@ -44,6 +44,8 @@ sealed interface PairingNotice {
             return when (status) {
                 BuiltinShellStatus.Running -> Done
                 BuiltinShellStatus.Connecting -> Working
+                // 用户暂停了 Mika:不弹配对码通知。
+                BuiltinShellStatus.Paused -> null
                 is BuiltinShellStatus.Failed -> when {
                     status.reason.duringPairing -> EnterCode(port, PhoneSetupCopy.notifyRetry(status.reason))
                     status.fix == BuiltinShellFix.RePair && port != null -> EnterCode(port)
@@ -76,8 +78,15 @@ sealed interface PairingNotice {
          * 填了码、配对还没开始([submitted])时一律是「正在配对」,也不在这时结束(助手原本就在运行也一样,配对开始后状态还会变);
          * 「重新配对」时运行中的旧状态不算配好([PhoneSetupFlow.effectiveStatus]),助手在运行、又不在重新配对才结束。
          */
-        fun follow(status: BuiltinShellStatus, discovery: PairingDiscovery, repairing: Boolean, submitted: Boolean): Pair<PairingNotice?, Boolean> =
-            if (submitted) Working to false
+        fun follow(
+            status: BuiltinShellStatus,
+            discovery: PairingDiscovery,
+            repairing: Boolean,
+            submitted: Boolean,
+            paused: Boolean = false,
+        ): Pair<PairingNotice?, Boolean> =
+            if (paused) null to true
+            else if (submitted) Working to false
             else of(PhoneSetupFlow.effectiveStatus(status, repairing), discovery) to (status == BuiltinShellStatus.Running && !repairing)
     }
 }

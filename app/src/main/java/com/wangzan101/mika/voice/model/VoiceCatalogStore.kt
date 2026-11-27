@@ -133,12 +133,35 @@ class VoiceCatalogStore(
 
     @Synchronized
     fun setSttSelection(selection: SttSelection) {
-        commit { it.copy(selections = it.selections.copy(stt = selection)) }
+        commit { it.copy(selections = tidyFallbacks(it.selections.copy(stt = selection), it.models)) }
     }
 
     @Synchronized
     fun setTtsSelection(ref: VoiceModelRef?) {
-        commit { it.copy(selections = it.selections.copy(tts = ref)) }
+        commit { it.copy(selections = tidyFallbacks(it.selections.copy(tts = ref), it.models)) }
+    }
+
+    /**
+     * 改 [capability](STT / TTS)备援链的第 [slot] 位,规则见 [VoiceFallbacks.set];[ref] 为 null 是撤掉这一位。
+     * 越界、链满、或 [ref] 进不了这条链(能力不对、流式识别、就是链头本身)时不改,返回 false。
+     */
+    @Synchronized
+    fun setFallback(capability: VoiceCapability, slot: Int, ref: VoiceModelRef?): Boolean {
+        val current = mutable.value
+        if (ref != null && !fallbackUsable(ref, capability, current.models)) return false
+        if (ref != null && ref == primaryOf(current.selections, capability)) return false
+        val next = VoiceFallbacks.set(fallbacksOf(current.selections, capability) ?: return false, slot, ref) ?: return false
+        commit { it.copy(selections = tidyFallbacks(withFallbacks(it.selections, capability, next), it.models)) }
+        return true
+    }
+
+    /** 备援链里第 [from] 位挪到第 [to] 位;越界不改,返回 false。 */
+    @Synchronized
+    fun moveFallback(capability: VoiceCapability, from: Int, to: Int): Boolean {
+        val chain = fallbacksOf(mutable.value.selections, capability) ?: return false
+        val next = VoiceFallbacks.moved(chain, from, to) ?: return false
+        commit { it.copy(selections = withFallbacks(it.selections, capability, next)) }
+        return true
     }
 
     @Synchronized
@@ -314,9 +337,42 @@ class VoiceCatalogStore(
         }
     }
 
+    private fun fallbacksOf(selections: VoiceSelections, capability: VoiceCapability): List<VoiceModelRef>? = when (capability) {
+        VoiceCapability.STT -> selections.sttFallbacks
+        VoiceCapability.TTS -> selections.ttsFallbacks
+        VoiceCapability.REALTIME -> null
+    }
+
+    private fun withFallbacks(selections: VoiceSelections, capability: VoiceCapability, chain: List<VoiceModelRef>): VoiceSelections =
+        when (capability) {
+            VoiceCapability.STT -> selections.copy(sttFallbacks = chain)
+            VoiceCapability.TTS -> selections.copy(ttsFallbacks = chain)
+            VoiceCapability.REALTIME -> selections
+        }
+
+    private fun primaryOf(selections: VoiceSelections, capability: VoiceCapability): VoiceModelRef? = when (capability) {
+        VoiceCapability.STT -> (selections.stt as? SttSelection.Model)?.ref
+        VoiceCapability.TTS -> selections.tts
+        VoiceCapability.REALTIME -> selections.realtime
+    }
+
+    private fun fallbackUsable(ref: VoiceModelRef, capability: VoiceCapability, models: List<VoiceModel>): Boolean =
+        ref.capability == capability &&
+            models.any { it.sameIdentity(ref.serviceId, ref.modelId) && VoiceFallbacks.eligible(it, capability) }
+
+    /** 备援链去重、去掉链头自己和已删/不能进链的模型。链头换成流式识别时链照存,用不上而已(见 SttSelectionController.backupsFor)。 */
+    private fun tidyFallbacks(selections: VoiceSelections, models: List<VoiceModel>): VoiceSelections = selections.copy(
+        sttFallbacks = VoiceFallbacks.normalized(selections.sttFallbacks, primaryOf(selections, VoiceCapability.STT), VoiceCapability.STT) {
+            fallbackUsable(it, VoiceCapability.STT, models)
+        },
+        ttsFallbacks = VoiceFallbacks.normalized(selections.ttsFallbacks, selections.tts, VoiceCapability.TTS) {
+            fallbackUsable(it, VoiceCapability.TTS, models)
+        },
+    )
+
     private fun pruneSelections(selections: VoiceSelections, models: List<VoiceModel>): VoiceSelections {
         val stt = (selections.stt as? SttSelection.Model)?.ref
-        return selections.copy(
+        return tidyFallbacks(selections, models).copy(
             stt = if (stt == null || stt == SYSTEM_STT_REF || stt.selectable(models)) selections.stt else SttSelection.Off,
             tts = selections.tts?.takeIf { it == SYSTEM_TTS_REF || it.selectable(models) },
             realtime = selections.realtime?.takeIf { it.selectable(models) },

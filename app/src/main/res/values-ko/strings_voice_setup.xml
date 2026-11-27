@@ -31,6 +31,8 @@
     <string name="voice_settings_of">%1$s 설정</string>
     <string name="voice_voice">목소리</string>
     <string name="voice_voice_default">기본값</string>
+    <string name="voice_tts_engine">TTS 엔진</string>
+    <string name="voice_engine_default">시스템 기본값</string>
     <string name="realtime_lead">Mika와 대화하고 언제든 끼어들 수 있습니다. AI 전화도 따로 고르지 않으면 같은 선택을 사용합니다.</string>
     <string name="realtime_empty">아직 음성 통화 모델이 없습니다</string>
     <string name="realtime_empty_note">아래에서 고르거나 통화를 지원하는 음성 서비스를 연결하세요.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">베이징</string>
     <string name="voice_region_singapore">싱가포르</string>
     <string name="voice_compat_lead">OpenAI 오디오 API를 지원하는 서비스용입니다. 사용할 모델만 입력하고 나머지는 비워 두세요.</string>
-    <string name="voice_compat_models">모델</string>
     <string name="voice_compat_models_note">서비스가 제공하지 않는 모델은 비워 두세요.</string>
     <string name="voice_selfhosted_lead">내 네트워크에 있는 스트리밍 인식 서버입니다. 주소만 입력하면 되고 계정은 필요 없습니다.</string>
     <string name="voice_field_api_key">API 키</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">확인됨</string>
     <string name="calls_audio_unchecked">확인 안 됨</string>
     <string name="voice_stt_footer">휴대폰 자체 인식은 무료입니다. 온라인 선택지는 음성 서비스에서 오며, 고르기 전에 한 문장 말해 시험해 볼 수 있습니다.</string>
+    <string name="voice_audition">%1$s 미리 듣기</string>
+    <string name="voice_fallback_footer_stt">음성 입력이 사용량 제한에 걸리거나 서비스가 과부하이거나 제때 응답하지 않으면 Mika가 같은 녹음을 순서대로 다음 모델에 보냅니다. 말을 마친 뒤 받아쓰는 모델만 백업이 될 수 있습니다.</string>
+    <string name="voice_fallback_footer_tts">소리 내어 읽기가 사용량 제한에 걸리거나 서비스가 과부하이거나 제때 응답하지 않으면 Mika가 재생을 시작하기 전에 순서대로 다음 모델을 시도합니다. 백업은 자체 기본 음성을 사용합니다.</string>
+    <string name="voice_fallback_pick_title">%1$s 백업</string>
+    <string name="voice_fallback_none">아직 백업이 될 수 있는 다른 모델이 없습니다</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

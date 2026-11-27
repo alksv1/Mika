@@ -69,6 +69,63 @@ class ProviderStoreTest {
 
     private val none = Capabilities(toolCalls = false, vision = false, contextTokens = 64_000, reasoning = false)
 
+    @Test fun nicknameSurvivesReloadAndIsNotPartOfProviderIdentity() {
+        val s = store()
+        val base = "https://api.deepseek.com"
+        val p = s.connect("DeepSeek", ProviderConfig.Kind.OpenAiCompat, base, "k1", emptyList(), nickname = "  Work  ")
+        assertEquals("Work", p.nickname)
+        // 再连同一家(换 Key、不填备注):还是这一家,备注留着,不新建
+        val again = s.connect("DeepSeek", ProviderConfig.Kind.OpenAiCompat, base, "k2", emptyList())
+        assertEquals(p.id, again.id)
+        assertEquals("Work", again.nickname)
+        assertEquals(1, s.providers.value.size)
+        // 填了别的备注也还是这一家,只是改了备注
+        val renamed = s.connect("DeepSeek", ProviderConfig.Kind.OpenAiCompat, base, null, emptyList(), nickname = "Home")
+        assertEquals(p.id, renamed.id)
+        assertEquals(1, s.providers.value.size)
+        assertEquals("k2", s.providerKey(p.id))
+
+        assertEquals("Home", store().provider(p.id)!!.nickname)
+        val raw = File(tmp.root, "providers.json").readText()
+        assertTrue(raw.contains("\"nickname\":\"Home\""))
+        assertFalse(raw.contains("k2"))
+    }
+
+    @Test fun setProviderNicknameCleansPersistsAndClears() {
+        val s = store()
+        val p = s.connect("DeepSeek", ProviderConfig.Kind.OpenAiCompat, "https://api.deepseek.com", "k", emptyList())
+        assertNull(p.nickname)
+        s.setProviderNickname(p.id, "  Personal\n ")
+        assertEquals("Personal", store().provider(p.id)!!.nickname)
+        s.setProviderNickname(p.id, "x".repeat(Provider.MAX_NICKNAME + 10))
+        assertEquals(Provider.MAX_NICKNAME, store().provider(p.id)!!.nickname!!.length)
+        s.setProviderNickname(p.id, "   ")
+        assertNull(store().provider(p.id)!!.nickname)
+        assertFalse(File(tmp.root, "providers.json").readText().contains("\"nickname\""))
+        assertEquals(p.id, store().provider(p.id)!!.id)
+        assertEquals("k", store().providerKey(p.id))
+    }
+
+    @Test fun providersFileWithoutNicknameStillLoadsAndBlankNicknameIsNull() {
+        val s = store()
+        val p = s.connect("DeepSeek", ProviderConfig.Kind.OpenAiCompat, "https://api.deepseek.com", "k", emptyList())
+        val file = File(tmp.root, "providers.json")
+        assertFalse(file.readText().contains("nickname"))
+        assertNull(store().provider(p.id)!!.nickname)
+        file.writeText(file.readText().replace("\"id\":\"${p.id}\"", "\"id\":\"${p.id}\",\"nickname\":\"  \""))
+        assertNull(store().provider(p.id)!!.nickname)
+        file.writeText(file.readText().replace("\"nickname\":\"  \"", "\"nickname\":7"))
+        assertNull(store().provider(p.id)!!.nickname)
+    }
+
+    @Test fun cleanNicknameCountsCodePoints() {
+        assertNull(Provider.cleanNickname(null))
+        assertNull(Provider.cleanNickname(" \t "))
+        val emoji = "😀".repeat(Provider.MAX_NICKNAME + 1)
+        val cut = Provider.cleanNickname(emoji)!!
+        assertEquals(Provider.MAX_NICKNAME, cut.codePointCount(0, cut.length))
+    }
+
     @Test fun openAiServiceTiersSurviveReloadAndApplyPerProviderAndModel() {
         val s = store()
         val base = "https://api.openai.com/v1"
@@ -147,6 +204,49 @@ class ProviderStoreTest {
         assertEquals(listOf("b", "a"), s.roles.value.mainFallbacks)
         assertTrue(s.setMainFallback(1, "b"))
         assertEquals(listOf("a", "b"), s.roles.value.mainFallbacks)
+    }
+
+    @Test fun movedFallbacksIsBoundedAndKeepsOthersInOrder() {
+        val chain = listOf("a", "b", "c")
+        assertEquals(listOf("b", "a", "c"), movedFallbacks(chain, 1, 0))
+        assertEquals(listOf("a", "c", "b"), movedFallbacks(chain, 1, 2))
+        assertEquals(listOf("b", "c", "a"), movedFallbacks(chain, 0, 2))
+        assertEquals(chain, movedFallbacks(chain, 1, 1))
+        assertNull(movedFallbacks(chain, 0, -1))
+        assertNull(movedFallbacks(chain, 2, 3))
+        assertNull(movedFallbacks(chain, -1, 0))
+        assertNull(movedFallbacks(emptyList<String>(), 0, 0))
+    }
+
+    @Test fun moveFallbackPersistsAndOnlyTouchesThatRole() {
+        val s = store()
+        s.saveAsMain(cfg("m"), "sk-m")
+        // 没人用的配置下一次写入时会被清掉:存一个、马上放进链
+        listOf("a", "b", "c").forEachIndexed { i, id -> s.save(cfg(id), "sk-$id"); assertTrue(s.setFallback(ModelRole.Main, i, id)) }
+        listOf("va", "vb").forEachIndexed { i, id ->
+            s.save(cfg(id, vision = true), "sk-$id"); assertTrue(s.setFallback(ModelRole.Vision, i, id))
+        }
+        assertTrue(s.setFallback(ModelRole.Light, 0, "a"))
+        assertTrue(s.setFallback(ModelRole.Light, 1, "b"))
+
+        assertTrue(s.moveFallback(ModelRole.Main, 2, 1))
+        assertEquals(listOf("a", "c", "b"), s.roles.value.fallbacks(ModelRole.Main))
+        assertEquals(listOf("va", "vb"), s.roles.value.fallbacks(ModelRole.Vision))
+        assertEquals(listOf("a", "b"), s.roles.value.fallbacks(ModelRole.Light))
+
+        assertTrue(s.moveFallback(ModelRole.Light, 0, 1))
+        assertEquals(listOf("b", "a"), s.roles.value.fallbacks(ModelRole.Light))
+        assertEquals(listOf("a", "c", "b"), s.roles.value.fallbacks(ModelRole.Main))
+
+        // 越界什么也不改
+        assertFalse(s.moveFallback(ModelRole.Vision, 1, 2))
+        assertFalse(s.moveFallback(ModelRole.Main, -1, 0))
+        assertEquals(listOf("va", "vb"), s.roles.value.fallbacks(ModelRole.Vision))
+
+        val reloaded = store()
+        assertEquals(listOf("a", "c", "b"), reloaded.roles.value.fallbacks(ModelRole.Main))
+        assertEquals(listOf("va", "vb"), reloaded.roles.value.fallbacks(ModelRole.Vision))
+        assertEquals(listOf("b", "a"), reloaded.roles.value.fallbacks(ModelRole.Light))
     }
 
     @Test fun mainFallbackRejectsUnknownConfig() {

@@ -1,0 +1,51 @@
+name: PR policy
+
+# 从 fork 提的 PR 要勾选「Allow edits by maintainers」，维护者才能在 PR 分支上直接补修复后合并（见 CONTRIBUTING）。
+# 没勾选时这项检查失败。勾选不会触发新的运行：勾上后推一个提交，或由维护者重新运行这项检查。
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  maintainer-edits:
+    name: maintainer edits allowed
+    # 同仓库分支提的 PR 维护者本来就能改，不用查
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check "Allow edits by maintainers"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        # 现查 PR 的当前状态，而不是读事件里的旧值：重新运行时能看到作者后来勾上的选项
+        run: |
+          set -euo pipefail
+          read -r allowed owner_type < <(gh api "repos/$REPO/pulls/$PR" --jq '"\(.maintainer_can_modify) \(.head.repo.owner.type)"')
+          if [ "$allowed" = "true" ]; then
+            echo "Maintainers can push to this PR branch."
+            exit 0
+          fi
+          if [ "$owner_type" = "Organization" ]; then
+            # GitHub 不给组织名下的 fork 提供这个选项，不能要求，只提示
+            echo "::warning::This PR comes from an organization-owned fork, where GitHub does not offer \"Allow edits by maintainers\". A maintainer may need to open a separate PR to make fixes."
+            exit 0
+          fi
+          {
+            echo "### \"Allow edits by maintainers\" is off"
+            echo
+            echo "Please check **Allow edits by maintainers** in the right sidebar of this PR, then push a commit or ask a maintainer to re-run this check."
+            echo "This lets a maintainer add small fixes on top of your commits and merge, instead of opening a separate PR. See CONTRIBUTING.md."
+            echo
+            echo "请在 PR 页面右侧栏勾选 **Allow edits by maintainers**（允许维护者编辑），然后推一个提交，或请维护者重新运行这项检查。详见 CONTRIBUTING.zh-CN.md。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::\"Allow edits by maintainers\" is off. Check it in the PR sidebar so maintainers can push fixes to this branch."
+          exit 1

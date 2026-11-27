@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Mika を一時停止</string>
+    <string name="pause_row_sub_active">再開するまで Mika の作業をすべて止めます</string>
+    <string name="pause_row_sub_paused">一時停止中：タスクもプランも実行しません</string>
+    <string name="pause_state_active">オン</string>
+    <string name="pause_explain">一時停止すると、実行中と待機中のタスクはすべて止まり、時刻が来たプランはスキップされ、チャット・パソコン・メッセージチャネルからの新しいタスクは再開するまで受け付けません。あわせて Mika のユーザー補助と無線デバッグをオフにし、スマホのヘルパーを止めます。アンインストールや削除は一切せず、無線デバッグのペア設定もそのまま残ります。</string>
+    <string name="pause_paused_title">Mika は一時停止中です</string>
+    <string name="pause_paused_body">再開するまで、タスクは実行されず、プランはスキップされ、スマホのヘルパーは止まったままです。</string>
+    <string name="pause_active_title">Mika はオンです</string>
+    <string name="pause_active_body">Mika をしばらく完全に止めたいときは一時停止してください。</string>
+    <string name="pause_status_label">一時停止でオフになるもの</string>
+    <string name="pause_action">Mika を一時停止</string>
+    <string name="pause_action_sub">タスクを止め、ユーザー補助と無線デバッグをオフにし、ヘルパーを止めます</string>
+    <string name="pause_resume">Mika を再開</string>
+    <string name="pause_resume_sub">保存済みのペア設定でヘルパーに再接続します</string>
+    <string name="pause_resumed">Mika を再開しました。</string>
+    <string name="pause_resume_note">Mika が自分でオンに戻せなかった項目があります。下の手順を完了してください。</string>
+    <string name="pause_a11y_restoring">Mika のユーザー補助をオンに戻しています…</string>
+    <string name="pause_a11y_label">ユーザー補助</string>
+    <string name="pause_wireless_label">無線デバッグ</string>
+    <string name="pause_helper_label">スマホのヘルパー</string>
+    <string name="pause_helper_running">実行中</string>
+    <string name="pause_helper_paused">一時停止中</string>
+    <string name="pause_helper_not_running">停止中</string>
+    <string name="pause_helper_connecting">接続中…</string>
+    <string name="pause_tasks_stopped">実行中と待機中のタスクを止めました。</string>
+    <string name="pause_done">ユーザー補助と無線デバッグをオフにし、ヘルパーを止めました。</string>
+    <string name="pause_a11y_manual">ここからはユーザー補助をオフにできませんでした。ユーザー補助の設定を開いて Mika をオフにしてください。</string>
+    <string name="pause_wireless_manual">ここからは無線デバッグをオフにできませんでした。開発者向けオプションを開いてオフにしてください。</string>
+    <string name="pause_save_failed">変更を保存できなかったため、何も変わっていません。もう一度お試しください。</string>
+    <string name="pause_step_a11y">ユーザー補助の設定で Mika をオンに戻す</string>
+    <string name="pause_step_wireless">開発者向けオプションで無線デバッグをオンに戻す</string>
+    <string name="pause_step_repair">スマホのヘルパーをもう一度ペア設定</string>
+    <string name="pause_reconnect">今すぐヘルパーに再接続</string>
+    <string name="pause_blocked_task">Mika は一時停止中のため、このタスクは開始されませんでした。先に設定で Mika を再開してください。</string>
+    <string name="pause_blocked_plan">Mika は一時停止中のため、このプランは実行されませんでした。</string>
+    <string name="pause_blocked_workflow">Mika は一時停止中のため、このワークフローは実行されませんでした。先に設定で Mika を再開してください。</string>
+    <string name="pause_channel_reply">スマホの Mika は一時停止中のため、このタスクは開始されませんでした。Mika の再開後にもう一度送ってください。</string>
+    <string name="plans_skipped_paused">Mika の一時停止中にスキップ</string>
+    <string name="workflow_stopped_paused">Mika の一時停止により停止</string>
+</resources>

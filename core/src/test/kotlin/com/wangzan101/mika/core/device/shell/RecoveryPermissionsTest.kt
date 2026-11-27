@@ -388,4 +388,24 @@ class RecoveryPermissionsTest {
         )
         assertEquals("$other:$mika", shell.a11y)
     }
+
+    @Test
+    fun pausedMikaGetsNothingTurnedOnOrRestarted() = runTest {
+        val shell = FakeShell(a11y = "$other:$mika")
+        // 默认每一项都要、都还没打开:不暂停时 applyPending 会去开它们。
+        val p = RecoveryPermissions({ shell }, Store(), pkg, paused = { true })
+        assertTrue(p.applyPending() is PermissionResult.Failed)
+        assertTrue(p.restartAccessibility(0) is PermissionResult.Failed)
+        assertTrue(shell.ran.isEmpty())
+    }
+
+    @Test
+    fun pausingDuringTheRestartGapLeavesAccessibilityOff() = runTest {
+        // 去掉 Mika(前两条命令)之后、加回之前用户暂停了 Mika:不加回。
+        val shell = FakeShell(a11y = "$other:$mika")
+        val p = RecoveryPermissions({ shell }, Store(), pkg, paused = { shell.ran.size >= 2 })
+        assertTrue(p.restartAccessibility(gapMs = 1_000) is PermissionResult.Failed)
+        assertEquals(PermissionCommands.writeAccessibility(other), shell.ran)
+        assertEquals(other, shell.a11y)
+    }
 }

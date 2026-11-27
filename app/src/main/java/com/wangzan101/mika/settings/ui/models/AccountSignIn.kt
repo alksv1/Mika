@@ -100,7 +100,7 @@ internal fun AccountSignInGroup(ui: ModelSetupUi, onOpen: (SignInKind) -> Unit, 
                 ) {
                     when {
                         running -> RowValue(ModelsCopy.SIGN_IN_RUNNING)
-                        signedIn != null -> Box(Modifier.testTag("signin-${kind.tag}-signed-in")) { RowValue(ModelsCopy.CHATGPT_SIGNED_IN, ValueTone.Ok) }
+                        signedIn != null -> RowValue(ModelsCopy.CHATGPT_SIGNED_IN, ValueTone.Ok, Modifier.testTag("signin-${kind.tag}-signed-in"))
                         else -> RowChevron()
                     }
                 }

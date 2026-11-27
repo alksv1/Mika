@@ -121,6 +121,11 @@ data class TtsBinding(
     val voices: List<String> = emptyList(),
     /** Readable names for opaque voice ids (fetched from the vendor), keyed by id. */
     val voiceNames: Map<String, String> = emptyMap(),
+    /**
+     * Package of the device text-to-speech engine ([TtsProtocol.AndroidSystem] only); empty uses the device's
+     * default engine. Engine choice is model configuration, the voice the user picks stays a usage preference.
+     */
+    val engine: String = "",
 )
 
 @Serializable
@@ -181,6 +186,13 @@ data class VoiceSelections(
     val stt: SttSelection = SttSelection.Auto,
     val tts: VoiceModelRef? = null,
     val realtime: VoiceModelRef? = null,
+    /**
+     * 语音输入的备援链:[stt] 选的模型出错且 [VoiceFailover.canTryNext] 说换时按序接手。只收整段上传识别的模型
+     * (见 [VoiceFallbacks.eligible]),最多 [VoiceFallbacks.MAX] 个,不含 [stt] 自己。旧目录没有这一项,读出来是空表。
+     */
+    val sttFallbacks: List<VoiceModelRef> = emptyList(),
+    /** 朗读的备援链:同 [sttFallbacks],跟着 [tts];备援用自己的默认音色。 */
+    val ttsFallbacks: List<VoiceModelRef> = emptyList(),
     /** AI phone calls' own Realtime model; null follows [realtime]. */
     val callRealtime: VoiceModelRef? = null,
     /** Voice for [callRealtime]; blank uses that model's own voice. Ignored while calls follow [realtime]. */

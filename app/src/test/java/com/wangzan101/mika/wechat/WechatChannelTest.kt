@@ -105,6 +105,7 @@ class WechatChannelTest {
             override suspend fun confirm(threadId: String, askId: String, choice: ConfirmChoice) = false
             override suspend fun stop(runId: RunId) = Unit
             override suspend fun cancelAsk(threadId: String): Unit = error("Unexpected question cancellation")
+            override suspend fun paused(peer: ChannelPeer, messageId: String): Unit = error("not paused")
         })
 
     @Test fun pollingJournalsOnlyOwnerTextAndAcknowledgesAfterTaskRegistration() = runTest {
@@ -179,6 +180,7 @@ class WechatChannelTest {
                 override suspend fun confirm(threadId: String, askId: String, choice: ConfirmChoice) = false
                 override suspend fun stop(runId: RunId) = Unit
                 override suspend fun cancelAsk(threadId: String) = Unit
+                override suspend fun paused(peer: ChannelPeer, messageId: String): Unit = error("not paused")
             })
             gateway.start(channel)
             server.enqueue(response("""{"get_updates_buf":"next","msgs":[

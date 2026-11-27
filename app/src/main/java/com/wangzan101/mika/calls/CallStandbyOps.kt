@@ -3,6 +3,8 @@ package com.wangzan101.mika.calls
 import android.app.KeyguardManager
 import android.os.PowerManager
 import android.os.UserManager
+import androidx.annotation.MainThread
+import com.wangzan101.mika.settings.FeatureFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
@@ -56,7 +58,44 @@ internal fun CallRuntime.requestCallForegroundService(incoming: Boolean): Boolea
 
 internal fun CallRuntime.isStandbyOptedIn(): Boolean = CallStandbyPolicy.optedIn(settings.state.value, userUnlocked())
 
-internal fun CallRuntime.hasAuthorizedIncomingStandby(): Boolean = isStandbyOptedIn() && settings.state.value.backgroundStandbyAuthorized
+/** A full exit withdraws the grant until the owner opens Mika again, so nothing revives standby meanwhile. */
+internal fun CallRuntime.hasAuthorizedIncomingStandby(): Boolean = isStandbyOptedIn() &&
+    settings.state.value.backgroundStandbyAuthorized && !FeatureFlags.get(app).quitRequested()
+
+/** Schedules or cancels the periodic recovery check to match the current grant. */
+@MainThread
+internal fun CallRuntime.refreshStandbyRecovery() {
+    CallStandbyRecoveryJob.reconcile(app, hasAuthorizedIncomingStandby())
+}
+
+/** Called by the periodic check: restores only the owner's incoming standby, never outgoing work. */
+@MainThread
+internal fun CallRuntime.restoreAuthorizedStandbyFromSystem() {
+    refreshStandbyRecovery()
+    if (mayRequestIncomingStandby(StandbyTrigger.Scheduled)) requestCallForegroundService(incoming = true)
+}
+
+/** Reads the runtime once and applies the shared start rule for [trigger]. */
+internal fun CallRuntime.mayRequestIncomingStandby(trigger: StandbyTrigger): Boolean {
+    val authorized = hasAuthorizedIncomingStandby()
+    // Cheap answer first: without the grant nothing else needs reading.
+    if (!authorized) return false
+    return CallStandbyPolicy.mayRequestIncomingStandby(StandbyStartSnapshot(
+        authorized = true,
+        autoAnswerReady = autoAnswerBlocker(settings.state.value) == null,
+        notificationsAllowed = CallStandbyService.notificationsAvailable(app, create = true),
+        configuring = configuring,
+        starting = standbyStarting,
+        running = standbyService?.stickyAutoAnswer == true,
+        callWork = work != null,
+        lockedDial = lockedDial != null,
+        liveCall = liveCalls().isNotEmpty(),
+        unobservedManagedCall = unobservedManagedCall,
+        outgoingForegroundWork = hasOutgoingForegroundWork(),
+        interactiveForeground = trigger == StandbyTrigger.Visible && interactiveForeground(),
+        systemAllowsScheduledStart = trigger == StandbyTrigger.Scheduled && CallStandbyRecoveryJob.systemAllowsScheduledStart(app),
+    ), trigger)
+}
 
 internal fun CallRuntime.isIncomingStandbyRunning(): Boolean = standbyService?.stickyAutoAnswer == true && hasAuthorizedIncomingStandby()
 

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pause_title">Tạm dừng Mika</string>
+    <string name="pause_row_sub_active">Dừng mọi việc của Mika cho đến khi bạn tiếp tục</string>
+    <string name="pause_row_sub_paused">Đã tạm dừng: không chạy tác vụ hay kế hoạch</string>
+    <string name="pause_state_active">Đang bật</string>
+    <string name="pause_explain">Khi tạm dừng, mọi tác vụ đang chạy và đang chờ đều dừng lại, các kế hoạch đến giờ sẽ bị bỏ qua, và tác vụ mới từ trò chuyện, máy tính hay kênh tin nhắn đều bị từ chối cho đến khi bạn tiếp tục. Dịch vụ hỗ trợ tiếp cận của Mika và gỡ lỗi không dây cũng được tắt, trình trợ giúp điện thoại được dừng. Không gỡ cài đặt hay xóa gì cả, và ghép nối gỡ lỗi không dây vẫn được lưu.</string>
+    <string name="pause_paused_title">Mika đang tạm dừng</string>
+    <string name="pause_paused_body">Cho đến khi bạn tiếp tục, không có tác vụ nào chạy, các kế hoạch bị bỏ qua và trình trợ giúp điện thoại đang dừng.</string>
+    <string name="pause_active_title">Mika đang bật</string>
+    <string name="pause_active_body">Hãy tạm dừng Mika khi bạn muốn tắt hẳn nó một thời gian.</string>
+    <string name="pause_status_label">Những gì tạm dừng sẽ tắt</string>
+    <string name="pause_action">Tạm dừng Mika</string>
+    <string name="pause_action_sub">Dừng tác vụ, tắt hỗ trợ tiếp cận và gỡ lỗi không dây, dừng trình trợ giúp</string>
+    <string name="pause_resume">Tiếp tục Mika</string>
+    <string name="pause_resume_sub">Kết nối lại trình trợ giúp bằng ghép nối đã lưu</string>
+    <string name="pause_resumed">Mika đã bật lại.</string>
+    <string name="pause_resume_note">Mika không tự bật lại được mọi thứ. Hãy hoàn tất các bước bên dưới.</string>
+    <string name="pause_a11y_restoring">Đang bật lại dịch vụ hỗ trợ tiếp cận của Mika…</string>
+    <string name="pause_a11y_label">Dịch vụ hỗ trợ tiếp cận</string>
+    <string name="pause_wireless_label">Gỡ lỗi không dây</string>
+    <string name="pause_helper_label">Trình trợ giúp điện thoại</string>
+    <string name="pause_helper_running">Đang chạy</string>
+    <string name="pause_helper_paused">Đã tạm dừng</string>
+    <string name="pause_helper_not_running">Không chạy</string>
+    <string name="pause_helper_connecting">Đang kết nối…</string>
+    <string name="pause_tasks_stopped">Các tác vụ đang chạy và đang chờ đã được dừng.</string>
+    <string name="pause_done">Hỗ trợ tiếp cận và gỡ lỗi không dây đã tắt, trình trợ giúp đã dừng.</string>
+    <string name="pause_a11y_manual">Không thể tắt dịch vụ hỗ trợ tiếp cận từ đây. Hãy mở cài đặt Hỗ trợ tiếp cận và tắt Mika.</string>
+    <string name="pause_wireless_manual">Không thể tắt gỡ lỗi không dây từ đây. Hãy mở Tùy chọn cho nhà phát triển và tắt nó.</string>
+    <string name="pause_save_failed">Không lưu được thay đổi nên chưa có gì thay đổi. Hãy thử lại.</string>
+    <string name="pause_step_a11y">Bật lại Mika trong cài đặt Hỗ trợ tiếp cận</string>
+    <string name="pause_step_wireless">Bật lại gỡ lỗi không dây trong Tùy chọn cho nhà phát triển</string>
+    <string name="pause_step_repair">Ghép nối lại trình trợ giúp điện thoại</string>
+    <string name="pause_reconnect">Kết nối lại trình trợ giúp ngay</string>
+    <string name="pause_blocked_task">Mika đang tạm dừng nên tác vụ này chưa bắt đầu. Hãy tiếp tục Mika trong Cài đặt trước.</string>
+    <string name="pause_blocked_plan">Mika đang tạm dừng nên kế hoạch này không chạy.</string>
+    <string name="pause_blocked_workflow">Mika đang tạm dừng nên quy trình này không chạy. Hãy tiếp tục Mika trong Cài đặt trước.</string>
+    <string name="pause_channel_reply">Mika trên điện thoại đang tạm dừng nên chưa bắt đầu tác vụ này. Hãy gửi lại sau khi Mika được tiếp tục.</string>
+    <string name="plans_skipped_paused">Bỏ qua khi Mika đang tạm dừng</string>
+    <string name="workflow_stopped_paused">Đã dừng vì Mika tạm dừng</string>
+</resources>

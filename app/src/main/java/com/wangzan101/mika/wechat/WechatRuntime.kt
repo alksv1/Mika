@@ -66,6 +66,9 @@ class WechatRuntime(
             override suspend fun newTask(peer: ChannelPeer, messageId: String, text: String) =
                 TaskService.startChannel(context, peer, messageId, text)
 
+            override suspend fun paused(peer: ChannelPeer, messageId: String) =
+                com.wangzan101.mika.task.replyPaused(app.outbox, channel, peer, messageId)
+
             override suspend fun answer(threadId: String, askId: String, text: String): Boolean =
                 app.taskState.run(threadId)?.answerFromChannel(text, askId) == true
 
@@ -75,7 +78,7 @@ class WechatRuntime(
                 val run = app.taskState.run(threadId) ?: return
                 run.activeAsk?.askId?.let(run::cancelAsk)
             }
-        })
+        }, com.wangzan101.mika.settings.MikaPause.get(context))
 
     val channel = WechatChannel(store, api,
         activeAsk = { threadId -> app.taskState.run(threadId)?.activeAsk },

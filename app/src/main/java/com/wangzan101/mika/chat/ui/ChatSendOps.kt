@@ -41,6 +41,7 @@ internal class ChatSendOps(private val vm: ChatViewModel, private val session: C
     private val branchWorkspace = vm.branchWorkspace
     private val sharedDrafts = vm.sharedDrafts
     private val teaching = vm.teaching
+    private val paused = vm.paused
     private val onTeachingBlocked = vm.onTeachingBlocked
     private val projectStore = vm.projectStore
     private val workspaceResolver = vm.workspaceResolver
@@ -59,10 +60,14 @@ internal class ChatSendOps(private val vm: ChatViewModel, private val session: C
     /**
      * 发送输入框里的话;有引用时引用写在话的前面(见 [QuoteMessage]),发出去后清掉。返回 false 表示没发出去(条件不满足)。
      * 去向按先后:通话在等主人回话时交给通话;任务在等回答时是回答;带附件时派成前台跟着的一件新任务(不经前台模型);
-     * 其余都交给这条会话的前台(前台在回话时照样能发,不变成「任务在跑」)。正在跟用户学习时一律不发。
+     * 其余都交给这条会话的前台(前台在回话时照样能发,不变成「任务在跑」)。正在跟用户学习、或用户暂停了 Mika 时一律不发。
      * 前台派出的子任务的对话不走前台(见 [ChatDesk.handles]):任务在跑时这句插给它,空着时开新的一件,带附件时随新任务开。
      */
     fun send(text: String, check: Prerequisites.Check): Boolean {
+        if (paused()) {
+            vm.onPausedBlocked()
+            return false
+        }
         if (teaching()) {
             onTeachingBlocked()
             return false

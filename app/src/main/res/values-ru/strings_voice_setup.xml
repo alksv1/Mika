@@ -31,6 +31,8 @@
     <string name="voice_settings_of">Настройки %1$s</string>
     <string name="voice_voice">Голос</string>
     <string name="voice_voice_default">По умолчанию</string>
+    <string name="voice_tts_engine">Движок TTS</string>
+    <string name="voice_engine_default">По умолчанию в системе</string>
     <string name="realtime_lead">Разговаривайте с Mika и перебивайте в любой момент. Телефонные звонки с ИИ используют тот же выбор, если не выбран свой.</string>
     <string name="realtime_empty">Модели для голосовых звонков пока нет</string>
     <string name="realtime_empty_note">Выберите модель ниже или подключите голосовой сервис с поддержкой звонков.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">Пекин</string>
     <string name="voice_region_singapore">Сингапур</string>
     <string name="voice_compat_lead">Для сервисов с аудио-API, совместимыми с OpenAI. Укажите нужные модели, остальные оставьте пустыми.</string>
-    <string name="voice_compat_models">Модели</string>
     <string name="voice_compat_models_note">Оставьте поле пустым, если сервис не предлагает эту модель.</string>
     <string name="voice_selfhosted_lead">Сервер потокового распознавания в вашей сети. Укажите его адрес; аккаунт не нужен.</string>
     <string name="voice_field_api_key">API-ключ</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">Проверено</string>
     <string name="calls_audio_unchecked">Не проверено</string>
     <string name="voice_stt_footer">Встроенное распознавание телефона бесплатно. Онлайн-варианты берутся из ваших голосовых сервисов; скажите фразу, чтобы проверить перед выбором.</string>
+    <string name="voice_audition">Прослушать %1$s</string>
+    <string name="voice_fallback_footer_stt">Если голосовой ввод упёрся в лимит, сервис перегружен или не отвечает вовремя, Mika по порядку отправляет ту же запись следующей модели. Резервными могут быть только модели, которые распознают речь после того, как вы закончили говорить.</string>
+    <string name="voice_fallback_footer_tts">Если чтение вслух упёрлось в лимит, сервис перегружен или не отвечает вовремя, Mika по порядку пробует следующую модель до начала воспроизведения. Резервные модели используют свой голос по умолчанию.</string>
+    <string name="voice_fallback_pick_title">Резерв для: %1$s</string>
+    <string name="voice_fallback_none">Пока нет другой модели, которая может быть резервной</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>

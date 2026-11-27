@@ -49,6 +49,7 @@ object RecoveryPolicy {
         val s = inputs.status
         return when {
             s == BuiltinShellStatus.Running -> RecoveryDecision.Healthy
+            s == BuiltinShellStatus.Paused -> RecoveryDecision.Stop(StopReason.NeedsUser)
             !inputs.paired || s == BuiltinShellStatus.NotPaired -> RecoveryDecision.Stop(StopReason.NotPaired)
             inputs.wirelessDebugging == false -> RecoveryDecision.Stop(StopReason.WirelessDebuggingOff)
             s is BuiltinShellStatus.Failed && needsUser(s.reason) -> RecoveryDecision.Stop(StopReason.NeedsUser)

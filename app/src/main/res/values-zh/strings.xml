@@ -162,4 +162,5 @@
     <string name="desk_report_failed">没办成：%1$s</string>
     <string name="desk_report_cancelled">已取消</string>
     <string name="desk_task_not_started">任务没能开始，打开 Mika 再试一次</string>
+    <string name="sheet_no_matches">没有匹配的项</string>
 </resources>

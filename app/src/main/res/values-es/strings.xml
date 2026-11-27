@@ -162,4 +162,5 @@
     <string name="desk_report_failed">No se pudo: %1$s</string>
     <string name="desk_report_cancelled">Cancelada</string>
     <string name="desk_task_not_started">La tarea no llegó a empezar. Abre Mika e inténtalo de nuevo.</string>
+    <string name="sheet_no_matches">No hay coincidencias</string>
 </resources>

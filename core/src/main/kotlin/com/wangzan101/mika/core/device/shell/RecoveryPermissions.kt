@@ -133,6 +133,8 @@ class RecoveryPermissions(
     private val runner: () -> ShellCommandRunner?,
     private val store: RecoveryConsentStore,
     private val packageName: String,
+    /** 用户暂停了 Mika(读持久化的暂停标记):暂停期间不自动打开任何一项,也不把无障碍加回去。 */
+    private val paused: () -> Boolean = { false },
 ) {
     private val lock = Mutex()
     private val _autoFailed = MutableStateFlow<Set<RecoveryCapability>>(emptySet())
@@ -166,6 +168,7 @@ class RecoveryPermissions(
      * 下次连接可用时再试。没有连接就什么都不做。
      */
     suspend fun applyPending(): PermissionResult = lock.withLock {
+        if (paused()) return@withLock PermissionResult.Failed(PAUSED)
         val shell = runner() ?: return@withLock PermissionResult.NoRunner
         var failure: PermissionResult? = null
         for (c in store.consent.value.pending) {
@@ -202,9 +205,10 @@ class RecoveryPermissions(
     /**
      * 让 Mika 的无障碍服务重新运行起来(服务没在运行时用,见 [AccessibilityRepair]),别的服务一个不动:
      * 列表里没有 Mika 就直接加上;有却没绑定,就先去掉,等 [gapMs] 让系统处理完,再重读列表加回去。
-     * 去掉之后一定会加回去,中途被取消也一样,免得把服务留在关着的状态;加回失败时写回原来的列表,仍报失败。不改 [RecoveryConsent]:这不是打开或收回能力。
+     * 去掉之后一定会加回去,中途被取消也一样,免得把服务留在关着的状态(只有这期间用户暂停了 Mika 才不加回);加回失败时写回原来的列表,仍报失败。不改 [RecoveryConsent]:这不是打开或收回能力。
      */
     suspend fun restartAccessibility(gapMs: Long): PermissionResult = lock.withLock {
+        if (paused()) return@withLock PermissionResult.Failed(PAUSED)
         val shell = runner() ?: return@withLock PermissionResult.NoRunner
         val me = PermissionCommands.accessibilityService(packageName)
         try {
@@ -215,6 +219,8 @@ class RecoveryPermissions(
             if (removed != PermissionResult.Done) return@withLock removed
             withContext(NonCancellable) {
                 delay(gapMs)
+                // 去掉之后、加回之前用户暂停了 Mika:不加回,暂停本来就要无障碍关着
+                if (paused()) return@withContext PermissionResult.Failed(PAUSED)
                 val now = shell.exec(PermissionCommands.READ_ACCESSIBILITY)
                 val back = runAll(shell, PermissionCommands.writeAccessibility(AccessibilityList.with(now, me)))
                 // 加回失败时把原来的列表(连同总开关)写回:宁可回到「有却没绑定」,也不让 Mika 从列表里消失;
@@ -228,6 +234,10 @@ class RecoveryPermissions(
         } catch (e: Exception) {
             PermissionResult.Failed(e.message ?: e.javaClass.simpleName)
         }
+    }
+
+    private companion object {
+        const val PAUSED = "paused"
     }
 
     /** 每项各自执行,一项失败不挡住后面的;返回第一处失败。 */

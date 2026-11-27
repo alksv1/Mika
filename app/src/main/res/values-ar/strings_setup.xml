@@ -103,4 +103,52 @@
     <string name="model_fallback_add_another">إضافة نموذج احتياطي آخر (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">إذا وصل %1$s إلى حد المعدل أو الحصة، ينتقل Mika تلقائياً عبر السلسلة لإنهاء المهام دون انقطاع.</string>
     <string name="model_fallback_collapse_hint">سلسلة نشطة · انقر للطي</string>
+    <string name="model_keys_title">مفاتيح API</string>
+    <string name="model_keys_pool_one">مجموعة مفاتيح API · مفتاح واحد</string>
+    <string name="model_keys_pool_many">مجموعة مفاتيح API · %1$s · تبديل تلقائي</string>
+    <string name="model_keys_hide">إخفاء المفاتيح</string>
+    <string name="model_keys_show">إظهار المفاتيح</string>
+    <string name="model_key_not_configured">لم يتم إعداد مفتاح</string>
+    <string name="model_key_not_configured_hint">أضف مفتاحًا للاتصال بهذا المزوّد</string>
+    <string name="model_key_required">مطلوب</string>
+    <string name="model_key_number">المفتاح %1$d</string>
+    <string name="model_key_active">نشط</string>
+    <string name="model_key_add">إضافة مفتاح API</string>
+    <string name="model_key_add_first_hint">الصق مفتاحك للاتصال</string>
+    <string name="model_key_add_another_hint">أضف مفتاحًا آخر إلى مجموعة التناوب</string>
+    <string name="model_keys_rotate_note">يتم تبديل المفاتيح تلقائيًا. أي مفتاح يواجه حد معدل 429 أو انتهاء مهلة يُتخطى حتى يتعافى، دون توقف.</string>
+    <string name="model_keys_add_more_note">أضف مفاتيح أخرى لتفعيل التبديل التلقائي عند الفشل.</string>
+    <string name="model_key_add_note">الصق مفتاحًا واحدًا، أو عدة مفاتيح مفصولة بفواصل أو أسطر جديدة لإضافتها كلها دفعة واحدة.</string>
+    <string name="model_keys_detected_add">تم اكتشاف %1$s — ستُضاف جميعها إلى مجموعة التناوب</string>
+    <string name="model_key_one_ready">مفتاح واحد جاهز للإضافة</string>
+    <string name="model_provider_line_pool">%1$s · مجموعة المفاتيح (%2$s)</string>
+    <string name="model_keys_detected_setup">تم اكتشاف %1$s — سيتم التبديل تلقائيًا عند حد المعدل أو انتهاء المهلة</string>
+    <string name="model_providers_none">لم يتم توصيل أي مزوّد</string>
+    <string name="model_providers_keys_in_pool">%1$s · في المجموعة %2$s</string>
+    <string name="model_key_remove">إزالة</string>
+    <string name="model_fallback_remove_desc">إزالة النموذج الاحتياطي</string>
+    <plurals name="model_keys_count">
+        <item quantity="zero">%1$d مفتاح</item>
+        <item quantity="one">مفتاح واحد</item>
+        <item quantity="two">مفتاحان</item>
+        <item quantity="few">%1$d مفاتيح</item>
+        <item quantity="many">%1$d مفتاحًا</item>
+        <item quantity="other">%1$d مفتاح</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="zero">✓ مجموعة المفاتيح: تم اكتشاف %1$d مفتاح API (تبديل تلقائي عند 429 أو انتهاء المهلة)</item>
+        <item quantity="one">✓ مجموعة المفاتيح: تم اكتشاف مفتاح API واحد (تبديل تلقائي عند 429 أو انتهاء المهلة)</item>
+        <item quantity="two">✓ مجموعة المفاتيح: تم اكتشاف مفتاحَي API (تبديل تلقائي عند 429 أو انتهاء المهلة)</item>
+        <item quantity="few">✓ مجموعة المفاتيح: تم اكتشاف %1$d مفاتيح API (تبديل تلقائي عند 429 أو انتهاء المهلة)</item>
+        <item quantity="many">✓ مجموعة المفاتيح: تم اكتشاف %1$d مفتاحًا API (تبديل تلقائي عند 429 أو انتهاء المهلة)</item>
+        <item quantity="other">✓ مجموعة المفاتيح: تم اكتشاف %1$d مفتاح API (تبديل تلقائي عند 429 أو انتهاء المهلة)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="zero">إضافة %1$d مفتاح</item>
+        <item quantity="one">إضافة مفتاح واحد</item>
+        <item quantity="two">إضافة مفتاحين</item>
+        <item quantity="few">إضافة %1$d مفاتيح</item>
+        <item quantity="many">إضافة %1$d مفتاحًا</item>
+        <item quantity="other">إضافة %1$d مفتاح</item>
+    </plurals>
 </resources>

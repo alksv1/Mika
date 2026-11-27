@@ -103,4 +103,43 @@
     <string name="model_fallback_add_another">Adicionar outro modelo reserva (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">Se %1$s atingir limites de taxa ou cota, o Mika alternará automaticamente pela cadeia para concluir as tarefas sem interrupção.</string>
     <string name="model_fallback_collapse_hint">Cadeia ativa · Toque para recolher</string>
+    <string name="model_keys_title">Chaves de API</string>
+    <string name="model_keys_pool_one">Pool de chaves de API · 1 chave</string>
+    <string name="model_keys_pool_many">Pool de chaves de API · %1$s · alternância automática</string>
+    <string name="model_keys_hide">Ocultar chaves</string>
+    <string name="model_keys_show">Mostrar chaves</string>
+    <string name="model_key_not_configured">Nenhuma chave configurada</string>
+    <string name="model_key_not_configured_hint">Adicione uma chave para conectar este provedor</string>
+    <string name="model_key_required">Obrigatório</string>
+    <string name="model_key_number">Chave %1$d</string>
+    <string name="model_key_active">Ativa</string>
+    <string name="model_key_add">Adicionar chave de API</string>
+    <string name="model_key_add_first_hint">Cole sua chave para conectar</string>
+    <string name="model_key_add_another_hint">Adicione outra chave à alternância</string>
+    <string name="model_keys_rotate_note">As chaves alternam automaticamente. Qualquer chave que atinja um limite de taxa 429 ou demore demais é ignorada até se recuperar, sem interrupções.</string>
+    <string name="model_keys_add_more_note">Adicione mais chaves para ativar a alternância automática em caso de falha.</string>
+    <string name="model_key_add_note">Cole uma chave, ou várias separadas por vírgulas ou quebras de linha, para adicioná-las todas de uma vez.</string>
+    <string name="model_keys_detected_add">%1$s detectadas — todas serão adicionadas à alternância</string>
+    <string name="model_key_one_ready">1 chave pronta para adicionar</string>
+    <string name="model_provider_line_pool">%1$s · Pool de chaves (%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s detectadas — a alternância será automática em caso de limite de taxa ou tempo esgotado</string>
+    <string name="model_providers_none">Nenhum provedor conectado</string>
+    <string name="model_providers_keys_in_pool">%1$s · %2$s no pool</string>
+    <string name="model_key_remove">Remover</string>
+    <string name="model_fallback_remove_desc">Remover modelo reserva</string>
+    <plurals name="model_keys_count">
+        <item quantity="one">%1$d chave</item>
+        <item quantity="many">%1$d chaves</item>
+        <item quantity="other">%1$d chaves</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="one">✓ Pool de chaves: %1$d chave de API detectada (alternância automática em caso de 429 ou tempo esgotado)</item>
+        <item quantity="many">✓ Pool de chaves: %1$d chaves de API detectadas (alternância automática em caso de 429 ou tempo esgotado)</item>
+        <item quantity="other">✓ Pool de chaves: %1$d chaves de API detectadas (alternância automática em caso de 429 ou tempo esgotado)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="one">Adicionar %1$d chave</item>
+        <item quantity="many">Adicionar %1$d chaves</item>
+        <item quantity="other">Adicionar %1$d chaves</item>
+    </plurals>
 </resources>

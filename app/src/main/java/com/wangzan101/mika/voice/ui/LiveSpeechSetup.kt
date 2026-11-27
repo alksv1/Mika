@@ -1,6 +1,10 @@
 package com.wangzan101.mika.voice.ui
 
 import androidx.compose.foundation.clickable
+import com.wangzan101.mika.ui.components.PickRow
+import com.wangzan101.mika.ui.components.MikaDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -134,6 +138,30 @@ private fun LanguagePicker(selected: AsrLanguage, onSelect: (AsrLanguage) -> Uni
     ) {
         AsrLanguage.entries.forEach { l -> SelectChip(asrLanguageName(l), l == selected, { onSelect(l) }) }
     }
+}
+
+/**
+ * 「识别语言」一行:点开单选,和设置里别的「只认几档」的项同一种做法。放在卡片里输入行的下面,
+ * 现在选的值和上面输入框里的字对齐(见 [PickRow])。
+ */
+@Composable
+internal fun AsrLanguageRow(selected: AsrLanguage, onSelect: (AsrLanguage) -> Unit) {
+    var picking by remember { mutableStateOf(false) }
+    val title = tr(R.string.speech_asr_language)
+    PickRow(title, asrLanguageName(selected), onClick = { picking = true }, modifier = Modifier.testTag("asr-language-row"))
+    if (picking) MikaDialog(
+        onDismissRequest = { picking = false },
+        title = { Text(title) },
+        text = {
+            Column {
+                AsrLanguage.entries.forEachIndexed { i, l ->
+                    RadioRow(asrLanguageName(l), selected = l == selected, onClick = { onSelect(l); picking = false }, first = i == 0)
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = { picking = false }) { Text(tr(R.string.cancel)) } },
+    )
 }
 
 /**

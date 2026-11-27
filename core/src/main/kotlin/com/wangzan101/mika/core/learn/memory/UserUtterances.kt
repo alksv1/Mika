@@ -136,8 +136,8 @@ class UserUtterances {
 
     private companion object {
         const val MIN_QUOTE = 2
-        // 句读;英文句号只在后面是空白或结尾时算(3.5、example.com 里的点不算)
-        val CLAUSE_END = Regex("[,，。;；!！?？\\n]|\\.(?=\\s|$)")
+        // 句读(含日文逗号、阿拉伯文逗号和问号);英文句号只在后面是空白或结尾时算(3.5、example.com 里的点不算)
+        val CLAUSE_END = Regex("[,،、。;；!！?？؟\\n]|\\.(?=\\s|$)")
         val CONFIRMATION = Regex("""^(?:(?:嗯+|恩+|呃|哦|噢|啊)[\s,，。.!！~～]*)?(?:好的?|好呀|好嘞|行|可以|对的?|是的?|没错|同意|就这样|就这么|ok(?:ay)?|yes|yeah|yep|sure|correct|exactly|agreed|sounds\s+good|go\s+ahead)(?=$|[\s,，。.!！:：;；~～])""", RegexOption.IGNORE_CASE)
         val NEGATION = Regex("""不|别|算了|取消|但是|不过|\b(?:no|not|don't|do\s+not|stop|cancel|wrong|but)\b""", RegexOption.IGNORE_CASE)
         val PROPOSAL = Regex("""建议|推荐|可以叫|叫我|命名为|起名|名字|要不要|不如|我可以|你觉得|怎么样|suggest|recommend|how\s+about|would\s+you\s+like|shall\s+(?:i|we)|you\s+can\s+call|i\s+(?:can|could)|let['’]s""", RegexOption.IGNORE_CASE)

@@ -1,68 +1,62 @@
 package com.wangzan101.mika.task.ui
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.text.format.DateFormat
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import com.wangzan101.mika.ui.components.MikaTextField
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.wangzan101.mika.R
 import com.wangzan101.mika.core.trigger.ConditionNotify
 import com.wangzan101.mika.core.trigger.PlanDraft
 import com.wangzan101.mika.core.trigger.PlanExecutionWindow
 import com.wangzan101.mika.core.trigger.PlanRepeat
-import com.wangzan101.mika.core.trigger.PlanValidation
+import com.wangzan101.mika.core.trigger.formatPlanClock
 import com.wangzan101.mika.core.trigger.PlanValidationException
 import com.wangzan101.mika.core.trigger.TriggerDefinition
 import com.wangzan101.mika.core.trigger.editedTrigger
-import com.wangzan101.mika.core.trigger.formatPlanClock
 import com.wangzan101.mika.core.trigger.formatPlanEditorTime
 import com.wangzan101.mika.core.trigger.newPlanDraft
 import com.wangzan101.mika.core.trigger.normalizedClockText
@@ -72,34 +66,34 @@ import com.wangzan101.mika.core.trigger.toPlanDraft
 import com.wangzan101.mika.core.trigger.upcoming
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.i18n.uiLocale
+import com.wangzan101.mika.settings.DeviceAccessSettings
 import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
+import com.wangzan101.mika.ui.components.GroupCard
+import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.KeyboardDismissArea
+import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.MikaButton
-import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.MikaSwitch
+import com.wangzan101.mika.ui.components.PageBackground
+import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.SegmentedControl
+import com.wangzan101.mika.ui.components.TopBar
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaShapes
+import com.wangzan101.mika.ui.theme.MikaSpace
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
-import com.wangzan101.mika.ui.theme.MikaRadius
-import com.wangzan101.mika.ui.theme.MikaShapes
-import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.TextStyle
 import java.util.UUID
-import kotlin.math.roundToInt
-import com.wangzan101.mika.chat.ui.draft
-import com.wangzan101.mika.settings.ui.models.pick
 
-/** 新建和编辑共用一份草稿；预览不另猜时间，直接显示将要保存的计划。 */
+/** Full-screen schedule editor shared by new, copied, and edited plans. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PlanEditorDialog(
@@ -108,62 +102,65 @@ fun PlanEditorDialog(
     onDismiss: () -> Unit,
     onSave: (TriggerDefinition) -> Unit,
     initialDraft: PlanDraft? = null,
+    deviceAccess: DeviceAccessSettings? = null,
+    /** 小时制跟系统设置,编辑器里不另给开关;测试可固定成某一种。 */
+    use24Hour: Boolean = systemUses24Hour(),
 ) {
+    val locale = uiLocale()
+    // 时区选择器要用的本地化索引建起来较慢,编辑器一打开就在后台预热,点开选择器时直接有列表。
+    LaunchedEffect(locale) { withContext(Dispatchers.Default) { PlanZoneIndex.get(locale) } }
+
     val newId = remember(original?.id) { original?.id ?: UUID.randomUUID().toString() }
     var draft by remember(original?.id) {
         mutableStateOf(original?.toPlanDraft() ?: initialDraft ?: newPlanDraft(System.currentTimeMillis()))
     }
     var attempted by remember(original?.id) { mutableStateOf(false) }
-    // 点日历/时钟图标时打开的选择器;选完日期接着选时间,都确认后才写回草稿。
     var pickingDate by remember(original?.id) { mutableStateOf(false) }
     var pickingTime by remember(original?.id) { mutableStateOf<TimeTarget?>(null) }
+    var pickingZone by remember(original?.id) { mutableStateOf(false) }
+    var conditionExpanded by remember(original?.id) { mutableStateOf(draft.condition.isNotBlank()) }
+
+    val nowMs = System.currentTimeMillis()
     val pickerZone = runCatching { ZoneId.of(draft.zone.trim()) }.getOrElse { ZoneId.systemDefault() }
+    val todayInZone = Instant.ofEpochMilli(nowMs).atZone(pickerZone).toLocalDate()
+    val parsedFirst = parsePlanEditorTime(draft.firstAt, pickerZone.id)
+        ?: Instant.ofEpochMilli(nowMs).atZone(pickerZone).plusHours(1).withSecond(0).withNano(0).toLocalDateTime()
     val clockEntries = planClockEntries(draft.clock).orEmpty()
-    val candidate = runCatching {
-        editedTrigger(draft, original, newId, newThreadId, System.currentTimeMillis())
-    }
+    val candidate = runCatching { editedTrigger(draft, original, newId, newThreadId, nowMs) }
     val preview = candidate.getOrNull()
 
     if (pickingDate) {
         PlanDatePickerDialog(
-            initial = parsePlanEditorTime(draft.firstAt, pickerZone.id)?.toLocalDate()
-                ?: Instant.now().atZone(pickerZone).toLocalDate(),
+            initial = parsedFirst.toLocalDate(),
             onDismiss = { pickingDate = false },
             onPicked = { date ->
                 pickingDate = false
-                pickingTime = TimeTarget.FirstRun(date)
+                draft = draft.copy(firstAt = formatPlanEditorTime(LocalDateTime.of(date, parsedFirst.toLocalTime())))
             },
         )
     }
     pickingTime?.let { target ->
         PlanTimePickerDialog(
             initial = when (target) {
-                is TimeTarget.FirstRun ->
-                    parsePlanEditorTime(draft.firstAt, pickerZone.id)?.toLocalTime() ?: LocalTime.of(9, 0)
-                is TimeTarget.Clock ->
-                    target.index?.let { clockEntries.getOrNull(it) }
-                        ?: clockEntries.lastOrNull()?.plusHours(1)
-                        ?: LocalTime.of(9, 0)
+                is TimeTarget.FirstRun -> parsedFirst.toLocalTime()
+                is TimeTarget.Clock -> target.index?.let { clockEntries.getOrNull(it) }
+                    ?: clockEntries.lastOrNull()?.plusHours(1)
+                    ?: LocalTime.of(9, 0)
                 TimeTarget.WindowStart -> runCatching { LocalTime.parse(draft.windowStart.trim()) }.getOrNull() ?: LocalTime.of(22, 0)
                 TimeTarget.WindowEnd -> runCatching { LocalTime.parse(draft.windowEnd.trim()) }.getOrNull() ?: LocalTime.of(2, 0)
             },
             title = tr(R.string.plans_pick_time),
+            use24Hour = use24Hour,
             onDismiss = { pickingTime = null },
             onPicked = { time ->
                 when (target) {
                     is TimeTarget.FirstRun ->
                         draft = draft.copy(firstAt = formatPlanEditorTime(LocalDateTime.of(target.date, time)))
                     is TimeTarget.Clock -> {
-                        val parsed = planClockEntries(draft.clock)
+                        val updated = clockEntries.toMutableList()
                         val index = target.index
-                        val clock = if (parsed == null && draft.clock.isNotBlank()) {
-                            "${draft.clock.trimEnd()}, ${formatPlanClock(time)}"
-                        } else {
-                            val updated = parsed.orEmpty().toMutableList()
-                            if (index != null && index in updated.indices) updated[index] = time else updated.add(time)
-                            normalizedClockText(updated)
-                        }
-                        draft = draft.copy(clock = clock)
+                        if (index != null && index in updated.indices) updated[index] = time else updated.add(time)
+                        draft = draft.copy(clock = normalizedClockText(updated))
                     }
                     TimeTarget.WindowStart -> draft = draft.copy(windowStart = formatPlanClock(time))
                     TimeTarget.WindowEnd -> draft = draft.copy(windowEnd = formatPlanClock(time))
@@ -172,472 +169,469 @@ fun PlanEditorDialog(
             },
         )
     }
-
-    MikaDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            val title = when {
-                original != null -> R.string.plans_edit_title
-                initialDraft != null -> R.string.plans_copy
-                else -> R.string.plans_create_title
-            }
-            Text(tr(title))
-        },
-        text = {
-            KeyboardDismissArea {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    SegmentedControl(
-                        listOf(tr(R.string.plans_task_mode), tr(R.string.plans_reminder_mode)),
-                        if (draft.reminder) 1 else 0,
-                        onSelect = { selected ->
-                            draft = draft.copy(
-                                reminder = selected == 1,
-                                condition = if (selected == 1) "" else draft.condition,
-                                cooldownMinutes = if (selected == 1) "" else draft.cooldownMinutes,
-                            )
-                        },
-                        tags = listOf("plan-editor-task", "plan-editor-reminder"),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    PlanField(
-                        draft.content,
-                        { draft = draft.copy(content = it) },
-                        tr(if (draft.reminder) R.string.plans_content_reminder else R.string.plans_content_task),
-                        "plan-editor-content",
-                        singleLine = false,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    SegmentedControl(
-                        listOf(
-                            tr(R.string.plans_once), tr(R.string.plans_repeat_interval),
-                            tr(R.string.plans_every_day), tr(R.string.plans_repeat_weekly),
-                        ),
-                        draft.repeat.ordinal,
-                        onSelect = { selected ->
-                            val repeat = PlanRepeat.entries[selected]
-                            val today = runCatching { ZoneId.of(draft.zone) }.getOrElse { ZoneId.systemDefault() }
-                                .let { Instant.now().atZone(it).dayOfWeek.value }
-                            draft = draft.copy(
-                                repeat = repeat,
-                                weekdays = if (repeat == PlanRepeat.Weekly && draft.weekdays.isEmpty()) setOf(today)
-                                else draft.weekdays,
-                            )
-                        },
-                        tags = listOf("plan-editor-once", "plan-editor-interval", "plan-editor-daily", "plan-editor-weekly"),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    if (draft.repeat in setOf(PlanRepeat.Once, PlanRepeat.Interval)) {
-                        PlanField(
-                            draft.firstAt, { draft = draft.copy(firstAt = it) },
-                            tr(R.string.plans_edit_label), "plan-editor-first-at",
-                            trailing = {
-                                FieldIconButton(
-                                    MikaIcons.Calendar, tr(R.string.plans_pick_time), "plan-editor-first-at-pick",
-                                ) { pickingDate = true }
-                            },
-                        )
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    if (draft.repeat == PlanRepeat.Interval) {
-                        PlanField(
-                            draft.intervalMinutes, { draft = draft.copy(intervalMinutes = it) },
-                            tr(R.string.plans_interval_minutes), "plan-editor-interval-minutes", KeyboardType.Number,
-                        )
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    if (draft.repeat in setOf(PlanRepeat.Daily, PlanRepeat.Weekly)) {
-                        PlanField(
-                            draft.clock, { draft = draft.copy(clock = it) },
-                            tr(R.string.plans_clock), "plan-editor-clock",
-                            placeholder = "08:00, 12:30, 20:00",
-                            trailing = {
-                                FieldIconButton(
-                                    MikaIcons.Plus, tr(R.string.plans_add_time), "plan-editor-clock-add-icon",
-                                ) { pickingTime = TimeTarget.Clock(null) }
-                            },
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        ClockChips(
-                            clockEntries,
-                            onEdit = { pickingTime = TimeTarget.Clock(it) },
-                            onRemove = { index ->
-                                val updated = clockEntries.toMutableList().apply { removeAt(index) }
-                                draft = draft.copy(clock = normalizedClockText(updated))
-                            },
-                            onAdd = { pickingTime = TimeTarget.Clock(null) },
-                        )
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    if (draft.repeat == PlanRepeat.Weekly) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            (1..7).forEach { day ->
-                                MikaButton(
-                                    DayOfWeek.of(day).getDisplayName(TextStyle.SHORT, uiLocale()),
-                                    onClick = {
-                                        draft = draft.copy(weekdays = draft.weekdays.toMutableSet().apply {
-                                            if (!add(day)) remove(day)
-                                        })
-                                    },
-                                    modifier = Modifier.testTag("plan-editor-weekday-$day"),
-                                    kind = if (day in draft.weekdays) ButtonKind.Primary else ButtonKind.Tonal,
-                                    size = ButtonSize.Small,
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    PlanField(
-                        draft.zone, { draft = draft.copy(zone = it) },
-                        tr(R.string.plans_zone), "plan-editor-zone",
-                    )
-                    if (!draft.reminder) {
-                        Spacer(Modifier.height(10.dp))
-                        PlanField(
-                            draft.condition, { draft = draft.copy(condition = it) },
-                            tr(R.string.plans_condition_optional), "plan-editor-condition", singleLine = false,
-                        )
-                        if (draft.condition.isNotBlank()) {
-                            Spacer(Modifier.height(10.dp))
-                            SegmentedControl(
-                                listOf(tr(R.string.plans_notify_change), tr(R.string.plans_notify_each)),
-                                if (draft.notifyWhen == ConditionNotify.BecomesMet) 0 else 1,
-                                onSelect = {
-                                    draft = draft.copy(notifyWhen = if (it == 0) ConditionNotify.BecomesMet else ConditionNotify.EachTimeMet)
-                                },
-                                tags = listOf("plan-editor-notify-change", "plan-editor-notify-each"),
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            PlanField(
-                                draft.cooldownMinutes, { draft = draft.copy(cooldownMinutes = it) },
-                                tr(R.string.plans_cooldown_minutes), "plan-editor-cooldown", KeyboardType.Number,
-                            )
-                        }
-                    }
-                    if (!draft.reminder) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(tr(R.string.plans_execution_window), style = MikaType.Body, color = MikaTheme.colors.ink2)
-                        Spacer(Modifier.height(6.dp))
-                        SegmentedControl(
-                            listOf(
-                                tr(R.string.plans_window_anytime), tr(R.string.plans_window_off_peak),
-                                tr(R.string.plans_window_custom),
-                            ),
-                            draft.executionWindow.ordinal,
-                            onSelect = { draft = draft.copy(executionWindow = PlanExecutionWindow.entries[it]) },
-                            tags = listOf("plan-editor-window-anytime", "plan-editor-window-off-peak", "plan-editor-window-custom"),
-                        )
-                        when (draft.executionWindow) {
-                            PlanExecutionWindow.DeepSeekOffPeak -> {
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    tr(R.string.plans_window_off_peak_hint),
-                                    style = MikaType.Caption, color = MikaTheme.colors.ink3,
-                                )
-                            }
-                            PlanExecutionWindow.Custom -> {
-                                Spacer(Modifier.height(10.dp))
-                                PlanField(
-                                    draft.executionZone, { draft = draft.copy(executionZone = it) },
-                                    tr(R.string.plans_zone), "plan-editor-window-zone",
-                                )
-                                Spacer(Modifier.height(10.dp))
-                                PlanField(
-                                    draft.windowStart, { draft = draft.copy(windowStart = it) },
-                                    tr(R.string.plans_window_start), "plan-editor-window-start",
-                                    trailing = {
-                                        FieldIconButton(MikaIcons.Clock, tr(R.string.plans_pick_time), "plan-editor-window-start-pick") {
-                                            pickingTime = TimeTarget.WindowStart
-                                        }
-                                    },
-                                )
-                                Spacer(Modifier.height(10.dp))
-                                PlanField(
-                                    draft.windowEnd, { draft = draft.copy(windowEnd = it) },
-                                    tr(R.string.plans_window_end), "plan-editor-window-end",
-                                    trailing = {
-                                        FieldIconButton(MikaIcons.Clock, tr(R.string.plans_pick_time), "plan-editor-window-end-pick") {
-                                            pickingTime = TimeTarget.WindowEnd
-                                        }
-                                    },
-                                )
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    tr(R.string.plans_window_custom_hint, draft.executionZone),
-                                    style = MikaType.Caption, color = MikaTheme.colors.ink3,
-                                )
-                            }
-                            PlanExecutionWindow.Anytime -> Unit
-                        }
-                    }
-                    PlanSwitch(tr(R.string.plans_when_idle), draft.whenIdle, { draft = draft.copy(whenIdle = it) }, "plan-editor-idle")
-                    PlanSwitch(tr(R.string.plans_enabled), draft.enabled, { draft = draft.copy(enabled = it) }, "plan-editor-enabled")
-
-                    preview?.let { plan ->
-                        Spacer(Modifier.height(8.dp))
-                        Text(tr(R.string.plans_preview), style = MikaType.Caption, color = MikaTheme.colors.ink3)
-                        val zone = plan.calendarZone ?: draft.zone
-                        upcoming(plan, System.currentTimeMillis(), 3).forEachIndexed { index, at ->
-                            Text(
-                                "${index + 1}  ${formatPlanEditorTime(at, zone)} ($zone)",
-                                Modifier.testTag("plan-editor-preview-$index"),
-                                style = MikaType.Caption,
-                                color = MikaTheme.colors.ink3,
-                            )
-                        }
-                    }
-                    if (attempted && preview == null) {
-                        val reason = (candidate.exceptionOrNull() as? PlanValidationException)?.reason
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            reason?.let { planValidationText(it) } ?: tr(R.string.op_failed),
-                            Modifier.testTag("plan-editor-error"),
-                            style = MikaType.Caption,
-                            color = MikaTheme.colors.bad,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                modifier = Modifier.testTag("plan-editor-save"),
-                onClick = {
-                    val saved = runCatching {
-                        editedTrigger(draft, original, newId, newThreadId, System.currentTimeMillis())
-                    }
-                    if (saved.isFailure) attempted = true
-                    else onSave(saved.getOrThrow())
-                },
-            ) { Text(tr(R.string.save)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr(R.string.cancel)) } },
-    )
-}
-
-@Composable
-private fun PlanField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    tag: String,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    singleLine: Boolean = true,
-    placeholder: String? = null,
-    trailing: (@Composable () -> Unit)? = null,
-) {
-    MikaTextField(
-        value,
-        onValueChange,
-        Modifier.fillMaxWidth().testTag(tag).keepsKeyboard(),
-        label = { Text(label) },
-        placeholder = placeholder?.let { { Text(it) } },
-        trailingIcon = trailing,
-        singleLine = singleLine,
-        minLines = if (singleLine) 1 else 2,
-        maxLines = if (singleLine) 1 else 5,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-    )
-}
-
-/** 输入框右侧的取时间按钮:点开选择器,输入框本身仍可直接改文本。 */
-@Composable
-private fun FieldIconButton(icon: ImageVector, description: String, tag: String, onClick: () -> Unit) {
-    Box(
-        Modifier.size(44.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick).testTag(tag),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, description, Modifier.size(20.dp), tint = MikaTheme.colors.ink3)
-    }
-}
-
-/** 每天/每周的当地时刻:每个时刻一颗芯片,点时刻改时间,点叉删掉,再加一颗就是新增。 */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ClockChips(
-    entries: List<LocalTime>,
-    onEdit: (Int) -> Unit,
-    onRemove: (Int) -> Unit,
-    onAdd: () -> Unit,
-) {
-    val c = MikaTheme.colors
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        entries.forEachIndexed { index, time ->
-            Row(
-                Modifier.height(32.dp).background(c.fill, MikaShapes.Card).clip(MikaShapes.Card),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    Modifier.fillMaxHeight().clickable { onEdit(index) }
-                        .padding(start = 12.dp, end = 4.dp).testTag("plan-editor-clock-$index"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(MikaIcons.Clock, null, Modifier.size(14.dp), tint = c.ink3)
-                    Spacer(Modifier.width(5.dp))
-                    Text(
-                        formatPlanClock(time),
-                        style = MikaType.Caption,
-                        color = c.ink2,
-                    )
-                }
-                Box(
-                    Modifier.fillMaxHeight().width(32.dp).clickable(role = Role.Button) { onRemove(index) }
-                        .testTag("plan-editor-clock-remove-$index"),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(MikaIcons.Close, tr(R.string.plans_remove_time), Modifier.size(13.dp), tint = c.ink3) }
-            }
-        }
-        MikaButton(
-            "＋ " + tr(R.string.plans_add_time),
-            onAdd,
-            modifier = Modifier.testTag("plan-editor-clock-add"),
-            kind = ButtonKind.Tonal,
-            size = ButtonSize.Small,
+    if (pickingZone) {
+        PlanTimezonePickerDialog(
+            currentZoneId = pickerZone.id,
+            onDismiss = { pickingZone = false },
+            onPicked = { zoneId ->
+                draft = draft.copy(zone = zoneId)
+                pickingZone = false
+            },
         )
     }
-}
 
-/** 时间选择器是为哪个字段打开的:首次执行(带已选日期),或某个当地时刻(下标为空表示新增)。 */
-private sealed interface TimeTarget {
-    data class FirstRun(val date: LocalDate) : TimeTarget
-    data class Clock(val index: Int?) : TimeTarget
-    data object WindowStart : TimeTarget
-    data object WindowEnd : TimeTarget
-}
+    val titleRes = when {
+        original != null -> R.string.plans_edit_title
+        initialDraft != null -> R.string.plans_copy
+        else -> R.string.plans_create_title
+    }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlanDatePickerDialog(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) {
-    // 日期选择器的日期是 UTC 零点的毫秒数
-    val state = rememberDatePickerState(
-        initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-    )
-    DatePickerDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                modifier = Modifier.testTag("plan-date-ok"),
-                onClick = {
-                    state.selectedDateMillis?.let {
-                        onPicked(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        PageBackground {
+            Column(Modifier.fillMaxSize().imePadding()) {
+                TopBar(
+                    title = tr(titleRes),
+                    left = MikaIcons.Close,
+                    onLeft = onDismiss,
+                    leftLabel = tr(R.string.cancel),
+                    right = {
+                        MikaButton(
+                            tr(R.string.save),
+                            onClick = {
+                                val saved = runCatching {
+                                    editedTrigger(draft, original, newId, newThreadId, System.currentTimeMillis())
+                                }
+                                if (saved.isFailure) attempted = true
+                                else onSave(saved.getOrThrow())
+                            },
+                            modifier = Modifier.testTag("plan-editor-save"),
+                            kind = ButtonKind.Primary,
+                            size = ButtonSize.Small,
+                        )
+                    },
+                )
+                KeyboardDismissArea {
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                            .padding(horizontal = MikaSpace.Page),
+                    ) {
+                        Spacer(Modifier.height(MikaSpace.S8))
+                        SegmentedControl(
+                            listOf(tr(R.string.plans_task_mode), tr(R.string.plans_reminder_mode)),
+                            if (draft.reminder) 1 else 0,
+                            onSelect = { selected ->
+                                val isReminder = selected == 1
+                                draft = draft.copy(
+                                    reminder = isReminder,
+                                    condition = if (isReminder) "" else draft.condition,
+                                    cooldownMinutes = if (isReminder) "" else draft.cooldownMinutes,
+                                )
+                                if (isReminder) conditionExpanded = false
+                            },
+                            tags = listOf("plan-editor-task", "plan-editor-reminder"),
+                        )
+                        Spacer(Modifier.height(MikaSpace.S12))
+                        GroupCard {
+                            Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                                OutlinedTextField(
+                                    value = draft.content,
+                                    onValueChange = { draft = draft.copy(content = it) },
+                                    modifier = Modifier.fillMaxWidth().testTag("plan-editor-content").keepsKeyboard(),
+                                    label = { Text(tr(if (draft.reminder) R.string.plans_content_reminder else R.string.plans_content_task)) },
+                                    minLines = 2,
+                                    maxLines = 5,
+                                )
+                            }
+                        }
+
+                        GroupLabel(tr(R.string.plans_time))
+                        GroupCard {
+                            Column(Modifier.padding(14.dp)) {
+                                SegmentedControl(
+                                    listOf(
+                                        tr(R.string.plans_once),
+                                        tr(R.string.plans_repeat_interval),
+                                        tr(R.string.plans_every_day),
+                                        tr(R.string.plans_repeat_weekly),
+                                    ),
+                                    draft.repeat.ordinal,
+                                    onSelect = { selected ->
+                                        val repeat = PlanRepeat.entries[selected]
+                                        val todayDay = Instant.now().atZone(pickerZone).dayOfWeek.value
+                                        draft = draft.copy(
+                                            repeat = repeat,
+                                            weekdays = if (repeat == PlanRepeat.Weekly && draft.weekdays.isEmpty()) setOf(todayDay)
+                                            else draft.weekdays,
+                                        )
+                                    },
+                                    tags = listOf("plan-editor-once", "plan-editor-interval", "plan-editor-daily", "plan-editor-weekly"),
+                                )
+                                Spacer(Modifier.height(12.dp))
+
+                                if (draft.repeat in setOf(PlanRepeat.Once, PlanRepeat.Interval)) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        PickerTapTile(
+                                            icon = MikaIcons.Calendar,
+                                            label = tr(R.string.plans_date),
+                                            value = PlanTimeFormat.formatFriendlyDate(
+                                                parsedFirst.toLocalDate(),
+                                                todayInZone,
+                                                tr(R.string.plans_today),
+                                                tr(R.string.plans_tomorrow),
+                                                locale,
+                                            ),
+                                            tag = "plan-editor-first-date-pick",
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { pickingDate = true },
+                                        )
+                                        PickerTapTile(
+                                            icon = MikaIcons.Clock,
+                                            label = tr(R.string.plans_time),
+                                            value = PlanTimeFormat.formatTime(parsedFirst.toLocalTime(), use24Hour, locale),
+                                            tag = "plan-editor-first-time-pick",
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { pickingTime = TimeTarget.FirstRun(parsedFirst.toLocalDate()) },
+                                        )
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    QuickTimeChips(
+                                        zone = pickerZone,
+                                        use24Hour = use24Hour,
+                                        locale = locale,
+                                        onPick = { picked ->
+                                            draft = draft.copy(firstAt = formatPlanEditorTime(picked))
+                                        },
+                                    )
+                                    val firstAtMs = parsedFirst.atZone(pickerZone).toInstant().toEpochMilli()
+                                    if (draft.repeat == PlanRepeat.Once && firstAtMs <= nowMs) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Row(
+                                            Modifier.fillMaxWidth()
+                                                .clip(MikaShapes.Tile)
+                                                .background(MikaTheme.colors.warn.copy(alpha = 0.12f))
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Text(
+                                                tr(R.string.plans_time_past_hint),
+                                                style = MikaType.Caption,
+                                                color = MikaTheme.colors.warn,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            TextButton(
+                                                modifier = Modifier.testTag("plan-editor-use-tomorrow"),
+                                                onClick = {
+                                                    val tomorrow = LocalDateTime.of(todayInZone.plusDays(1), parsedFirst.toLocalTime())
+                                                    draft = draft.copy(firstAt = formatPlanEditorTime(tomorrow))
+                                                },
+                                            ) { Text(tr(R.string.plans_use_tomorrow)) }
+                                        }
+                                    }
+                                }
+
+                                if (draft.repeat == PlanRepeat.Interval) {
+                                    Spacer(Modifier.height(12.dp))
+                                    ChipRow {
+                                        listOf(15, 30, 60, 120, 360).forEach { mins ->
+                                            Chip(
+                                                formatDuration(mins * 60_000L, locale),
+                                                selected = draft.intervalMinutes.trim() == mins.toString(),
+                                                tag = "plan-editor-interval-$mins",
+                                            ) { draft = draft.copy(intervalMinutes = mins.toString()) }
+                                        }
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    OutlinedTextField(
+                                        value = draft.intervalMinutes,
+                                        onValueChange = { draft = draft.copy(intervalMinutes = it) },
+                                        modifier = Modifier.fillMaxWidth().testTag("plan-editor-interval-minutes").keepsKeyboard(),
+                                        label = { Text(tr(R.string.plans_interval_minutes)) },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    )
+                                }
+
+                                if (draft.repeat in setOf(PlanRepeat.Daily, PlanRepeat.Weekly)) {
+                                    ClockChips(
+                                        entries = clockEntries,
+                                        use24Hour = use24Hour,
+                                        locale = locale,
+                                        onEdit = { pickingTime = TimeTarget.Clock(it) },
+                                        onRemove = { index ->
+                                            val updated = clockEntries.toMutableList().apply { removeAt(index) }
+                                            draft = draft.copy(clock = normalizedClockText(updated))
+                                        },
+                                        onAdd = { pickingTime = TimeTarget.Clock(null) },
+                                    )
+                                }
+
+                                if (draft.repeat == PlanRepeat.Weekly) {
+                                    Spacer(Modifier.height(12.dp))
+                                    ChipRow {
+                                        (1..7).forEach { day ->
+                                            Chip(
+                                                DayOfWeek.of(day).getDisplayName(TextStyle.SHORT, locale),
+                                                selected = day in draft.weekdays,
+                                                tag = "plan-editor-weekday-$day",
+                                            ) {
+                                                draft = draft.copy(weekdays = draft.weekdays.toMutableSet().apply {
+                                                    if (!add(day)) remove(day)
+                                                })
+                                            }
+                                        }
+                                    }
+                                    ChipRow {
+                                        // 「工作日」「周末」按周一至周五、周六周日算(ISO 星期,与存储一致)
+                                        listOf(
+                                            R.string.plans_every_day to setOf(1, 2, 3, 4, 5, 6, 7),
+                                            R.string.plans_weekdays_workdays to setOf(1, 2, 3, 4, 5),
+                                            R.string.plans_weekdays_weekends to setOf(6, 7),
+                                        ).forEach { (label, days) ->
+                                            Chip(tr(label), selected = draft.weekdays == days) { draft = draft.copy(weekdays = days) }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!draft.reminder && deviceAccess != null) {
+                            ScreenOffSetupCard(deviceAccess)
+                        }
+
+                        if (!draft.reminder) {
+                            GroupLabel(tr(R.string.plans_smart_condition))
+                            GroupCard {
+                                ListRow(
+                                    icon = MikaIcons.Search,
+                                    title = tr(R.string.plans_smart_condition),
+                                    subtitle = tr(R.string.plans_smart_condition_sub),
+                                    first = true,
+                                    onClick = { conditionExpanded = !conditionExpanded },
+                                ) {
+                                    MikaSwitch(
+                                        checked = conditionExpanded,
+                                        onCheckedChange = { on ->
+                                            conditionExpanded = on
+                                            if (!on) draft = draft.copy(condition = "", cooldownMinutes = "")
+                                        },
+                                        modifier = Modifier.testTag("plan-editor-condition-toggle"),
+                                    )
+                                }
+                                AnimatedVisibility(conditionExpanded) {
+                                    Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+                                        OutlinedTextField(
+                                            value = draft.condition,
+                                            onValueChange = { draft = draft.copy(condition = it) },
+                                            modifier = Modifier.fillMaxWidth().testTag("plan-editor-condition").keepsKeyboard(),
+                                            label = { Text(tr(R.string.plans_condition_optional)) },
+                                            placeholder = { Text(tr(R.string.plans_condition_placeholder)) },
+                                            minLines = 2,
+                                            maxLines = 4,
+                                        )
+                                        if (draft.condition.isNotBlank()) {
+                                            Spacer(Modifier.height(10.dp))
+                                            SegmentedControl(
+                                                listOf(tr(R.string.plans_notify_change), tr(R.string.plans_notify_each)),
+                                                if (draft.notifyWhen == ConditionNotify.BecomesMet) 0 else 1,
+                                                onSelect = {
+                                                    draft = draft.copy(
+                                                        notifyWhen = if (it == 0) ConditionNotify.BecomesMet else ConditionNotify.EachTimeMet,
+                                                    )
+                                                },
+                                                tags = listOf("plan-editor-notify-change", "plan-editor-notify-each"),
+                                            )
+                                            Spacer(Modifier.height(10.dp))
+                                            OutlinedTextField(
+                                                value = draft.cooldownMinutes,
+                                                onValueChange = { draft = draft.copy(cooldownMinutes = it) },
+                                                modifier = Modifier.fillMaxWidth().testTag("plan-editor-cooldown").keepsKeyboard(),
+                                                label = { Text(tr(R.string.plans_cooldown_minutes)) },
+                                                singleLine = true,
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!draft.reminder) {
+                            GroupLabel(tr(R.string.plans_execution_window))
+                            GroupCard {
+                                Column(Modifier.padding(14.dp)) {
+                                    SegmentedControl(
+                                        listOf(
+                                            tr(R.string.plans_window_anytime),
+                                            tr(R.string.plans_window_off_peak),
+                                            tr(R.string.plans_window_custom),
+                                        ),
+                                        draft.executionWindow.ordinal,
+                                        onSelect = { draft = draft.copy(executionWindow = PlanExecutionWindow.entries[it]) },
+                                        tags = listOf("plan-editor-window-anytime", "plan-editor-window-off-peak", "plan-editor-window-custom"),
+                                    )
+                                    when (draft.executionWindow) {
+                                        PlanExecutionWindow.DeepSeekOffPeak -> {
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(
+                                                tr(R.string.plans_window_off_peak_hint),
+                                                style = MikaType.Caption,
+                                                color = MikaTheme.colors.ink3,
+                                            )
+                                        }
+                                        PlanExecutionWindow.Custom -> {
+                                            Spacer(Modifier.height(10.dp))
+                                            OutlinedTextField(
+                                                value = draft.executionZone,
+                                                onValueChange = { draft = draft.copy(executionZone = it) },
+                                                modifier = Modifier.fillMaxWidth().testTag("plan-editor-window-zone").keepsKeyboard(),
+                                                label = { Text(tr(R.string.plans_zone)) },
+                                                singleLine = true,
+                                            )
+                                            Spacer(Modifier.height(10.dp))
+                                            OutlinedTextField(
+                                                value = draft.windowStart,
+                                                onValueChange = { draft = draft.copy(windowStart = it) },
+                                                modifier = Modifier.fillMaxWidth().testTag("plan-editor-window-start").keepsKeyboard(),
+                                                label = { Text(tr(R.string.plans_window_start)) },
+                                                singleLine = true,
+                                                trailingIcon = {
+                                                    Box(
+                                                        Modifier.size(48.dp).clip(CircleShape)
+                                                            .clickable(role = Role.Button) { pickingTime = TimeTarget.WindowStart }
+                                                            .testTag("plan-editor-window-start-pick"),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        Icon(MikaIcons.Clock, tr(R.string.plans_pick_time), Modifier.size(20.dp), tint = MikaTheme.colors.ink3)
+                                                    }
+                                                },
+                                            )
+                                            Spacer(Modifier.height(10.dp))
+                                            OutlinedTextField(
+                                                value = draft.windowEnd,
+                                                onValueChange = { draft = draft.copy(windowEnd = it) },
+                                                modifier = Modifier.fillMaxWidth().testTag("plan-editor-window-end").keepsKeyboard(),
+                                                label = { Text(tr(R.string.plans_window_end)) },
+                                                singleLine = true,
+                                                trailingIcon = {
+                                                    Box(
+                                                        Modifier.size(48.dp).clip(CircleShape)
+                                                            .clickable(role = Role.Button) { pickingTime = TimeTarget.WindowEnd }
+                                                            .testTag("plan-editor-window-end-pick"),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        Icon(MikaIcons.Clock, tr(R.string.plans_pick_time), Modifier.size(20.dp), tint = MikaTheme.colors.ink3)
+                                                    }
+                                                },
+                                            )
+                                            Spacer(Modifier.height(6.dp))
+                                            Text(
+                                                tr(R.string.plans_window_custom_hint, draft.executionZone),
+                                                style = MikaType.Caption,
+                                                color = MikaTheme.colors.ink3,
+                                            )
+                                        }
+                                        PlanExecutionWindow.Anytime -> Unit
+                                    }
+                                }
+                            }
+                        }
+
+                        GroupLabel(tr(R.string.plans_more_options))
+                        GroupCard {
+                            val zoneLabel = remember(pickerZone.id, locale) { zoneSummary(pickerZone.id, locale) }
+                            ListRow(
+                                icon = MikaIcons.Globe,
+                                title = tr(R.string.plans_timezone),
+                                subtitle = zoneLabel,
+                                first = true,
+                                onClick = { pickingZone = true },
+                                modifier = Modifier.testTag("plan-editor-zone"),
+                            ) { RowChevron() }
+                            ListRow(
+                                icon = null,
+                                title = tr(R.string.plans_when_idle),
+                                subtitle = tr(R.string.plans_when_idle_sub),
+                                onClick = { draft = draft.copy(whenIdle = !draft.whenIdle) },
+                            ) {
+                                MikaSwitch(draft.whenIdle, { draft = draft.copy(whenIdle = it) }, Modifier.testTag("plan-editor-idle"))
+                            }
+                        }
+
+                        Spacer(Modifier.height(MikaSpace.S12))
+                        GroupCard {
+                            ListRow(
+                                icon = null,
+                                title = tr(R.string.plans_enabled),
+                                subtitle = tr(R.string.plans_enabled_sub),
+                                first = true,
+                                onClick = { draft = draft.copy(enabled = !draft.enabled) },
+                            ) {
+                                MikaSwitch(draft.enabled, { draft = draft.copy(enabled = it) }, Modifier.testTag("plan-editor-enabled"))
+                            }
+                        }
+
+                        preview?.let { plan ->
+                            Spacer(Modifier.height(MikaSpace.S12))
+                            val upcomingRuns = upcoming(plan, nowMs, 3)
+                            GroupCard {
+                                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                                    upcomingRuns.firstOrNull()?.let { firstAtMs ->
+                                        val firstZdt = Instant.ofEpochMilli(firstAtMs).atZone(pickerZone)
+                                        val friendly = "${PlanTimeFormat.formatFriendlyDate(firstZdt.toLocalDate(), todayInZone, tr(R.string.plans_today), tr(R.string.plans_tomorrow), locale)} · ${PlanTimeFormat.formatTime(firstZdt.toLocalTime(), use24Hour, locale)}"
+                                        val rel = formatDuration(firstAtMs - nowMs, locale)
+                                        Text(
+                                            tr(R.string.plans_next_in, friendly, rel),
+                                            style = MikaType.Body,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MikaTheme.colors.ink,
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                    }
+                                    Text(tr(R.string.plans_preview), style = MikaType.Caption, color = MikaTheme.colors.ink3)
+                                    upcomingRuns.forEachIndexed { index, at ->
+                                        val zdt = Instant.ofEpochMilli(at).atZone(pickerZone)
+                                        val formatted = "${PlanTimeFormat.formatFriendlyDate(zdt.toLocalDate(), todayInZone, tr(R.string.plans_today), tr(R.string.plans_tomorrow), locale)} ${PlanTimeFormat.formatTime(zdt.toLocalTime(), use24Hour, locale)}"
+                                        Text(
+                                            "${index + 1}  $formatted (${pickerZone.id})",
+                                            Modifier.testTag("plan-editor-preview-$index"),
+                                            style = MikaType.Caption,
+                                            color = MikaTheme.colors.ink3,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (attempted && preview == null) {
+                            val reason = (candidate.exceptionOrNull() as? PlanValidationException)?.reason
+                            Spacer(Modifier.height(MikaSpace.S8))
+                            Text(
+                                reason?.let { planValidationText(it) } ?: tr(R.string.op_failed),
+                                Modifier.testTag("plan-editor-error"),
+                                style = MikaType.Caption,
+                                color = MikaTheme.colors.bad,
+                            )
+                        }
+                        Spacer(Modifier.height(48.dp))
                     }
-                },
-            ) { Text(tr(R.string.done)) }
-        },
-        dismissButton = { TextButton(onDismiss) { Text(tr(R.string.cancel)) } },
-    ) {
-        DatePicker(state, Modifier.testTag("plan-date-picker"), showModeToggle = false)
-    }
-}
-
-/** 时、分两列滚轮;停在中间一行的数字就是选中的值。 */
-@Composable
-private fun PlanTimePickerDialog(initial: LocalTime, title: String, onDismiss: () -> Unit, onPicked: (LocalTime) -> Unit) {
-    var hour by remember(initial) { mutableIntStateOf(initial.hour) }
-    var minute by remember(initial) { mutableIntStateOf(initial.minute) }
-    MikaDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            // 时间按「时:分」从左到右读,不跟着界面语言反过来
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    NumberWheel(24, hour, "plan-time-hour", { hour = it }, Modifier.weight(1f))
-                    Text(":", style = MikaType.Title, color = MikaTheme.colors.ink3, modifier = Modifier.padding(horizontal = 6.dp))
-                    NumberWheel(60, minute, "plan-time-minute", { minute = it }, Modifier.weight(1f))
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                modifier = Modifier.testTag("plan-time-ok"),
-                onClick = { onPicked(LocalTime.of(hour, minute)) },
-            ) { Text(tr(R.string.save)) }
-        },
-        dismissButton = { TextButton(onDismiss) { Text(tr(R.string.cancel)) } },
-    )
-}
-
-private val WheelItem = 40.dp
-
-@Composable
-private fun NumberWheel(count: Int, initial: Int, tag: String, onValueChange: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val c = MikaTheme.colors
-    val density = LocalDensity.current
-    val itemPx = with(density) { WheelItem.roundToPx() }
-    val scroll = rememberScrollState(initial * itemPx)
-    val scope = rememberCoroutineScope()
-    val selected by remember {
-        derivedStateOf { (scroll.value.toFloat() / itemPx).roundToInt().coerceIn(0, count - 1) }
-    }
-    // 拖完/惯性停下后吸到最近一格,中间那格就是选中的值
-    LaunchedEffect(scroll, itemPx) {
-        snapshotFlow { scroll.isScrollInProgress }.collect { scrolling ->
-            if (!scrolling) {
-                val target = selected * itemPx
-                if (scroll.value != target) scroll.animateScrollTo(target)
-            }
-        }
-    }
-    LaunchedEffect(selected) { onValueChange(selected) }
-    Box(modifier.height(WheelItem * 5f), contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxWidth().height(WheelItem).background(c.fill, MikaShapes.Tile))
-        Column(
-            Modifier.fillMaxSize().verticalScroll(scroll).testTag(tag),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(WheelItem * 2f))
-            repeat(count) { index ->
-                Box(
-                    Modifier.fillMaxWidth().height(WheelItem)
-                        .clip(MikaShapes.Tile)
-                        .clickable { scope.launch { scroll.animateScrollTo(index * itemPx) } }
-                        .testTag("$tag-$index"),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "%02d".format(java.util.Locale.ROOT, index),
-                        style = MikaType.Title.copy(fontFeatureSettings = "tnum"),
-                        fontWeight = if (index == selected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (index == selected) c.ink else c.ink3,
-                    )
-                }
-            }
-            Spacer(Modifier.height(WheelItem * 2f))
         }
     }
 }
 
+/** 系统设置里的 12/24 小时制。 */
 @Composable
-private fun PlanSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit, tag: String) {
-    Row(
-        Modifier.fillMaxWidth().height(48.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = MikaType.Body, color = MikaTheme.colors.ink2)
-        MikaSwitch(checked, onChange, Modifier.testTag(tag))
-    }
+internal fun systemUses24Hour(): Boolean {
+    val context = LocalContext.current
+    return remember(context) { DateFormat.is24HourFormat(context) }
 }
-
-@Composable
-private fun planValidationText(reason: PlanValidation): String = tr(when (reason) {
-    PlanValidation.MissingContent -> R.string.plans_error_content
-    PlanValidation.ContentTooLong -> R.string.plans_error_content_long
-    PlanValidation.ConditionTooLong -> R.string.plans_error_condition_long
-    PlanValidation.ReminderWithCondition -> R.string.plans_error_reminder_condition
-    PlanValidation.InvalidFirstTime -> R.string.plans_error_time
-    PlanValidation.TimeNotFuture -> R.string.plans_need_future
-    PlanValidation.InvalidInterval -> R.string.plans_error_interval
-    PlanValidation.InvalidClock -> R.string.plans_error_clock
-    PlanValidation.InvalidZone -> R.string.plans_error_zone
-    PlanValidation.InvalidWeekdays -> R.string.plans_error_weekdays
-    PlanValidation.InvalidCooldown -> R.string.plans_error_cooldown
-    PlanValidation.InvalidExecutionWindow -> R.string.plans_error_window
-})

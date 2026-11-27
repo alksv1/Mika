@@ -3,7 +3,6 @@ package com.wangzan101.mika.calls.ui
 import com.wangzan101.mika.ui.components.MikaTextField
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -132,24 +131,18 @@ internal fun CallDtmfKeypadDialog(
                             modifier = Modifier.fillMaxWidth().testTag("call-dtmf-input"),
                         )
                     }
-                    for (row in listOf("123", "456", "789", "*0#")) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            for (digit in row) {
-                                FilledTonalButton(
-                                    onClick = {
-                                        if (batch) {
-                                            if (input.length < 32) { input += digit; feedback = null }
-                                            else feedback = CallActionResult(false, invalid)
-                                        } else send(digit.toString())
-                                    },
-                                    enabled = !blocked,
-                                    shape = CircleShape,
-                                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
-                                    modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("call-dtmf-key-$digit"),
-                                ) {
-                                    Text(digit.toString(), style = MikaType.LargeTitle, textAlign = TextAlign.Center)
-                                }
-                            }
+                    CallDialPadGrid(CallDialLayouts.dtmf, Modifier.fillMaxWidth()) { key ->
+                        val digit = (key as? CallDialKey.Symbol)?.char ?: return@CallDialPadGrid
+                        CallDialKeyButton(
+                            onClick = {
+                                if (batch) {
+                                    if (input.length < 32) { input += digit; feedback = null }
+                                    else feedback = CallActionResult(false, invalid)
+                                } else send(digit.toString())
+                            },
+                            enabled = !blocked, tag = "call-dtmf-key-$digit", minHeight = 56.dp, verticalPadding = 4.dp,
+                        ) {
+                            Text(digit.toString(), style = MikaType.LargeTitle, textAlign = TextAlign.Center)
                         }
                     }
                     if (batch) {

@@ -54,13 +54,8 @@ internal class PluginScriptTool(
     private val argsDir: File = File(System.getProperty("java.io.tmpdir"), "mika-plugin-args"),
 ) : AgentTool {
     override val def: ToolDef = spec.let { s ->
-        val props = (s.inputSchema["properties"] as? JsonObject)?.entries
-            ?.associate { (k, v) -> k to (v as? JsonObject ?: JsonObject(emptyMap())) }
-            ?: emptyMap()
-        val required = (s.inputSchema["required"] as? JsonArray)
-            ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
-            ?: emptyList()
-        ToolDef(s.name, s.description, props, required)
+        val normalized = ToolSchema.normalizeObject(s.inputSchema)
+        ToolDef(s.name, s.description, normalized.props, normalized.required)
     }
     override val verb = Verb.PluginScript
     override val risk: Risk get() = spec.risk

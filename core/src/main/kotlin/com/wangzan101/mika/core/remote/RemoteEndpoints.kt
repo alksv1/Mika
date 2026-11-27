@@ -20,6 +20,8 @@ class RemoteEndpoints(
     private val records: RunExportSource? = null,
     private val calls: com.wangzan101.mika.core.calls.PhoneCallPort? = null,
     private val companion: RemoteCompanion? = null,
+    /** 用户暂停了 Mika:MCP 与 CLI 接口共用这一个标记([refuseRemote])。 */
+    private val paused: com.wangzan101.mika.core.run.PauseFlag = com.wangzan101.mika.core.run.PauseFlag.Never,
 ) {
     private val companionApi = companion?.let(::CompanionApi)
     private val clients = LinkedHashMap<String, Long>()
@@ -31,7 +33,7 @@ class RemoteEndpoints(
         // never the internal unscoped view and never local history.
         val owner = req.accessOwner ?: "relay"
         val scopedTasks = tasks.scope(owner)
-        val service = RemoteTaskService(scopedTasks, records = records?.scope(owner))
+        val service = RemoteTaskService(scopedTasks, records = records?.scope(owner), paused = paused)
         val rpc = McpRpc(McpTaskTools(service, device.takeIf { deviceAccess }, calls.takeIf { deviceAccess }), serverVersion) { remote, name -> seen(remote, name) }
         if (req.path == McpRpc.PATH) return rpc.handle(req)
         if (req.path == RemoteTaskApi.ROOT || req.path.startsWith("${RemoteTaskApi.ROOT}/")) {

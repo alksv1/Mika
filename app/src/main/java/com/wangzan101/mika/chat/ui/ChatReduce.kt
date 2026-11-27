@@ -179,6 +179,7 @@ internal object ChatReduce {
             memoryNotes = t.memoryNotes, usedMemory = t.usedMemory, skillNotes = t.skillNotes,
             audios = t.audios,
             photos = t.photos,
+            videos = t.videos,
             keptPage = t.keptPage, keptPageClosed = t.keptPageClosed, atMs = t.atMs,
             steers = t.steers.mapIndexed { i, text ->
                 SteerNote("turn-$i", text, SteerState.Joined, t.interruptedReplies.getOrNull(i)?.takeIf(String::isNotEmpty),

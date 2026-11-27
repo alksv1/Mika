@@ -64,6 +64,17 @@ class ManifestProvidersTest {
         assertEquals(0, s.getElementsByTagName("intent-filter").length)
     }
 
+    @Test
+    fun standbyRecoveryServiceOnlyAcceptsSystemJobBinding() {
+        val doc = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File("src/main/AndroidManifest.xml"))
+        val services = doc.getElementsByTagName("service")
+        val service = (0 until services.length).map { services.item(it) as Element }
+            .single { it.getAttributeNS(androidNs, "name") == ".calls.CallStandbyRecoveryJob" }
+        assertEquals("false", service.getAttributeNS(androidNs, "exported"))
+        assertEquals("android.permission.BIND_JOB_SERVICE", service.getAttributeNS(androidNs, "permission"))
+    }
+
     /** 清单里登记的组件都按全名找得到类(搬了代码的入口留着同名的薄壳)。 */
     @Test
     fun everyComponentClassExists() {

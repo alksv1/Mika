@@ -103,4 +103,37 @@
     <string name="model_fallback_add_another">Tambah Model Cadangan Lain (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">Jika %1$s mencapai batas kecepatan atau kuota, Mika otomatis beralih ke rantai model cadangan agar tugas selesai tanpa henti.</string>
     <string name="model_fallback_collapse_hint">Rantai aktif · Ketuk untuk menciutkan</string>
+    <string name="model_keys_title">Kunci API</string>
+    <string name="model_keys_pool_one">Kumpulan kunci API · 1 kunci</string>
+    <string name="model_keys_pool_many">Kumpulan kunci API · %1$s · dirotasi otomatis</string>
+    <string name="model_keys_hide">Sembunyikan kunci</string>
+    <string name="model_keys_show">Tampilkan kunci</string>
+    <string name="model_key_not_configured">Belum ada kunci yang diatur</string>
+    <string name="model_key_not_configured_hint">Tambahkan kunci untuk menghubungkan penyedia ini</string>
+    <string name="model_key_required">Wajib</string>
+    <string name="model_key_number">Kunci %1$d</string>
+    <string name="model_key_active">Aktif</string>
+    <string name="model_key_add">Tambah kunci API</string>
+    <string name="model_key_add_first_hint">Tempel kunci Anda untuk terhubung</string>
+    <string name="model_key_add_another_hint">Tambahkan kunci lain ke rotasi</string>
+    <string name="model_keys_rotate_note">Kunci dirotasi otomatis. Kunci yang kena batas kecepatan 429 atau waktu habis akan dilewati sampai pulih, sehingga tidak ada waktu henti.</string>
+    <string name="model_keys_add_more_note">Tambahkan lebih banyak kunci untuk mengaktifkan rotasi otomatis saat gagal.</string>
+    <string name="model_key_add_note">Tempel satu kunci, atau beberapa kunci yang dipisahkan koma atau baris baru untuk menambahkannya sekaligus.</string>
+    <string name="model_keys_detected_add">%1$s terdeteksi — semuanya akan ditambahkan ke rotasi</string>
+    <string name="model_key_one_ready">1 kunci siap ditambahkan</string>
+    <string name="model_provider_line_pool">%1$s · Kumpulan kunci (%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s terdeteksi — dirotasi otomatis saat kena batas kecepatan atau waktu habis</string>
+    <string name="model_providers_none">Belum ada penyedia yang terhubung</string>
+    <string name="model_providers_keys_in_pool">%1$s · %2$s di kumpulan</string>
+    <string name="model_key_remove">Hapus</string>
+    <string name="model_fallback_remove_desc">Hapus model cadangan</string>
+    <plurals name="model_keys_count">
+        <item quantity="other">%1$d kunci</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="other">✓ Kumpulan kunci: %1$d kunci API terdeteksi (dirotasi otomatis saat 429 atau waktu habis)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="other">Tambah %1$d kunci</item>
+    </plurals>
 </resources>

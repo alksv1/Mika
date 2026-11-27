@@ -152,4 +152,40 @@ class KeepAwakeTest {
     fun screenLockLetsTheSystemDim() {
         assertEquals(android.os.PowerManager.SCREEN_DIM_WAKE_LOCK, ScreenWakeLock.LEVEL)
     }
+
+    /** 任务的 CPU 锁:开跑前就拿上,终态后也撑着(结果送达、账本记好),等你处理过了宽限照样放开,close 才真正放。 */
+    @Test
+    fun cpuLeaseHoldsThroughEndButNotWhileWaitingOnUser() = runTest {
+        val lock = FakeLock()
+        val cpu = KeepAwake(lock, backgroundScope, keepThroughEnd = true)
+        cpu.onState(TaskState.Idle)
+        assertTrue(lock.held)
+        cpu.onState(TaskState.Running(1, ""))
+        cpu.onState(TaskState.WaitingInput("要哪一个?"))
+        advanceTimeBy(KeepAwake.GRACE_MS + 1)
+        runCurrent()
+        assertFalse(lock.held)
+        cpu.onState(TaskState.Running(2, ""))
+        assertTrue(lock.held)
+        cpu.onState(TaskState.Succeeded("ok"))
+        assertTrue(lock.held)
+        cpu.close()
+        assertFalse(lock.held)
+        cpu.onState(TaskState.Running(3, ""))
+        assertFalse(lock.held)
+    }
+
+    /** 每个任务各持一份:一份放开不影响另一份,最后一份放开才真正释放。 */
+    @Test
+    fun sharedCpuLockReleasesOnlyAfterLastLease() {
+        val lock = FakeLock()
+        val shared = SharedWakeLock(lock)
+        val run = shared.lease().also { it.acquire() }
+        val workflow = shared.lease().also { it.acquire() }
+        run.release()
+        run.release()
+        assertTrue(lock.held)
+        workflow.release()
+        assertFalse(lock.held)
+    }
 }

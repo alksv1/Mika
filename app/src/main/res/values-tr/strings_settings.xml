@@ -317,4 +317,6 @@
         <item quantity="one">%1$d GB</item>
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">Ayarlarda ara</string>
+    <string name="settings_search_empty">Eşleşen ayar yok</string>
 </resources>

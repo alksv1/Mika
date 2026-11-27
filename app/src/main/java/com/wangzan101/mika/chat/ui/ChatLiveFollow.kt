@@ -46,6 +46,7 @@ internal class ChatLiveFollow(private val vm: ChatViewModel, private val session
     private val sharedFiles = vm.sharedFiles
     private val generatedAudios = vm.generatedAudios
     private val generatedPhotos = vm.generatedPhotos
+    private val generatedVideos = vm.generatedVideos
     private val toolLabels = vm.toolLabels
     private val activities = vm.activities
     private val steers = vm.steers
@@ -145,6 +146,15 @@ internal class ChatLiveFollow(private val vm: ChatViewModel, private val session
         }
     }
 
+    fun onVideos(videos: List<com.wangzan101.mika.core.chat.GeneratedVideo>) {
+        if (liveIndex < 0) return
+        _ui.update { ui ->
+            val exchanges = ui.exchanges.toMutableList()
+            if (liveIndex in exchanges.indices) exchanges[liveIndex] = exchanges[liveIndex].copy(videos = videos)
+            ui.copy(exchanges = exchanges)
+        }
+    }
+
     fun onScreenOpened() {
         if (liveIndex < 0 || screenSeen) return
         screenSeen = true
@@ -210,6 +220,7 @@ internal class ChatLiveFollow(private val vm: ChatViewModel, private val session
         onSharedFiles(sharedFiles.value)
         onAudios(generatedAudios.value)
         onPhotos(generatedPhotos.value)
+        onVideos(generatedVideos.value)
         onActivities(activities.value)
         onSteers(steers.value)
         onState(shown.second)
@@ -270,7 +281,8 @@ internal class ChatLiveFollow(private val vm: ChatViewModel, private val session
                 val files = if (session.ownTask()) sharedFiles.value else emptyList()
                 val audios = if (session.ownTask()) generatedAudios.value else emptyList()
                 val photos = if (session.ownTask()) generatedPhotos.value else emptyList()
-                val ex = Exchange(goal, emptyList(), ExchangeStatus.Working, live = true, files = files, audios = audios, photos = photos, startedAt = clock())
+                val videos = if (session.ownTask()) generatedVideos.value else emptyList()
+                val ex = Exchange(goal, emptyList(), ExchangeStatus.Working, live = true, files = files, audios = audios, photos = photos, videos = videos, startedAt = clock())
                 it.copy(exchanges = it.exchanges + ex,
                     queued = it.queued.filterNot { q -> q.text == goal })
             }

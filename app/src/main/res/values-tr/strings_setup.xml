@@ -103,4 +103,40 @@
     <string name="model_fallback_add_another">Başka Bir Yedek Model Ekle (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">%1$s hız veya kota sınırına ulaşırsa, Mika görevlerin kesintisiz tamamlanması için zincirdeki yedek modellere otomatik olarak geçer.</string>
     <string name="model_fallback_collapse_hint">Etkin zincir · Daraltmak için dokunun</string>
+    <string name="model_keys_title">API anahtarları</string>
+    <string name="model_keys_pool_one">API anahtar havuzu · 1 anahtar</string>
+    <string name="model_keys_pool_many">API anahtar havuzu · %1$s · otomatik dönüşümlü</string>
+    <string name="model_keys_hide">Anahtarları gizle</string>
+    <string name="model_keys_show">Anahtarları göster</string>
+    <string name="model_key_not_configured">Anahtar ayarlanmadı</string>
+    <string name="model_key_not_configured_hint">Bu sağlayıcıya bağlanmak için bir anahtar ekleyin</string>
+    <string name="model_key_required">Zorunlu</string>
+    <string name="model_key_number">%1$d. anahtar</string>
+    <string name="model_key_active">Etkin</string>
+    <string name="model_key_add">API anahtarı ekle</string>
+    <string name="model_key_add_first_hint">Bağlanmak için anahtarınızı yapıştırın</string>
+    <string name="model_key_add_another_hint">Dönüşüm havuzuna başka bir anahtar ekle</string>
+    <string name="model_keys_rotate_note">Anahtarlar otomatik olarak dönüşümlü kullanılır. 429 hız sınırına takılan veya zaman aşımına uğrayan anahtar, düzelene kadar atlanır; kesinti olmaz.</string>
+    <string name="model_keys_add_more_note">Otomatik yedek geçişi için daha fazla anahtar ekleyin.</string>
+    <string name="model_key_add_note">Tek bir anahtar yapıştırın ya da hepsini birden eklemek için virgül veya satır sonuyla ayrılmış birden fazla anahtar yapıştırın.</string>
+    <string name="model_keys_detected_add">%1$s algılandı — tümü dönüşüm havuzuna eklenecek</string>
+    <string name="model_key_one_ready">1 anahtar eklenmeye hazır</string>
+    <string name="model_provider_line_pool">%1$s · Anahtar havuzu (%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s algılandı — hız sınırı veya zaman aşımında otomatik dönüşümlü kullanılır</string>
+    <string name="model_providers_none">Bağlı sağlayıcı yok</string>
+    <string name="model_providers_keys_in_pool">%1$s · havuzda %2$s</string>
+    <string name="model_key_remove">Kaldır</string>
+    <string name="model_fallback_remove_desc">Yedek modeli kaldır</string>
+    <plurals name="model_keys_count">
+        <item quantity="one">%1$d anahtar</item>
+        <item quantity="other">%1$d anahtar</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="one">✓ Anahtar havuzu: %1$d API anahtarı algılandı (429 veya zaman aşımında otomatik dönüşüm)</item>
+        <item quantity="other">✓ Anahtar havuzu: %1$d API anahtarı algılandı (429 veya zaman aşımında otomatik dönüşüm)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="one">%1$d anahtar ekle</item>
+        <item quantity="other">%1$d anahtar ekle</item>
+    </plurals>
 </resources>

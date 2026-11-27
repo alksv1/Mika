@@ -179,4 +179,5 @@
     <string name="desk_report_failed">Không thành công: %1$s</string>
     <string name="desk_report_cancelled">Đã hủy</string>
     <string name="desk_task_not_started">Tác vụ chưa từng bắt đầu. Hãy mở Mika và thử lại.</string>
+    <string name="sheet_no_matches">Không có kết quả phù hợp</string>
 </resources>

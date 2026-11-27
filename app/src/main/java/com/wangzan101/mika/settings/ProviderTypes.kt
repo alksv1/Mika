@@ -100,8 +100,25 @@ data class Provider(
     val serviceTiers: Map<String, OpenAiServiceTier> = emptyMap(),
     /** 用户标为 TTS 的模型名，独立于对话用途和服务商模型列表。 */
     val ttsModels: Set<String> = emptySet(),
+    /**
+     * 用户给这个账号起的备注(如「工作」「个人」),只用来显示,界面上写成「名字(备注)」(见 ModelsCopy.providerName)。
+     * 不进 [key]、不进 id,也不参与找同一家服务商:改备注不会新建服务商,也碰不到 Key。没起为 null;存之前经 [cleanNickname]。
+     */
+    val nickname: String? = null,
 ) {
     val key: String get() = ProviderConnection.keyOf(kind, baseUrl, name)
+
+    companion object {
+        /** 备注最多几个字(按码点算)。 */
+        const val MAX_NICKNAME = 32
+
+        /** 备注统一这样整理:去掉控制字符和首尾空白,截到 [MAX_NICKNAME] 个字;空的算没起(null)。 */
+        fun cleanNickname(raw: String?): String? {
+            val text = raw?.filterNot { it.isISOControl() }?.trim()?.ifEmpty { null } ?: return null
+            val n = text.codePointCount(0, text.length)
+            return if (n <= MAX_NICKNAME) text else text.substring(0, text.offsetByCodePoints(0, MAX_NICKNAME)).trimEnd()
+        }
+    }
 
     fun supportsServiceTier(model: String, endpoint: ModelEndpoint? = models?.firstOrNull { it.id == model }?.endpoint): Boolean {
         if (kind != ProviderConfig.Kind.OpenAiResponses && kind != ProviderConfig.Kind.ChatGpt) return false

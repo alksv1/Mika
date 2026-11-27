@@ -44,6 +44,7 @@ data class ScanResult(val endpoints: List<AdbEndpoint>, val open: Int, val adb: 
  * 无线调试的 adbd 监听一个系统随手分配的端口,落在临时端口范围里([range],读不到就用 [FALLBACK_RANGE])。
  * 按 [hosts] 的顺序一个地址一个地址扫(先 127.0.0.1,再本机 Wi-Fi 地址;adbd 可能只绑其中一个),
  * 每个开着的端口发 CNXN 看回不回 STLS;一个地址上有像 adbd 的就不再扫下一个。只扫本机,不碰别的设备。
+ * 每次扫 [PORT_BATCH_SIZE] 个端口、扫完这一段就核对其中开着的;核对出像 adbd 的就停,不再扫后面的段,否则再扫下一段。
  * 扫描和核对合计不超过 [budgetMs]。
  */
 class LocalPortScan(
@@ -62,21 +63,32 @@ class LocalPortScan(
         val excluded = skip + ownPorts()
         val found = ArrayList<AdbEndpoint>()
         var open = 0
-        for (host in hosts().distinct()) {
-            val left = deadline - now()
-            if (left <= 0) break
-            val openPorts = scanner.openPorts(host, ports, excluded, left)
-            open += openPorts.size
-            for (port in openPorts) {
-                if (now() >= deadline) break
-                if (scanner.speaksAdbTls(host, port, probeTimeoutMs)) found += AdbEndpoint(host, port)
+        hosts@ for (host in hosts().distinct()) {
+            // 分段扫、每段扫完马上核对:整段一口气扫完再核对,扫得慢时预算全花在扫描上,早就开着的 adbd 来不及核对
+            var first = ports.first
+            while (first <= ports.last) {
+                val left = deadline - now()
+                if (left <= 0) break@hosts
+                val last = (first.toLong() + PORT_BATCH_SIZE - 1).coerceAtMost(ports.last.toLong()).toInt()
+                val openPorts = scanner.openPorts(host, first..last, excluded, left)
+                open += openPorts.size
+                for (port in openPorts) {
+                    if (now() >= deadline) break@hosts
+                    if (scanner.speaksAdbTls(host, port, probeTimeoutMs)) found += AdbEndpoint(host, port)
+                }
+                // 这一段里核对出 adbd 就不再扫后面的段,也不再扫下一个地址
+                if (found.isNotEmpty()) break@hosts
+                if (last == ports.last) break
+                first = last + 1
             }
-            if (found.isNotEmpty()) break
         }
         return ScanResult(found, open, found.size)
     }
 
     companion object {
+        /** 一段扫多少个端口再核对。 */
+        const val PORT_BATCH_SIZE = 1_024
+
         /** 读不到系统的临时端口范围时扫这一段(覆盖各版本常见的设置)。 */
         val FALLBACK_RANGE = 30_000..65_535
 

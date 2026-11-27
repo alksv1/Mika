@@ -260,4 +260,68 @@ class RunTraceTest {
         assertTrue(dir.walkTopDown().filter { it.isFile }.sumOf { it.length() } <= 2_000)
     }
 
+    @Test fun httpErrorBodyStaysOutOfSpanMetadataAndScrubsSecretsInBodyExport() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(400)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""{"error":{"message":"Invalid request for PRIVATE_GOAL token=secret_tok sk-1234567890abcdef123456"}}"""),
+            )
+            val model = ResponsesModel(
+                server.url("/v1").toString(),
+                BearerToken.fixed("dummy-auth-for-test"),
+                "trace-test",
+                Capabilities(true, false, 4096, false),
+                OkHttpClient(),
+            )
+            val store = TraceStore(temp.newFolder())
+            val trace = store.start("errrun")!!
+            try {
+                AgentLoop(
+                    model,
+                    toolDispatcher(FakeScreen()),
+                    "BASE",
+                    maxSteps = 1,
+                    trace = trace,
+                    clock = { 1_780_000_000_000L },
+                ).run("go")
+            } catch (_: Throwable) {
+            }
+            store.finish(trace)
+
+            val archive = store.archive("errrun")!!
+            val attempt = archive.rows().single { it.attempt != null }
+            assertEquals("error", attempt.status)
+
+            val binary = ByteArrayOutputStream().also { archive.save(it, false) }.toByteArray()
+            val pbText = ExportTraceServiceRequest.parseFrom(binary).toString()
+            assertFalse(pbText.contains("mika.http.error_detail"))
+            assertFalse(pbText.contains("PRIVATE_GOAL"))
+            assertFalse(pbText.contains("secret_tok"))
+            assertFalse(pbText.contains("sk-1234567890abcdef123456"))
+
+            val page = archive.bodyPage(attempt.id, limit = 65536)!!.text
+            assertTrue(page.contains("PRIVATE_GOAL"))
+            assertFalse(page.contains("secret_tok"))
+            assertFalse(page.contains("sk-1234567890abcdef123456"))
+
+            val zipBytes = ByteArrayOutputStream().also { archive.save(it, true) }.toByteArray()
+            var bodyEntry: String? = null
+            ZipInputStream(zipBytes.inputStream()).use { stream ->
+                while (true) {
+                    val entry = stream.nextEntry ?: break
+                    if (entry.name.startsWith("requests/")) {
+                        val content = stream.readBytes().decodeToString()
+                        if ("PRIVATE_GOAL" in content) bodyEntry = content
+                    }
+                }
+            }
+            assertNotNull(bodyEntry)
+            assertFalse(bodyEntry!!.contains("secret_tok"))
+            assertFalse(bodyEntry!!.contains("sk-1234567890abcdef123456"))
+        }
+    }
+
 }

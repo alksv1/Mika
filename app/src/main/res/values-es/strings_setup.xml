@@ -103,4 +103,43 @@
     <string name="model_fallback_add_another">Añadir otro modelo de respaldo (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">Si %1$s supera los límites de velocidad o cuota, Mika cambiará automáticamente en cadena para que las tareas terminen sin interrupciones.</string>
     <string name="model_fallback_collapse_hint">Cadena activa · Toca para contraer</string>
+    <string name="model_keys_title">Claves de API</string>
+    <string name="model_keys_pool_one">Grupo de claves de API · 1 clave</string>
+    <string name="model_keys_pool_many">Grupo de claves de API · %1$s · rotación automática</string>
+    <string name="model_keys_hide">Ocultar claves</string>
+    <string name="model_keys_show">Mostrar claves</string>
+    <string name="model_key_not_configured">Sin clave configurada</string>
+    <string name="model_key_not_configured_hint">Añade una clave para conectar este proveedor</string>
+    <string name="model_key_required">Obligatorio</string>
+    <string name="model_key_number">Clave %1$d</string>
+    <string name="model_key_active">Activa</string>
+    <string name="model_key_add">Añadir clave de API</string>
+    <string name="model_key_add_first_hint">Pega tu clave para conectar</string>
+    <string name="model_key_add_another_hint">Añade otra clave a la rotación</string>
+    <string name="model_keys_rotate_note">Las claves se rotan automáticamente. Cualquier clave que alcance un límite de velocidad 429 o agote el tiempo de espera se omite hasta que se recupera, sin interrupciones.</string>
+    <string name="model_keys_add_more_note">Añade más claves para activar la conmutación automática por error.</string>
+    <string name="model_key_add_note">Pega una clave, o varias separadas por comas o saltos de línea, para añadirlas todas a la vez.</string>
+    <string name="model_keys_detected_add">%1$s detectadas — todas se añadirán a la rotación</string>
+    <string name="model_key_one_ready">1 clave lista para añadir</string>
+    <string name="model_provider_line_pool">%1$s · Grupo de claves (%2$s)</string>
+    <string name="model_keys_detected_setup">%1$s detectadas — la rotación será automática ante límites de velocidad o tiempos de espera agotados</string>
+    <string name="model_providers_none">Sin proveedores conectados</string>
+    <string name="model_providers_keys_in_pool">%1$s · %2$s en el grupo</string>
+    <string name="model_key_remove">Eliminar</string>
+    <string name="model_fallback_remove_desc">Eliminar modelo de respaldo</string>
+    <plurals name="model_keys_count">
+        <item quantity="one">%1$d clave</item>
+        <item quantity="many">%1$d claves</item>
+        <item quantity="other">%1$d claves</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="one">✓ Grupo de claves: %1$d clave de API detectada (rotación automática ante 429 o tiempo agotado)</item>
+        <item quantity="many">✓ Grupo de claves: %1$d claves de API detectadas (rotación automática ante 429 o tiempo agotado)</item>
+        <item quantity="other">✓ Grupo de claves: %1$d claves de API detectadas (rotación automática ante 429 o tiempo agotado)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="one">Añadir %1$d clave</item>
+        <item quantity="many">Añadir %1$d claves</item>
+        <item quantity="other">Añadir %1$d claves</item>
+    </plurals>
 </resources>

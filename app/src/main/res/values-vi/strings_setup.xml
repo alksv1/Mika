@@ -103,4 +103,37 @@
     <string name="model_fallback_add_another">Thêm mô hình dự phòng khác (%1$d/%2$d)</string>
     <string name="model_fallback_footer_note">Nếu %1$s chạm giới hạn tốc độ hoặc hết hạn mức, Mika sẽ tự động chuyển xuống theo thứ tự trong chuỗi để các tác vụ hoàn thành mà không bị gián đoạn.</string>
     <string name="model_fallback_collapse_hint">Chuỗi đang hoạt động · Nhấn để thu gọn</string>
+    <string name="model_keys_title">Khóa API</string>
+    <string name="model_keys_pool_one">Nhóm khóa API · 1 khóa</string>
+    <string name="model_keys_pool_many">Nhóm khóa API · %1$s · tự động luân phiên</string>
+    <string name="model_keys_hide">Ẩn khóa</string>
+    <string name="model_keys_show">Hiện khóa</string>
+    <string name="model_key_not_configured">Chưa cấu hình khóa</string>
+    <string name="model_key_not_configured_hint">Thêm khóa để kết nối nhà cung cấp này</string>
+    <string name="model_key_required">Bắt buộc</string>
+    <string name="model_key_number">Khóa %1$d</string>
+    <string name="model_key_active">Đang hoạt động</string>
+    <string name="model_key_add">Thêm khóa API</string>
+    <string name="model_key_add_first_hint">Dán khóa của bạn để kết nối</string>
+    <string name="model_key_add_another_hint">Thêm khóa khác vào nhóm luân phiên</string>
+    <string name="model_keys_rotate_note">Các khóa được luân phiên tự động. Khóa nào gặp giới hạn tốc độ 429 hoặc hết thời gian chờ sẽ bị bỏ qua cho đến khi phục hồi, nên không gián đoạn.</string>
+    <string name="model_keys_add_more_note">Thêm khóa để bật chuyển đổi dự phòng tự động.</string>
+    <string name="model_key_add_note">Dán một khóa, hoặc nhiều khóa cách nhau bằng dấu phẩy hoặc xuống dòng để thêm tất cả cùng lúc.</string>
+    <string name="model_keys_detected_add">Đã phát hiện %1$s — tất cả sẽ được thêm vào nhóm luân phiên</string>
+    <string name="model_key_one_ready">1 khóa đã sẵn sàng để thêm</string>
+    <string name="model_provider_line_pool">%1$s · Nhóm khóa (%2$s)</string>
+    <string name="model_keys_detected_setup">Đã phát hiện %1$s — sẽ tự động luân phiên khi gặp giới hạn tốc độ hoặc hết thời gian chờ</string>
+    <string name="model_providers_none">Chưa kết nối nhà cung cấp nào</string>
+    <string name="model_providers_keys_in_pool">%1$s · trong nhóm có %2$s</string>
+    <string name="model_key_remove">Xóa</string>
+    <string name="model_fallback_remove_desc">Xóa mô hình dự phòng</string>
+    <plurals name="model_keys_count">
+        <item quantity="other">%1$d khóa</item>
+    </plurals>
+    <plurals name="model_keys_detected_change">
+        <item quantity="other">✓ Nhóm khóa: đã phát hiện %1$d khóa API (tự động luân phiên khi gặp 429 hoặc hết thời gian chờ)</item>
+    </plurals>
+    <plurals name="model_key_add_count">
+        <item quantity="other">Thêm %1$d khóa</item>
+    </plurals>
 </resources>

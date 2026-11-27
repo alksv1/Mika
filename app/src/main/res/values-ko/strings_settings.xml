@@ -308,4 +308,6 @@
     <plurals name="settings_workspace_size_limit_gb_n">
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">설정 검색</string>
+    <string name="settings_search_empty">일치하는 설정이 없습니다</string>
 </resources>

@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import com.wangzan101.mika.MikaApp
+import com.wangzan101.mika.calls.CallStandbyRecoveryJob
 import com.wangzan101.mika.cap.sandbox.RuntimePreparer
 import com.wangzan101.mika.mcp.McpService
 import com.wangzan101.mika.sandbox.SandboxService
@@ -40,6 +41,8 @@ object MikaQuit {
         runCatching { app.capsule.stopNow() }
         // 先撤掉系统闹钟和进程内的长任务,再停前台服务;服务被系统重交启动请求时也会按退出标记拒绝工作
         runCatching { TriggerRuntime.suspendAlarms(app) }
+        // 来电待命的周期检查一并撤掉;重新打开 Mika 时按原授权再排上
+        CallStandbyRecoveryJob.reconcile(app, authorized = false)
         runCatching { RuntimePreparer.stop(app) }
         runCatching { app.wechat.stop() }
         // 主动能力开着时不再读通知:请系统解绑监听,免得系统为了它把进程又拉起来

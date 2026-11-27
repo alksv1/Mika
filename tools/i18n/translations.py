@@ -56,6 +56,12 @@ def read_directory(directory: Path) -> Catalog:
             raise ValueError("{}: {}".format(path, error)) from error
         if root.tag != "resources":
             raise ValueError("{}: expected a <resources> root".format(path))
+        # Android ignores text between resources, so a stray paste there builds fine but is junk.
+        for stray in [root.text] + [node.tail for node in root]:
+            if stray and stray.strip():
+                raise ValueError(
+                    "{}: stray text outside any resource: {!r}".format(path, stray.strip()[:60])
+                )
 
         comments = []
         for node in root:

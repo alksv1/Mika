@@ -81,18 +81,21 @@ class CallStandbyService : Service() {
                 val lockedDial = calls.hasOutgoingForegroundWork()
                 val receive = stickyAutoAnswer && calls.hasAuthorizedIncomingStandby()
                 if ((!receive && !lockedDial) || !notificationsAvailable(this@CallStandbyService)) return@map null
-                Notice(when {
-                    state.lockedDialPreparing ->
-                        getString(R.string.calls_standby_locked_dial_preparing, state.lockedDialRemainingSeconds ?: 0)
-                    state.lockedDialRequestId != null ->
-                        getString(R.string.calls_device_locked_dial_remaining, state.lockedDialRemainingSeconds ?: 0)
-                    lockedDial && state.aiActive -> getString(R.string.calls_standby_ai_active)
-                    lockedDial -> getString(R.string.calls_notification_preparing)
-                    state.autoAnswerStage == CallAutoAnswerStage.PAUSED -> getString(R.string.calls_auto_paused)
-                    state.backgroundStandbyBlockedReason != null -> getString(R.string.calls_standby_unavailable)
-                    state.aiActive -> getString(R.string.calls_standby_ai_active)
-                    else -> getString(R.string.calls_standby_running)
-                }, state.lockedDialRequestId)
+                val requestId = state.lockedDialRequestId
+                when {
+                    state.lockedDialPreparing -> Notice(
+                        getString(R.string.calls_standby_locked_dial_preparing, state.lockedDialRemainingSeconds ?: 0), requestId)
+                    requestId != null -> Notice(
+                        getString(R.string.calls_device_locked_dial_remaining, state.lockedDialRemainingSeconds ?: 0), requestId)
+                    lockedDial && state.aiActive -> Notice(getString(R.string.calls_standby_ai_active))
+                    lockedDial -> Notice(getString(R.string.calls_notification_preparing))
+                    state.autoAnswerStage == CallAutoAnswerStage.PAUSED -> Notice(getString(R.string.calls_auto_paused))
+                    // Tapping opens the existing standby checklist with the reason, unless a call is on.
+                    state.backgroundStandbyBlockedReason != null -> Notice(getString(R.string.calls_standby_unavailable),
+                        opensStandbySettings = state.phase == CallPhase.IDLE)
+                    state.aiActive -> Notice(getString(R.string.calls_standby_ai_active))
+                    else -> Notice(getString(R.string.calls_standby_running))
+                }
             }.distinctUntilChanged().collect { notice ->
                 if (notice == null) requestStop()
                 else if (runCatching {
@@ -101,7 +104,7 @@ class CallStandbyService : Service() {
             }
         }
         // A null Intent is only accepted when Android restarts this already opted-in service.
-        // Our other recovery path runs only with the unlocked app visible and an existing grant.
+        // CallStandbyRecoveryJob reuses the same existing incoming-only grant.
         return if (incoming) START_STICKY else START_NOT_STICKY
     }
 
@@ -120,17 +123,14 @@ class CallStandbyService : Service() {
         super.onDestroy()
     }
 
-    private data class Notice(val summary: String, val requestId: String?)
+    private data class Notice(val summary: String, val requestId: String? = null, val opensStandbySettings: Boolean = false)
 
     private fun notification(notice: Notice): Notification {
-        val open = PendingIntent.getActivity(this, NOTIFICATION_ID, Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            .putExtra(MainActivity.EXTRA_OPEN_CALLS, true), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.sym_action_call)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(notice.summary)
-            .setContentIntent(open)
+            .setContentIntent(notificationContentIntent(this, notice.opensStandbySettings))
             .setCategory(Notification.CATEGORY_SERVICE)
             .setVisibility(if (notice.requestId == null) Notification.VISIBILITY_PRIVATE else Notification.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(true)
@@ -153,6 +153,15 @@ class CallStandbyService : Service() {
         private const val ACTION_START = "com.wangzan101.mika.calls.START_STANDBY"
         private const val EXTRA_REQUEST_ID = "standby_start_id"
         private const val NOTIFICATION_ID = 90_118
+        private const val STANDBY_SETTINGS_REQUEST_CODE = 90_120
+
+        /** Opens the phone page; when standby is blocked, the existing standby checklist (FlashPhone v1.1.15). */
+        internal fun notificationContentIntent(context: Context, opensStandbySettings: Boolean): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra(if (opensStandbySettings) MainActivity.EXTRA_OPEN_CALL_STANDBY else MainActivity.EXTRA_OPEN_CALLS, true)
+            val requestCode = if (opensStandbySettings) STANDBY_SETTINGS_REQUEST_CODE else NOTIFICATION_ID
+            return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        }
 
         internal fun startIntent(context: Context, requestId: String? = null): Intent =
             Intent(context, CallStandbyService::class.java).setAction(ACTION_START).putExtra(EXTRA_REQUEST_ID, requestId)

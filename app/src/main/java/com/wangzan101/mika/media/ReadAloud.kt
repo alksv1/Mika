@@ -46,7 +46,7 @@ internal suspend fun readAloudMigrated(
     val caps = settings.capabilities(protocol)
     val limited = clipAtGraphemeBoundary(text, state.maxCharsPerSpeak)
     if (limited.isBlank()) return
-    val model = tts.createTts(context, ref, caps)
+    val model = tts.createSpeaker(context, ref, caps)
     val requests = speechRequests(limited, state.voice, state.speed, state.streaming, model)
     play(model, requests, state.streaming)
 }

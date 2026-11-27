@@ -63,7 +63,8 @@ import com.wangzan101.mika.settings.ui.models.Page
 fun CallSettingsScreen(runtime: CallRuntime, onInstructions: (() -> Unit)? = null, onBack: () -> Unit,
     standalone: Boolean = false, onHelperSetup: () -> Unit = {}, onAbout: () -> Unit = {},
     initialHistoryCallId: String? = null,
-    updateAvailable: Boolean = false, focusRequest: Int = 0, onOpenVoiceCatalog: () -> Unit = {}) {
+    updateAvailable: Boolean = false, focusRequest: Int = 0, onOpenVoiceCatalog: () -> Unit = {},
+    openStandbyChecklist: Boolean = false, onStandbyChecklistOpened: () -> Unit = {}) {
     var instructionsOpen by rememberSaveable { mutableStateOf(false) }
     var voiceProfilesOpen by rememberSaveable { mutableStateOf(false) }
     var handledFocusRequest by rememberSaveable { mutableIntStateOf(0) }
@@ -74,6 +75,13 @@ fun CallSettingsScreen(runtime: CallRuntime, onInstructions: (() -> Unit)? = nul
             instructionsOpen = false
             voiceProfilesOpen = false
             handledFocusRequest = focusRequest
+        }
+    }
+    // 待命通知「去处理」:先回到工作台,由工作台打开已有的待命检查页
+    LaunchedEffect(openStandbyChecklist) {
+        if (openStandbyChecklist) {
+            instructionsOpen = false
+            voiceProfilesOpen = false
         }
     }
     // 这里的子页都不是导航路由,系统返回键要先关子页,不能直接退出整个电话页
@@ -91,7 +99,8 @@ fun CallSettingsScreen(runtime: CallRuntime, onInstructions: (() -> Unit)? = nul
         instructionsOpen -> CallInstructionsScreen(runtime) { instructionsOpen = false }
         else -> workspaceState.SaveableStateProvider("call-workspace") {
             CallSettingsWorkspace(runtime, taskDraft, onBack, onInstructions ?: { instructionsOpen = true },
-                { voiceProfilesOpen = true }, standalone, onHelperSetup, onAbout, updateAvailable, focusRequest, initialHistoryCallId)
+                { voiceProfilesOpen = true }, standalone, onHelperSetup, onAbout, updateAvailable, focusRequest, initialHistoryCallId,
+                openStandbyChecklist, onStandbyChecklistOpened)
         }
     } }
 }
@@ -103,6 +112,8 @@ private fun CallSettingsWorkspace(
     standalone: Boolean, onHelperSetup: () -> Unit, onAbout: () -> Unit, updateAvailable: Boolean,
     focusRequest: Int,
     initialHistoryCallId: String?,
+    openStandbyChecklist: Boolean,
+    onStandbyChecklistOpened: () -> Unit,
 ) {
     val config by runtime.settings.state.collectAsState()
     val state by runtime.state.collectAsState()
@@ -144,6 +155,19 @@ private fun CallSettingsWorkspace(
             liveNavigation++
             handledFocusRequest = focusRequest
         }
+    }
+    // 待命受阻的通知只展开已有的待命检查页(原因与去设置都在那里);通话或锁屏拨号进行中不打断
+    // 待命受阻的通知只展开已有的待命检查页(原因与去设置都在那里);通话或锁屏拨号进行中不打断。
+    // 一次性请求:处理完就清,之后再进电话页不会重开。
+    LaunchedEffect(openStandbyChecklist) {
+        if (!openStandbyChecklist) return@LaunchedEffect
+        if (idle && pendingLockedDial == null) {
+            audioOpen = false
+            settingsOpen = false
+            dialog = null
+            checklistOpen = true
+        }
+        onStandbyChecklistOpened()
     }
 
     fun perform(priority: Boolean = false, lockedDial: Boolean = false, action: suspend () -> CallActionResult) {

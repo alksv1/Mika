@@ -326,4 +326,6 @@
         <item quantity="many">%1$d GB</item>
         <item quantity="other">%1$d GB</item>
     </plurals>
+    <string name="settings_search_hint">Pesquisar configurações</string>
+    <string name="settings_search_empty">Nenhuma configuração encontrada</string>
 </resources>

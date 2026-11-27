@@ -163,4 +163,5 @@
     <string name="desk_report_failed">انجام نشد: %1$s</string>
     <string name="desk_report_cancelled">لغو شد</string>
     <string name="desk_task_not_started">کار شروع نشد. Mika را باز کنید و دوباره امتحان کنید.</string>
+    <string name="sheet_no_matches">موردی پیدا نشد</string>
 </resources>

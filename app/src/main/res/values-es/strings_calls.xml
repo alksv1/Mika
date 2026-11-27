@@ -157,4 +157,9 @@
     <string name="calls_type_transport">Taxis y transporte con conductor</string>
     <string name="calls_only_strangers">Solo números no guardados</string>
     <string name="calls_strangers_note">Permite que Mika lea tus contactos. La IA solo contesta si confirma que el número no está guardado. Si está oculto o falla la consulta, podrás contestar tú.</string>
+    <string name="calls_show_dialpad">Mostrar teclado de marcación</string>
+    <string name="calls_hide_dialpad">Ocultar teclado de marcación</string>
+    <string name="calls_delete_digit">Borrar</string>
+    <string name="calls_clear_draft">Borrar borrador</string>
+    <string name="calls_reset_history_filters">Restablecer filtros</string>
 </resources>

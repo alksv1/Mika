@@ -179,4 +179,5 @@
     <string name="desk_report_failed">Olmadı: %1$s</string>
     <string name="desk_report_cancelled">İptal edildi</string>
     <string name="desk_task_not_started">Görev hiç başlamadı. Mika\'yı açıp tekrar deneyin.</string>
+    <string name="sheet_no_matches">Eşleşen sonuç yok</string>
 </resources>

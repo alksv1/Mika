@@ -31,6 +31,8 @@
     <string name="voice_settings_of">Configurações de %1$s</string>
     <string name="voice_voice">Voz</string>
     <string name="voice_voice_default">Padrão</string>
+    <string name="voice_tts_engine">Mecanismo TTS</string>
+    <string name="voice_engine_default">Padrão do sistema</string>
     <string name="realtime_lead">Converse com a Mika e interrompa quando quiser. As ligações com IA usam a mesma escolha, a menos que escolham a própria.</string>
     <string name="realtime_empty">Ainda não há modelo de chamada de voz</string>
     <string name="realtime_empty_note">Escolha um abaixo ou conecte um serviço de voz que ofereça chamadas.</string>
@@ -59,7 +61,6 @@
     <string name="voice_region_beijing">Pequim</string>
     <string name="voice_region_singapore">Singapura</string>
     <string name="voice_compat_lead">Para serviços compatíveis com as APIs de áudio da OpenAI. Preencha os modelos que quiser e deixe os outros em branco.</string>
-    <string name="voice_compat_models">Modelos</string>
     <string name="voice_compat_models_note">Deixe em branco os modelos que o serviço não oferece.</string>
     <string name="voice_selfhosted_lead">Um servidor de reconhecimento em streaming na sua própria rede. Informe o endereço; não precisa de conta.</string>
     <string name="voice_field_api_key">Chave de API</string>
@@ -91,4 +92,10 @@
     <string name="calls_audio_checked">Verificado</string>
     <string name="calls_audio_unchecked">Não verificado</string>
     <string name="voice_stt_footer">O reconhecimento do próprio telefone é grátis. As opções online vêm dos seus serviços de voz; diga uma frase para testar antes de escolher.</string>
+    <string name="voice_audition">Ouvir %1$s</string>
+    <string name="voice_fallback_footer_stt">Se a entrada de voz atingir o limite de uso, o serviço estiver sobrecarregado ou não responder a tempo, o Mika envia a mesma gravação ao próximo modelo, em ordem. Só modelos que transcrevem depois que você termina de falar podem ser reserva.</string>
+    <string name="voice_fallback_footer_tts">Se a leitura em voz alta atingir o limite de uso, o serviço estiver sobrecarregado ou não responder a tempo, o Mika tenta o próximo modelo, em ordem, antes de começar a tocar. As reservas usam a própria voz padrão.</string>
+    <string name="voice_fallback_pick_title">Reserva para %1$s</string>
+    <string name="voice_fallback_none">Ainda não há outro modelo que possa ser reserva</string>
+    <string name="voice_fallback_pick_option">%1$s · %2$s</string>
 </resources>
