@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">Офлайн-голосовые пакеты</string>
+    <string name="voice_packs_lead">После загрузки речь превращается в текст без подключения к сети, а голос не покидает телефон. Когда встроенное распознавание телефона недоступно, режим «Авто» использует установленный голосовой пакет.</string>
+    <string name="voice_packs_entry_sub">Речь в текст без сети</string>
+    <string name="voice_pack_recommended">Рекомендуется</string>
+    <string name="voice_pack_languages_count">Языков: %1$d</string>
+    <string name="voice_pack_meta">%1$s · %2$s · лицензия %3$s</string>
+    <string name="voice_pack_status_not_installed">Не загружен</string>
+    <string name="voice_pack_status_downloading">Загрузка</string>
+    <string name="voice_pack_status_downloading_percent">Загрузка: %1$d %%</string>
+    <string name="voice_pack_status_installed">Установлен · версия %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">Повреждён, нужно загрузить заново</string>
+    <string name="voice_pack_status_update">Есть новая версия; старая продолжает работать</string>
+    <string name="voice_pack_status_importing">Импорт…</string>
+    <string name="voice_pack_download">Загрузить</string>
+    <string name="voice_pack_redownload">Загрузить заново</string>
+    <string name="voice_pack_update">Обновить</string>
+    <string name="voice_pack_cancel">Отменить загрузку</string>
+    <string name="voice_pack_delete">Удалить</string>
+    <string name="voice_pack_import">Импорт из файлов</string>
+    <string name="voice_pack_copy_urls">Копировать ссылки для загрузки</string>
+    <string name="voice_pack_download_failed">Загрузка не завершилась. Попробуйте снова или скачайте файлы на компьютере и импортируйте их.</string>
+    <string name="voice_pack_metered_title">Загрузить через мобильный интернет?</string>
+    <string name="voice_pack_metered_body">Размер этого голосового пакета около %1$s. Сейчас вы в лимитной сети (например, мобильный интернет или точка доступа).</string>
+    <string name="voice_pack_metered_confirm">Всё равно загрузить</string>
+    <string name="voice_pack_delete_title">Удалить голосовой пакет?</string>
+    <string name="voice_pack_delete_body">%1$s будет удалён с этого телефона. Если голосовой ввод использует его, он вернётся в режим «Авто».</string>
+    <string name="voice_pack_no_space">Недостаточно места: нужно %1$s, свободно только %2$s.</string>
+    <string name="voice_pack_unsupported">Это устройство не может запустить этот голосовой пакет.</string>
+    <string name="voice_pack_not_started">Не удалось начать загрузку: возможно, загрузка или импорт уже идут, или нет доступной ссылки.</string>
+    <string name="voice_pack_import_done">Импортировано. Можно пользоваться.</string>
+    <string name="voice_pack_import_missing">В выбранных файлах нет: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s не совпадает с каталогом (другой размер или контрольная сумма), поэтому ничего не импортировано.</string>
+    <string name="voice_pack_import_busy">Этот голосовой пакет уже загружается или импортируется. Повторите, когда закончится.</string>
+    <string name="voice_pack_import_failed">Не удалось импортировать: файлы не читаются или не сохраняются на телефоне.</string>
+    <string name="voice_pack_delete_failed">Не удалось удалить всё. Попробуйте позже.</string>
+    <string name="voice_pack_copied">Ссылки для загрузки скопированы.</string>
+    <string name="voice_pack_needs_download">Нужно загрузить</string>
+    <string name="voice_pack_corrupt_error">Голосовой пакет повреждён. Загрузите его заново.</string>
+    <string name="voice_on_device_failed">Не удалось распознать речь офлайн. Повторите попытку.</string>
+    <string name="voice_go_voice_packs">Загрузить офлайн-голосовой пакет</string>
+</resources>

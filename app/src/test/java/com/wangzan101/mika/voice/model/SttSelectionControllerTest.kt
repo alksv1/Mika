@@ -219,4 +219,28 @@ class SttSelectionControllerTest {
         val upload = VoiceModel("s", "m", "M", stt = SttBinding(SttProtocol.AudioTranscriptions))
         assertEquals("en-US", spokenLanguage(upload, "en-US"))
     }
+
+    @Test fun chainSkipsOuterTimeoutForOnDevice() = kotlinx.coroutines.runBlocking {
+        // 本机识别自己按录音长短限时,链上不再套整段上传那 30 秒(否则慢机器会被当成「连不上」)
+        val slow = object : com.wangzan101.mika.voice.model.adapters.SttAdapter {
+            override val protocol = SttProtocol.OnDevice
+            override fun spec(model: ResolvedVoiceModel) = com.wangzan101.mika.voice.SpeechEngineSpec.OnDevice(model.model.id)
+            override fun start(context: android.content.Context, model: ResolvedVoiceModel, language: String?, hooks: SttHooks) =
+                throw UnsupportedOperationException()
+            override fun utterance(context: android.content.Context, model: ResolvedVoiceModel, language: String?):
+                com.wangzan101.mika.voice.model.adapters.UtteranceTranscribe = { _ ->
+                kotlinx.coroutines.delay(400)
+                "本机"
+            }
+        }
+        val catalog = VoiceCatalogStore(MemoryVoiceCatalogBackend(), migrated = true)
+        catalog.installVoicePack(com.wangzan101.mika.voice.model.adapters.testPackEntry("pack"))
+        val env = voiceTestEnvironment(catalog, registry = VoiceAdapterRegistry(sttAdapters = listOf(slow)))
+        val ref = com.wangzan101.mika.voice.ondevice.OnDeviceCatalog.ref("pack")
+
+        val text = env.stt.transcribeChain(android.content.ContextWrapper(null), listOf(ref), "zh-CN", attemptTimeoutMs = 50)(
+            com.wangzan101.mika.voice.Wav.silence(80),
+        )
+        assertEquals("本机", text)
+    }
 }

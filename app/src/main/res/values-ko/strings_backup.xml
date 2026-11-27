@@ -6,7 +6,7 @@
     <string name="backup_warning_body">ZIP 파일에는 API 키, OAuth 토큰, 서비스 자격 증명 등 모든 비밀이 담겨 있습니다. 비공개로 유지하고 공유하지 말며, 가져온 후에는 삭제하세요.</string>
     <string name="backup_included_label">포함되는 항목</string>
     <string name="backup_included_body">제공자 및 키, 채팅, 페르소나, 스킬, 메모리, 워크플로, 작업 실행 기록, 설정.</string>
-    <string name="backup_excluded_body">포함되지 않음: 무선 디버깅 페어링(가져온 후 다시 페어링), 접근성 서비스 설정(Android 설정에서 다시 켜기), 샌드박스 작업 공간, 파일 라이브러리 첨부 파일.</string>
+    <string name="backup_excluded_body">포함되지 않음: 무선 디버깅 페어링(가져온 후 다시 페어링), 접근성 서비스 설정(Android 설정에서 다시 켜기), 샌드박스 작업 공간, 파일 라이브러리 첨부 파일. 음성 팩은 용량이 커서 백업되지 않습니다. 복원한 후 다시 다운로드하세요.</string>
     <string name="backup_export">백업 내보내기</string>
     <string name="backup_export_sub">모든 데이터가 담긴 ZIP 파일 저장</string>
     <string name="backup_import">백업 가져오기</string>

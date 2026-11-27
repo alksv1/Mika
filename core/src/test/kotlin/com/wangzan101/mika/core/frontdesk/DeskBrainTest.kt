@@ -3,6 +3,7 @@ package com.wangzan101.mika.core.frontdesk
 import com.wangzan101.mika.core.agent.Turn
 import com.wangzan101.mika.core.model.Author
 import com.wangzan101.mika.core.model.Capabilities
+import com.wangzan101.mika.core.model.ChatModel
 import com.wangzan101.mika.core.model.Message
 import com.wangzan101.mika.core.model.ModelReply
 import com.wangzan101.mika.core.model.Part
@@ -10,10 +11,21 @@ import com.wangzan101.mika.core.model.Role
 import com.wangzan101.mika.core.model.StopReason
 import com.wangzan101.mika.core.model.StreamingChatModel
 import com.wangzan101.mika.core.model.ToolSpec
+import com.wangzan101.mika.core.model.Usage
+import com.wangzan101.mika.core.model.usage.ConversationMeter
+import com.wangzan101.mika.core.model.usage.ConversationUsage
+import com.wangzan101.mika.core.model.usage.UsagePurpose
+import com.wangzan101.mika.core.model.usage.UsageSink
+import com.wangzan101.mika.core.model.usage.UsageSource
+import com.wangzan101.mika.core.model.usage.metered
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -206,5 +218,87 @@ class DeskBrainTest {
         assertEquals("好的", said.said.toString())
         assertTrue(logged.single().contains("board broke"))
         assertEquals(listOf(listOf("在吗")), model.seen.map { m -> m.map { it.text() } })
+    }
+
+    @Test
+    fun meteredReplyWithBackgroundAndToolCallRecordsTokensAndComposition() = runBlocking {
+        var call = 0
+        val inner = object : StreamingChatModel {
+            override val name = "desk-main"
+            override val capabilities = Capabilities(toolCalls = true, vision = false, contextTokens = 32_000, reasoning = false)
+            override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>) = error("unused")
+            override suspend fun completeStreaming(
+                system: String, messages: List<Message>, tools: List<ToolSpec>, onText: (String) -> Unit,
+            ): ModelReply = when (++call) {
+                1 -> ModelReply(
+                    listOf(Part.ToolCall("c1", "desk_dispatch", """{"words":"查天气"}""")),
+                    StopReason.ToolUse, Usage(100, 15, 60, cacheReported = true),
+                )
+                else -> {
+                    onText("好，在查。")
+                    ModelReply(listOf(Part.Text("好，在查。")), StopReason.EndTurn, Usage(150, 20, 120, cacheReported = true))
+                }
+            }
+        }.metered(UsageSource("p1", "Provider", "desk-main", UsagePurpose.Main), UsageSink { _, _ -> })
+        val background = DeskBackground {
+            "${DeskBackground.TASKS_HEADING}\n- child-1: running\n\n${DeskBackground.MEMORY_HEADING}\nUser likes tea"
+        }
+        val tool = ToolSpec("desk_dispatch", "Dispatch background work", "{}")
+        var totals = ConversationUsage()
+        val meter = ConversationMeter { change -> totals = change(totals) }
+        val ctx = object : ReplyContext {
+            override suspend fun say(delta: String) {}
+            override suspend fun callTool(name: String, arguments: JsonObject): JsonObject =
+                buildJsonObject { put("status", "started") }
+        }
+
+        withContext(meter) {
+            LlmBrain(inner, "You are Mika", listOf(tool), background = background).reply("帮我查天气", ctx)
+        }
+
+        assertEquals(250L, totals.input)
+        assertEquals(35L, totals.output)
+        assertEquals(180L, totals.cached)
+        assertEquals(250L, totals.cacheReportedInput)
+        val latest = totals.latest!!
+        assertEquals("desk-main", latest.model)
+        assertEquals(2, latest.step)
+        assertEquals(32_000, latest.window)
+        assertTrue(latest.instructions > 0)
+        assertTrue(latest.dialogue > 0)
+        assertTrue(latest.references > 0)
+        assertTrue(latest.runtime > 0)
+        assertTrue(latest.toolsAndMedia > 0)
+    }
+
+    @Test
+    fun noticeLateResultAndRecordRequestFlagClassifyAndRespectSetting() = runBlocking {
+        val plain = object : ChatModel {
+            override val name = "plain-desk"
+            override val capabilities = Capabilities(toolCalls = true, vision = false, contextTokens = 16_000, reasoning = false)
+            override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>) =
+                ModelReply(listOf(Part.Text("收到")), StopReason.EndTurn, Usage(80, 10, 40, cacheReported = true))
+        }.metered(UsageSource("p1", "Provider", "plain-desk", UsagePurpose.Main), UsageSink { _, _ -> })
+        var totals = ConversationUsage()
+        val meter = ConversationMeter { change -> totals = change(totals) }
+
+        withContext(meter) {
+            LlmBrain(plain, "rules", emptyList(), recordRequest = false).reply("你好", Recorder())
+            assertEquals(80L, totals.input)
+            assertEquals(10L, totals.output)
+            assertNull(totals.latest)
+
+            LlmBrain(plain, "rules", emptyList()).notice("Task A failed", Recorder())
+            val noticeSnap = totals.latest!!
+            assertEquals("plain-desk", noticeSnap.model)
+            assertEquals(1, noticeSnap.step)
+            assertEquals(16_000, noticeSnap.window)
+            assertTrue(noticeSnap.runtime > 0)
+            assertEquals(0L, noticeSnap.references)
+            assertEquals(0L, noticeSnap.toolsAndMedia)
+
+            LlmBrain(plain, "rules", emptyList()).lateResult("desk_dispatch", buildJsonObject { put("status", "ok") }, Recorder())
+            assertTrue(totals.latest!!.toolsAndMedia > 0)
+        }
     }
 }

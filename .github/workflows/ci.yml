@@ -69,6 +69,8 @@ jobs:
         run: python3 tools/i18n/translations.py check
       - name: Log export tool tests
         run: python3 -m unittest discover -s tools -p 'test_pull_logs.py' -v
+      - name: Voice pack tool tests
+        run: python3 -m unittest discover -s tools/voice-models -v
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7

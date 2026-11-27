@@ -7,6 +7,7 @@
     <string name="voice_steer_to">Falando com “%1$s”</string>
     <string name="voice_engine_phone">Celular</string>
     <string name="voice_engine_phone_offline">Celular · offline</string>
+    <string name="voice_engine_on_device">No aparelho · offline</string>
     <string name="voice_say_now">Pode falar, estou ouvindo…</string>
     <string name="voice_recording">Gravando. Solte e vira texto…</string>
     <string name="voice_foot_live">Solte · as palavras vão para a caixa para você editar</string>
@@ -36,6 +37,8 @@
     <string name="voice_service_settings_failed">Não foi possível abrir a página de configurações de “%1$s”. Procure o app na lista de apps do sistema e ative o microfone.</string>
     <string name="voice_unavailable_provider_gone">O provedor do modelo de fala escolhido foi removido. Escolha outro em Configurações › Modelos › Fala para texto.</string>
     <string name="voice_unavailable_off">Fala para texto está desativado. Escolha uma opção em Configurações › Modelos › Fala para texto.</string>
+    <string name="voice_unavailable_pack_missing">É preciso baixar o pacote de voz. O pacote de voz offline escolhido não está neste celular; baixe-o em Configurações › Modelos › Fala para texto e ele funciona na hora, sem precisar escolher de novo.</string>
+    <string name="voice_unavailable_on_device_unsupported">Este aparelho não é compatível com reconhecimento offline. Escolha outra forma de reconhecimento em Configurações › Modelos › Fala para texto.</string>
     <string name="voice_go_pick">Escolher</string>
     <string name="voice_permission_title">O Mika precisa do microfone</string>
     <string name="voice_permission_body">Para ouvir você enquanto segura para falar, o Mika precisa gravar áudio. A permissão foi negada antes, então o celular não vai perguntar de novo. Ative o microfone na página de permissões do Mika nas configurações do sistema.</string>

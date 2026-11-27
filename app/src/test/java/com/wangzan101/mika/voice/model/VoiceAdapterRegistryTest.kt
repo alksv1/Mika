@@ -139,7 +139,13 @@ class VoiceAdapterRegistryTest {
     )
 
     @Test fun `registry resolves every currently supported protocol`() {
-        val registry = VoiceAdapterRegistry()
+        val registry = VoiceAdapterRegistry(
+            sttAdapters = VoiceAdapterRegistry.defaultSttAdapters() + com.wangzan101.mika.voice.model.adapters.testOnDeviceAdapter(
+                java.io.File("/nonexistent"), com.wangzan101.mika.voice.model.adapters.FakeOnDeviceBackend(),
+            ),
+        )
+        // 本机语音包要用 App 的文件目录,不在不依赖设备的默认列表里,由 VoiceModelEnvironment.get 加上
+        assertTrue(VoiceAdapterRegistry.defaultSttAdapters().none { it.protocol == SttProtocol.OnDevice })
 
         SttProtocol.entries.forEach { protocol ->
             val account = when (protocol) {
@@ -388,6 +394,56 @@ class VoiceAdapterRegistryTest {
         } finally {
             server.shutdown()
         }
+    }
+
+    private fun geminiTtsRequestBody(binding: TtsBinding, voice: String?): String = runBlocking {
+        val server = MockWebServer().apply { start() }
+        try {
+            val wav = ByteArray(44).also {
+                "RIFF".toByteArray().copyInto(it, 0)
+                "WAVE".toByteArray().copyInto(it, 8)
+            }
+            val encoded = Base64.getEncoder().encodeToString(wav)
+            server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody(
+                """{"candidates":[{"content":{"parts":[{"inlineData":{"mimeType":"audio/wav","data":"$encoded"}}]}}]}""",
+            ))
+            val geminiProvider = provider.copy(kind = ProviderConfig.Kind.Gemini, baseUrl = server.url("").toString().trimEnd('/'))
+            val model = resolved(VoiceModel("s", "gemini-voice", "Gemini", tts = binding), existingAccount.copy(provider = geminiProvider))
+            val tts = GeminiTtsAdapter(http = OkHttpClient()).create(context, model, TtsCapabilities(formats = setOf("wav")))
+
+            tts.synthesize(TtsRequest("hello", voice = voice, format = "wav"))
+
+            server.takeRequest().body.readUtf8()
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test fun `gemini TTS request without a voice uses the voice saved on the model`() {
+        val body = geminiTtsRequestBody(TtsBinding(TtsProtocol.GeminiTts, voice = "Puck"), voice = null)
+
+        assertTrue(body, body.contains("\"voiceName\":\"Puck\""))
+    }
+
+    @Test fun `gemini TTS request without a voice uses the first listed voice when the model saved none`() {
+        val offered = TtsBinding(TtsProtocol.GeminiTts)
+        assertEquals("", offered.voice)
+
+        val body = geminiTtsRequestBody(offered, voice = null)
+
+        assertTrue(body, body.contains("\"voiceName\":\"Kore\""))
+    }
+
+    @Test fun `gemini TTS request without a voice prefers the model's own voice list over the protocol list`() {
+        val body = geminiTtsRequestBody(TtsBinding(TtsProtocol.GeminiTts, voices = listOf("Zephyr", "Kore")), voice = null)
+
+        assertTrue(body, body.contains("\"voiceName\":\"Zephyr\""))
+    }
+
+    @Test fun `gemini TTS request voice wins over the voice saved on the model`() {
+        val body = geminiTtsRequestBody(TtsBinding(TtsProtocol.GeminiTts, voice = "Puck"), voice = "Charon")
+
+        assertTrue(body, body.contains("\"voiceName\":\"Charon\""))
     }
 
     @Test fun `openAI TTS HTTP failures surface categorized adapter errors`() {

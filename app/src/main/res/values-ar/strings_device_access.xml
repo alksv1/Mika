@@ -15,10 +15,10 @@
     <string name="device_access_value_hint">أدخل قفل الشاشة الحالي</string>
     <string name="device_access_repeat">تأكيد</string>
     <string name="device_access_repeat_hint">أعد إدخاله</string>
-    <string name="device_access_save">Save credential</string>
-    <string name="device_access_pin_hint">Use the current 4–16 digit PIN. Saving again allows one new attempt after a failure.</string>
-    <string name="device_access_password_hint">Use the current 4–64 character password: English letters, numbers, spaces and common ASCII symbols. Other characters and pattern locks are not supported.</string>
-    <string name="device_access_save_failed">Could not save. Check the phone storage and try again.</string>
+    <string name="device_access_save">حفظ بيانات الاعتماد</string>
+    <string name="device_access_pin_hint">استخدم رمز PIN الحالي المكوّن من 4–16 رقمًا. يتيح الحفظ مرة أخرى محاولة جديدة واحدة بعد الفشل.</string>
+    <string name="device_access_password_hint">استخدم كلمة المرور الحالية المكوّنة من 4–64 محرفًا: حروف إنجليزية وأرقام ومسافات ورموز ASCII الشائعة. المحارف الأخرى وقفل النمط غير مدعومين.</string>
+    <string name="device_access_save_failed">تعذّر الحفظ. تحقّق من مساحة تخزين الهاتف وحاول مرة أخرى.</string>
     <string name="device_local_group">المهام المحلية</string>
     <string name="device_local_title">تشغيل المهام أثناء القفل</string>
     <string name="device_local_sub">يمكن للمهام التي تبدأ على هذا الهاتف إيقاظ الشاشة وإلغاء قفلها للعمل دون مراقبة.</string>

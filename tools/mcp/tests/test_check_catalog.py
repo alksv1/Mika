@@ -4,7 +4,9 @@
 
 import json
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -155,6 +157,45 @@ class RunTest(unittest.TestCase):
         out = check_catalog.run(json.dumps({"formatVersion": 99, "presets": []}))
         report = json.loads(out)
         self.assertFalse(report["ok"])
+
+
+class RequireOnlineTest(unittest.TestCase):
+    """--require-online judges the online probe, so it cannot stand on its own."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, ignore_errors=True)
+        # Same save/restore shape as DiscoverOAuthTest: the probe is a module global callers reach by name.
+        original = check_catalog.probe_http
+        self.addCleanup(setattr, check_catalog, "probe_http", original)
+
+    def stub_probe(self, kind):
+        check_catalog.probe_http = lambda endpoint, timeout, transport="streamable-http": (kind, "")
+
+    def catalog_file(self, presets):
+        path = os.path.join(self.dir, "catalog.json")
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump({"formatVersion": 1, "presets": presets}, fh)
+        return path
+
+    def run_main(self, argv):
+        return check_catalog.main([*argv, "--output", os.path.join(self.dir, "report.json")])
+
+    def test_requireOnlineWithoutOnlineIsRejected(self):
+        # An offline run carries no per-preset status, so the gate used to exit 0 having probed nothing.
+        with self.assertRaises(SystemExit) as caught:
+            self.run_main([self.catalog_file([preset()]), "--require-online"])
+        self.assertNotEqual(0, caught.exception.code)
+
+    def test_requireOnlinePassesWhenEveryPresetVerifies(self):
+        # The documented combination still runs: one probe, verified, exit 0.
+        self.stub_probe("mcp_ok")
+        self.assertEqual(0, self.run_main([self.catalog_file([preset()]), "--online", "--require-online"]))
+
+    def test_requireOnlineFailsWhenAPresetIsUnreachable(self):
+        # The gate still bites: an unreachable preset is not a verified one.
+        self.stub_probe("network_error")
+        self.assertEqual(1, self.run_main([self.catalog_file([preset()]), "--online", "--require-online"]))
 
 
 if __name__ == "__main__":

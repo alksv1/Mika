@@ -380,7 +380,7 @@ internal class ModelCaller(
                     // 429：记进全局冷却窗口，别的任务/子代理也一起等；没有重试额度时立刻交给链路切换。
                     val wait = RateLimitGovernor.reportRateLimited(using.name, e.retryAfterMs)
                     val hasFallback = chainIndex + 1 < chain.size && chain[chainIndex] === using
-                    val withinRetryLimit = retries < policy.maxRetries &&
+                    val withinRetryLimit = retries < maxRetries &&
                         (!hasFallback || retries < RATE_LIMIT_FAILOVER_RETRIES)
                     val withinWaitLimit = !hasFallback || wait <= RATE_LIMIT_FAILOVER_WAIT_BUDGET_MS
                     if (!withinRetryLimit || !withinWaitLimit || taskRetryWaitMs + wait > policy.taskWaitBudgetMs) throw e

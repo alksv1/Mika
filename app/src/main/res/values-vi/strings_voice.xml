@@ -8,6 +8,7 @@
     <string name="voice_steer_to">Đang nói với “%1$s”</string>
     <string name="voice_engine_phone">Điện thoại</string>
     <string name="voice_engine_phone_offline">Điện thoại · ngoại tuyến</string>
+    <string name="voice_engine_on_device">Trên thiết bị · ngoại tuyến</string>
     <string name="voice_say_now">Cứ nói đi, tôi đang nghe…</string>
     <string name="voice_recording">Đang ghi âm. Thả ra và nó sẽ thành văn bản…</string>
     <string name="voice_foot_live">Thả ra · lời nói đi vào ô để sửa</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">Không mở được trang cài đặt cho “%1$s”. Tìm nó trong danh sách ứng dụng của hệ thống và bật micrô.</string>
     <string name="voice_unavailable_provider_gone">Nhà cung cấp của mô hình giọng nói đã chọn đã bị xóa. Chọn một cái khác trong Cài đặt › Mô hình › Chuyển lời nói thành văn bản.</string>
     <string name="voice_unavailable_off">Chuyển lời nói thành văn bản đang tắt. Chọn một cái trong Cài đặt › Mô hình › Chuyển lời nói thành văn bản.</string>
+    <string name="voice_unavailable_pack_missing">Cần tải gói giọng nói. Gói giọng nói ngoại tuyến đã chọn không có trên điện thoại này; tải về trong Cài đặt › Mô hình › Chuyển lời nói thành văn bản là dùng được ngay, không cần chọn lại.</string>
+    <string name="voice_unavailable_on_device_unsupported">Thiết bị này không hỗ trợ nhận dạng ngoại tuyến. Chọn phương thức nhận dạng khác trong Cài đặt › Mô hình › Chuyển lời nói thành văn bản.</string>
     <string name="voice_go_pick">Chọn một cái</string>
     <string name="voice_permission_title">Mika cần micrô</string>
     <string name="voice_permission_body">Để nghe bạn trong lúc bạn giữ để nói, Mika cần ghi âm. Quyền này đã bị từ chối trước đó, nên điện thoại sẽ không hỏi lại. Bật micrô trên trang quyền của Mika trong cài đặt hệ thống.</string>

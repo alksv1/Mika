@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">Pacotes de voz offline</string>
+    <string name="voice_packs_lead">Depois de baixado, a fala vira texto sem conexão de rede, e sua voz fica no telefone. Quando o reconhecimento integrado do telefone não pode ser usado, Automático usa um pacote de voz instalado.</string>
+    <string name="voice_packs_entry_sub">Fala para texto sem rede</string>
+    <string name="voice_pack_recommended">Recomendado</string>
+    <string name="voice_pack_languages_count">%1$d idiomas</string>
+    <string name="voice_pack_meta">%1$s · %2$s · licença %3$s</string>
+    <string name="voice_pack_status_not_installed">Não baixado</string>
+    <string name="voice_pack_status_downloading">Baixando</string>
+    <string name="voice_pack_status_downloading_percent">Baixando %1$d%%</string>
+    <string name="voice_pack_status_installed">Instalado · versão %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">Danificado, precisa baixar de novo</string>
+    <string name="voice_pack_status_update">Há uma versão nova; a antiga continua funcionando</string>
+    <string name="voice_pack_status_importing">Importando…</string>
+    <string name="voice_pack_download">Baixar</string>
+    <string name="voice_pack_redownload">Baixar de novo</string>
+    <string name="voice_pack_update">Atualizar</string>
+    <string name="voice_pack_cancel">Cancelar download</string>
+    <string name="voice_pack_delete">Excluir</string>
+    <string name="voice_pack_import">Importar de arquivos</string>
+    <string name="voice_pack_copy_urls">Copiar links de download</string>
+    <string name="voice_pack_download_failed">O download não terminou. Tente de novo, ou baixe os arquivos em um computador e importe-os.</string>
+    <string name="voice_pack_metered_title">Baixar usando dados móveis?</string>
+    <string name="voice_pack_metered_body">Este pacote de voz tem cerca de %1$s. Você está em uma rede limitada (como dados móveis ou um ponto de acesso).</string>
+    <string name="voice_pack_metered_confirm">Baixar mesmo assim</string>
+    <string name="voice_pack_delete_title">Excluir pacote de voz?</string>
+    <string name="voice_pack_delete_body">%1$s será removido deste telefone. Se a entrada de voz estiver usando-o, ela volta para Automático.</string>
+    <string name="voice_pack_no_space">Espaço insuficiente: precisa de %1$s e só há %2$s livres.</string>
+    <string name="voice_pack_unsupported">Este dispositivo não consegue usar este pacote de voz.</string>
+    <string name="voice_pack_not_started">Não foi possível iniciar o download: talvez já esteja baixando ou importando, ou não há link de download utilizável.</string>
+    <string name="voice_pack_import_done">Importado. Pronto para usar.</string>
+    <string name="voice_pack_import_missing">Faltam nos arquivos escolhidos: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s não corresponde ao catálogo (tamanho ou soma de verificação diferente), então nada foi importado.</string>
+    <string name="voice_pack_import_busy">Este pacote de voz já está baixando ou importando. Tente de novo quando terminar.</string>
+    <string name="voice_pack_import_failed">Não foi possível importar: os arquivos não puderam ser lidos ou salvos no telefone.</string>
+    <string name="voice_pack_delete_failed">Não foi possível excluir tudo. Tente mais tarde.</string>
+    <string name="voice_pack_copied">Links de download copiados.</string>
+    <string name="voice_pack_needs_download">Precisa baixar</string>
+    <string name="voice_pack_corrupt_error">O pacote de voz está danificado. Baixe-o novamente.</string>
+    <string name="voice_on_device_failed">O reconhecimento offline falhou. Tente de novo.</string>
+    <string name="voice_go_voice_packs">Baixar um pacote de voz offline</string>
+</resources>

@@ -10,7 +10,6 @@ import com.wangzan101.mika.voice.Pcm16
 import com.wangzan101.mika.voice.vendors.VendorHttp.long
 import com.wangzan101.mika.voice.vendors.VendorHttp.path
 import com.wangzan101.mika.voice.vendors.VendorHttp.string
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -279,7 +278,7 @@ internal object VendorTts {
         try {
             socket.ws.send(xfyunFrame(appId, text, voice, speed))
             val out = ByteArrayOutputStream()
-            withTimeout(30_000) {
+            VendorHttp.within(30_000, "synthesis") {
                 for (frame in socket.frames) {
                     val root = VendorHttp.json.parseToJsonElement(frame).jsonObject
                     val code = root.path("code").long() ?: 0

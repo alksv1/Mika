@@ -16,7 +16,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.nio.file.Files
 
-/** 分支工作区只复制 `inbox/` 里的普通文件;符号链接、inbox 外的文件都不进去。纯 JVM,不依赖 Android。 */
+/** 分支工作区只复制 `inbox/` 和生成的音频、图片、视频(`out/audio`、`out/images`、`out/video`)里的普通文件;符号链接、这些目录外的文件都不进去。纯 JVM,不依赖 Android。 */
 class ConversationBrancherTest {
     @get:Rule val tmp = TemporaryFolder()
 
@@ -171,6 +171,91 @@ class ConversationBrancherTest {
         // 跨工作区分支按各自解析结果复制到独立目录
         assertEquals(BranchCopyResult(copied = 1), branchWorkspace.copyInbox("c1", "c-solo"))
         assertEquals("shared-content", File(dirs.workspace(WorkspaceKey.Conversation("c-solo")), "inbox/doc.txt").readText())
+    }
+
+    @Test fun branchCopiesGeneratedImagesWhenSourceHasNoGeneratedAudio() = runBlocking {
+        val dirs = SandboxDirs(tmp.newFolder("sandbox-images"), tmp.newFolder("tmp-images"), tmp.newFolder("lib-images"), JVM_GATE, SandboxTree())
+        val source = dirs.workspace(WorkspaceKey.Conversation("src"))
+        File(source, "inbox").mkdirs()
+        File(source, "inbox/doc.txt").writeText("D")
+        File(source, "out/images").mkdirs()
+        File(source, "out/images/cat.png").writeText("IMG")
+
+        assertEquals(BranchCopyResult(copied = 2), AndroidBranchWorkspace(dirs).copyInbox("src", "dst"))
+
+        val target = dirs.workspace(WorkspaceKey.Conversation("dst"))
+        assertEquals("D", File(target, "inbox/doc.txt").readText())
+        assertEquals("IMG", File(target, "out/images/cat.png").readText())
+    }
+
+    @Test fun branchCopiesGeneratedImagesWhenSourceHasNoInbox() = runBlocking {
+        val dirs = SandboxDirs(tmp.newFolder("sandbox-no-inbox"), tmp.newFolder("tmp-no-inbox"), tmp.newFolder("lib-no-inbox"), JVM_GATE, SandboxTree())
+        val source = dirs.workspace(WorkspaceKey.Conversation("src"))
+        File(source, "out/images").mkdirs()
+        File(source, "out/images/cat.png").writeText("IMG")
+
+        assertEquals(BranchCopyResult(copied = 1), AndroidBranchWorkspace(dirs).copyInbox("src", "dst"))
+
+        val target = dirs.workspace(WorkspaceKey.Conversation("dst"))
+        assertEquals("IMG", File(target, "out/images/cat.png").readText())
+        assertFalse(File(target, "inbox").exists())
+    }
+
+    @Test fun branchCopiesGeneratedVideoWhenSourceHasNoGeneratedImages() = runBlocking {
+        val dirs = SandboxDirs(tmp.newFolder("sandbox-video"), tmp.newFolder("tmp-video"), tmp.newFolder("lib-video"), JVM_GATE, SandboxTree())
+        val source = dirs.workspace(WorkspaceKey.Conversation("src"))
+        File(source, "out/audio").mkdirs()
+        File(source, "out/audio/line.wav").writeText("AUD")
+        File(source, "out/video").mkdirs()
+        File(source, "out/video/clip.mp4").writeText("VID")
+
+        assertEquals(BranchCopyResult(copied = 2), AndroidBranchWorkspace(dirs).copyInbox("src", "dst"))
+
+        val target = dirs.workspace(WorkspaceKey.Conversation("dst"))
+        assertEquals("AUD", File(target, "out/audio/line.wav").readText())
+        assertEquals("VID", File(target, "out/video/clip.mp4").readText())
+    }
+
+    @Test fun branchCountsInboxAndEveryGeneratedTree() = runBlocking {
+        val dirs = SandboxDirs(tmp.newFolder("sandbox-all"), tmp.newFolder("tmp-all"), tmp.newFolder("lib-all"), JVM_GATE, SandboxTree())
+        val source = dirs.workspace(WorkspaceKey.Conversation("src"))
+        for ((dir, name) in listOf("inbox" to "doc.txt", "out/audio" to "line.wav", "out/images" to "cat.png", "out/video" to "clip.mp4")) {
+            File(source, dir).mkdirs()
+            File(source, "$dir/$name").writeText(name)
+        }
+
+        assertEquals(BranchCopyResult(copied = 4), AndroidBranchWorkspace(dirs).copyInbox("src", "dst"))
+
+        val target = dirs.workspace(WorkspaceKey.Conversation("dst"))
+        assertEquals("cat.png", File(target, "out/images/cat.png").readText())
+        assertTrue(target.listFiles().orEmpty().none { "-tmp-" in it.name })
+    }
+
+    @Test fun branchKeepsOtherTreesWhenOneTreeIsOverTheLimit() = runBlocking {
+        val dirs = SandboxDirs(tmp.newFolder("sandbox-limit"), tmp.newFolder("tmp-limit"), tmp.newFolder("lib-limit"), JVM_GATE, SandboxTree())
+        val source = dirs.workspace(WorkspaceKey.Conversation("src"))
+        File(source, "inbox").mkdirs()
+        File(source, "inbox/doc.txt").writeText("D")
+        File(source, "out/images").mkdirs()
+        File(source, "out/images/cat.png").writeBytes(ByteArray(600))
+
+        val result = AndroidBranchWorkspace(dirs).copyInbox("src", "dst", maxBytes = 100)
+
+        assertEquals(BranchCopyResult(copied = 1, truncated = true), result)
+        val target = dirs.workspace(WorkspaceKey.Conversation("dst"))
+        assertEquals("D", File(target, "inbox/doc.txt").readText())
+        assertFalse(File(target, "out/images").exists())
+        assertTrue(target.listFiles().orEmpty().none { "-tmp-" in it.name })
+    }
+
+    @Test fun generatedAudioCopiesIntoATargetWithoutOutDirectory() {
+        val source = tmp.newFolder("source")
+        val target = tmp.newFolder("target")
+        File(source, "out/audio").mkdirs()
+        File(source, "out/audio/line.wav").writeText("AUD")
+
+        assertEquals(BranchCopyResult(copied = 1), copyGeneratedAudioTree(source, target, maxBytes = 1024))
+        assertEquals("AUD", File(target, "out/audio/line.wav").readText())
     }
 
     @Test fun sharedProjectRetryChecksExistingFilesWithoutCopying() = runBlocking {

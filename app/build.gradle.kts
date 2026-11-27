@@ -30,7 +30,14 @@ android {
 
     // 沙箱程序只有 arm64 版本(jniLibs/arm64-v8a);APK 不限 ABI,别的设备照常安装、显示「此设备不支持沙箱」。
     // 沙箱程序要从 nativeLibraryDir 直接执行,安装时必须解到磁盘
-    packaging { jniLibs { useLegacyPackaging = true } }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            // 离线识别(sherpa-onnx AAR)只用 arm64-v8a;AAR 里另外几种架构的库不打进 APK,别的设备显示「此设备不支持离线识别」。
+            // 按文件名前缀排除(以后版本多出的 sherpa/onnxruntime 库也排除);不整目录排除,ML Kit 等别的库这些架构照常带
+            excludes += listOf("armeabi-v7a", "x86", "x86_64").flatMap { abi -> listOf("lib/$abi/libsherpa-onnx*.so", "lib/$abi/libonnxruntime*.so") }
+        }
+    }
 
     // 发布用的包(perf、release)按架构再出一份:除了全架构包,另出只带 arm64-v8a 原生库的小包。
     // 两个包代码、资源、版本号、签名都一样,只差 lib/ 下的其他架构;各自是完整 APK,不是一起安装的拆分包。
@@ -121,6 +128,8 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    // 离线语音识别:sherpa-onnx 2.0.3(静态链接 onnxruntime),不在 Maven 上,放在 app/libs,校验值见 app/libs/README.md
+    implementation(files("libs/sherpa-onnx-2.0.3-static.aar"))
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

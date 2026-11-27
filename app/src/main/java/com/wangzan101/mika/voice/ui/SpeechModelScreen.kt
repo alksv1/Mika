@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import com.wangzan101.mika.ui.components.RowChevron
+import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.components.SegmentedControl
 import com.wangzan101.mika.ui.theme.MikaShapes
 import com.wangzan101.mika.ui.theme.MikaType
@@ -104,7 +106,9 @@ class SpeechPickActions(
  * 选好(手机自带、不用、试转通过的服务商模型)后回到进来的那一页。
  */
 @Composable
-fun SpeechModelScreen(store: ProviderStore, onBack: () -> Unit, onOpenServices: (() -> Unit)? = null) {
+fun SpeechModelScreen(
+    store: ProviderStore, onBack: () -> Unit, onOpenServices: (() -> Unit)? = null, onOpenVoicePacks: (() -> Unit)? = null,
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val settings = (context.applicationContext as? MikaApp)?.speech
@@ -214,7 +218,7 @@ fun SpeechModelScreen(store: ProviderStore, onBack: () -> Unit, onOpenServices: 
                 onClearBailian = { region -> settings?.clearBailian(region); funAsrDone() },
             ) { funAsrOpen = false }
         }
-        ui.sttCatalog != null -> MigratedSpeechModelContent(ui, actions, onBack, onOpenServices)
+        ui.sttCatalog != null -> MigratedSpeechModelContent(ui, actions, onBack, onOpenServices, onOpenVoicePacks)
         else -> SpeechModelContent(ui, probe, actions, onBack, doubaoConfigured, funAsrLast != null)
     }
 }
@@ -223,9 +227,14 @@ fun SpeechModelScreen(store: ProviderStore, onBack: () -> Unit, onOpenServices: 
 @Composable
 private fun MigratedSpeechModelContent(
     ui: ModelSetupUi, actions: SpeechPickActions, onBack: () -> Unit, onOpenServices: (() -> Unit)?,
+    onOpenVoicePacks: (() -> Unit)?,
 ) {
     val context = LocalContext.current
-    val voiceVm = rememberVoiceCatalogViewModel(remember { VoiceModelEnvironment.get(context) })
+    val environment = remember { VoiceModelEnvironment.get(context) }
+    val voiceVm = rememberVoiceCatalogViewModel(environment)
+    // 文件可能在别处被删(或下好了):回到这一页时重看「需要下载」
+    val resumed = rememberResumeCount()
+    val packsAvailable = remember { environment.hasRunnableVoicePacks() }
     val catalog = requireNotNull(ui.sttCatalog)
     val system = ui.systemSpeech
     val selection = catalog.selections.stt
@@ -268,7 +277,16 @@ private fun MigratedSpeechModelContent(
                 choices, (selection as? SttSelection.Model)?.ref, tr(R.string.voice_try_stt), voiceVm,
                 onPick = { choice -> actions.pickRef(voiceVm.ensureInCatalog(choice)) },
                 onTest = { choice -> voiceVm.tryChoice(choice, "") },
+                badge = voicePackBadge(environment, catalog, resumed),
             )
+        }
+        if (packsAvailable && onOpenVoicePacks != null) {
+            GroupCard(Modifier.padding(top = 4.dp)) {
+                ListRow(
+                    MikaIcons.Download, tr(R.string.voice_packs_title), tr(R.string.voice_packs_entry_sub), first = true,
+                    onClick = onOpenVoicePacks, modifier = Modifier.testTag("speech-voice-packs"),
+                ) { RowChevron() }
+            }
         }
         VoiceFallbackSection(VoiceCapability.STT, catalog, ui.providers, voiceVm)
         onOpenServices?.let { VoiceMoreServices(it) }

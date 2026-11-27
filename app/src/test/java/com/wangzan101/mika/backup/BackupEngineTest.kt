@@ -323,6 +323,26 @@ class BackupEngineTest {
         assertFalse(File(dstFiles, "conversations/old.json").exists())
     }
 
+    @Test fun voiceModelsNotBackedUp() {
+        val srcFiles = tmp.newFolder("voice-source")
+        val srcPrefs = tmp.newFolder("voice-source-prefs")
+        buildSource(srcFiles, srcPrefs)
+        srcFiles.write("voice-models/sensevoice-small-int8/1/model.int8.onnx", ByteArray(16))
+        srcFiles.write("voice-models/.staging/x-1/model.int8.onnx.part", ByteArray(4))
+        val out = ByteArrayOutputStream()
+        val exported = engine(srcFiles, srcPrefs, exportCipher).export(out)
+        val zip = out.toByteArray()
+        assertTrue(readZip(zip).keys.none { it.contains("voice-models") })
+        assertTrue(exported.excluded.any { it.startsWith("voice-models/") })
+
+        // 用备份覆盖时,本机已下好的语音包不被清掉
+        val dstFiles = tmp.newFolder("voice-target")
+        val dstPrefs = tmp.newFolder("voice-target-prefs")
+        dstFiles.write("voice-models/sensevoice-small-int8/1/tokens.txt", "keep")
+        engine(dstFiles, dstPrefs, importCipher).import(ByteArrayInputStream(zip), replace = true)
+        assertEquals("keep", File(dstFiles, "voice-models/sensevoice-small-int8/1/tokens.txt").readText())
+    }
+
     @Test fun replacingRemovesStaleSettingsButPreservesExcludedData() {
         val srcFiles = tmp.newFolder("replacement-source")
         val srcPrefs = tmp.newFolder("replacement-source-prefs")

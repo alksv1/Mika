@@ -13,6 +13,7 @@ import com.wangzan101.mika.voice.model.VoiceCatalogSnapshot
 import com.wangzan101.mika.voice.model.VoiceModel
 import com.wangzan101.mika.voice.model.VoiceModelRef
 import com.wangzan101.mika.voice.model.VoiceVerification
+import com.wangzan101.mika.voice.ondevice.OnDeviceCatalog
 import com.wangzan101.mika.settings.ui.models.use
 
 /** What users care about when picking a voice model; never a protocol name. */
@@ -21,6 +22,8 @@ enum class VoiceTrait { Live, AfterSpeech, Free, StreamingRead, WholeRead, Inter
 /** Where a choice comes from, shown under its name. */
 sealed interface VoiceSource {
     data object Device : VoiceSource
+    /** 本机离线语音包:列表里标「本机 · 离线」。 */
+    data object OnDevice : VoiceSource
     data class ChatAccount(val name: String) : VoiceSource
     data class Service(val name: String) : VoiceSource
 }
@@ -47,9 +50,11 @@ fun voiceOptions(capability: VoiceCapability, snapshot: VoiceCatalogSnapshot, pr
         val ref = VoiceModelRef(model.serviceId, model.id, capability)
         val source = when (val account = service.account) {
             is VoiceAccount.ExistingProvider -> VoiceSource.ChatAccount(byProvider[account.providerId]?.name ?: service.name)
-            else -> if (ref == SttSelectionController.SYSTEM_STT_REF || ref == TtsSelectionController.SYSTEM_TTS_REF) {
-                VoiceSource.Device
-            } else VoiceSource.Service(service.name)
+            else -> when {
+                ref == SttSelectionController.SYSTEM_STT_REF || ref == TtsSelectionController.SYSTEM_TTS_REF -> VoiceSource.Device
+                OnDeviceCatalog.isOnDevice(ref) -> VoiceSource.OnDevice
+                else -> VoiceSource.Service(service.name)
+            }
         }
         val verified = snapshot.verifications.any { it.ref == ref && it.scope.isEmpty() && it.status == VoiceVerification.Verified }
         VoiceOption(ref, model, source, model.traits(capability), verified)
@@ -77,6 +82,8 @@ internal fun VoiceModel.traits(capability: VoiceCapability): List<VoiceTrait> = 
         SttProtocol.ElevenLabsUpload, SttProtocol.DeepgramUpload, SttProtocol.AzureShortAudio,
         SttProtocol.TencentSentence, SttProtocol.XfyunDictation,
         -> listOf(VoiceTrait.AfterSpeech)
+        // 本机语音包:松手后整段转写,不花钱(列表里标「本机 · 离线」,见 [VoiceSource.OnDevice])
+        SttProtocol.OnDevice -> listOf(VoiceTrait.AfterSpeech, VoiceTrait.Free)
         null -> emptyList()
     }
     VoiceCapability.TTS -> when (tts?.protocol) {

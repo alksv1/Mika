@@ -7,7 +7,6 @@ import com.wangzan101.mika.voice.vendors.VendorHttp.long
 import com.wangzan101.mika.voice.vendors.VendorHttp.path
 import com.wangzan101.mika.voice.vendors.VendorHttp.string
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -136,7 +135,7 @@ internal object VendorStt {
             }
             socket.ws.send(xfyunAudioFrame(appId, iso(language), 2, ByteArray(0)))
             val text = StringBuilder()
-            withTimeout(20_000) {
+            VendorHttp.within(20_000, "transcription") {
                 for (frameText in socket.frames) {
                     val root = VendorHttp.json.parseToJsonElement(frameText).jsonObject
                     val code = root.path("code").long() ?: 0

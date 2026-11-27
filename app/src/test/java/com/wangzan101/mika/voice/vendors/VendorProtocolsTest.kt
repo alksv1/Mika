@@ -4,15 +4,30 @@ import com.wangzan101.mika.core.model.ModelError
 import com.wangzan101.mika.core.model.TtsCapabilities
 import com.wangzan101.mika.core.model.TtsRequest
 import com.wangzan101.mika.voice.Pcm16
+import com.wangzan101.mika.voice.model.VoiceErrorCategory
+import com.wangzan101.mika.voice.model.VoiceFailover
+import com.wangzan101.mika.voice.model.VoiceModelError
 import com.wangzan101.mika.voice.vendors.VendorHttp.path
 import com.wangzan101.mika.voice.vendors.VendorHttp.string
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonObject
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import java.net.SocketTimeoutException
 import java.util.Base64
 
 class VendorProtocolsTest {
@@ -123,5 +138,66 @@ class VendorProtocolsTest {
         val decoded = Pcm16.parseWav(out.bytes)!!
         assertEquals(16_000, decoded.sampleRate)
         assertEquals(6, decoded.samples.size)
+    }
+
+    @Test fun `a wait that runs out of time is a timeout error, cancelling the caller stays a cancellation`() = runBlocking {
+        val thrown = assertThrows(ModelError.Network::class.java) {
+            runBlocking { VendorHttp.within(50, "wait") { delay(60_000); "late" } }
+        }
+        assertTrue(thrown.cause is SocketTimeoutException)
+        assertEquals("ok", VendorHttp.within(60_000, "wait") { "ok" })
+
+        var seen: Throwable? = null
+        val started = CompletableDeferred<Unit>()
+        val job = launch {
+            try {
+                VendorHttp.within(60_000, "wait") { started.complete(Unit); delay(60_000); "late" }
+            } catch (e: Throwable) {
+                seen = e
+                throw e
+            }
+        }
+        started.await()
+        job.cancelAndJoin()
+        assertTrue(seen is CancellationException)
+        assertFalse(seen is TimeoutCancellationException)
+    }
+
+    /** A local server that accepts the request and never answers, so the handshake can only time out. */
+    private fun withSilentServer(block: (url: String) -> Unit) {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+        server.start()
+        try {
+            block(server.url("/").toString())
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test fun `socket open that times out is a timeout error, not a cancellation`() {
+        withSilentServer { url ->
+            val thrown = assertThrows(ModelError.Network::class.java) {
+                runBlocking { VendorHttp.openSocket(url, OkHttpClient(), timeoutMs = 200) }
+            }
+            assertTrue(thrown.cause is SocketTimeoutException)
+            assertEquals(VoiceErrorCategory.TIMEOUT, VoiceModelError.from(thrown).category)
+            assertTrue(VoiceFailover.canTryNext(thrown))
+        }
+    }
+
+    @Test fun `socket open that times out moves the chain to the next model`() {
+        withSilentServer { url ->
+            val tried = mutableListOf<String>()
+            val result = runBlocking {
+                VoiceFailover.run(listOf("a", "b"), { it }) { m, _ ->
+                    tried += m
+                    if (m == "a") VendorHttp.openSocket(url, OkHttpClient(), timeoutMs = 200)
+                    "ok:$m"
+                }
+            }
+            assertEquals("ok:b", result)
+            assertEquals(listOf("a", "b"), tried)
+        }
     }
 }

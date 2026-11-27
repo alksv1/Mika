@@ -217,10 +217,12 @@ internal class ExportProcessor(
             selection = selection,
             content = content,
         )
-        registry.defaultBackend(formatId).render(built, presentation, assets, DirectoryExportSink(staging), onProgress)
+        // 先复制资产再渲染：缺失、过大、读不出的警告在复制时才产生，要一并写进文档。
         val warnings = built.warnings.toMutableList()
         if (copyAssets) copyAssets(built, assets, staging, warnings, onProgress)
-        return StagedExport(built.copy(warnings = warnings.toList()), warnings.toList())
+        val document = built.copy(warnings = warnings.toList())
+        registry.defaultBackend(formatId).render(document, presentation, assets, DirectoryExportSink(staging), onProgress)
+        return StagedExport(document, document.warnings)
     }
 
     private suspend fun copyAssets(

@@ -17,15 +17,7 @@ import com.wangzan101.mika.voice.model.adapters.VendorTtsAdapter
 import com.wangzan101.mika.voice.model.adapters.VolcDuplexRealtimeAdapter
 
 class VoiceAdapterRegistry(
-    sttAdapters: List<SttAdapter> = listOf(
-        AndroidSystemSttAdapter(),
-        ProviderSttAdapter(SttProtocol.AudioTranscriptions),
-        ProviderSttAdapter(SttProtocol.ChatInputAudio),
-        ProviderSttAdapter(SttProtocol.GeminiInline),
-        DoubaoSttAdapter(),
-        FunAsrSttAdapter(),
-        BailianSttAdapter(),
-    ) + VendorSttAdapter.PROTOCOLS.map(::VendorSttAdapter),
+    sttAdapters: List<SttAdapter> = defaultSttAdapters(),
     ttsAdapters: List<TtsAdapter> = listOf(
         OpenAiSpeechTtsAdapter(),
         GeminiTtsAdapter(),
@@ -48,6 +40,22 @@ class VoiceAdapterRegistry(
     fun tts(model: ResolvedVoiceModel): TtsAdapter {
         val binding = model.model.tts ?: throw VoiceModelError.Unsupported(VoiceCapability.TTS)
         return tts[binding.protocol] ?: throw VoiceModelError.Unsupported(VoiceCapability.TTS, binding.protocol.name)
+    }
+
+    companion object {
+        /**
+         * 不依赖设备的识别协议。本机语音包([com.wangzan101.mika.voice.model.adapters.OnDeviceSttAdapter])
+         * 要用 App 的文件目录和共用的模型,由 [VoiceModelEnvironment.get] 另外加上。
+         */
+        fun defaultSttAdapters(): List<SttAdapter> = listOf(
+            AndroidSystemSttAdapter(),
+            ProviderSttAdapter(SttProtocol.AudioTranscriptions),
+            ProviderSttAdapter(SttProtocol.ChatInputAudio),
+            ProviderSttAdapter(SttProtocol.GeminiInline),
+            DoubaoSttAdapter(),
+            FunAsrSttAdapter(),
+            BailianSttAdapter(),
+        ) + VendorSttAdapter.PROTOCOLS.map(::VendorSttAdapter)
     }
 
     fun realtime(model: ResolvedVoiceModel): RealtimeAdapter {

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">بسته‌های صوتی آفلاین</string>
+    <string name="voice_packs_lead">پس از دانلود، گفتار بدون اتصال به شبکه به متن تبدیل می‌شود و صدای شما روی گوشی می‌ماند. وقتی تشخیص داخلی گوشی قابل استفاده نیست، حالت خودکار از بستهٔ صوتی نصب‌شده استفاده می‌کند.</string>
+    <string name="voice_packs_entry_sub">تبدیل گفتار به متن بدون شبکه</string>
+    <string name="voice_pack_recommended">پیشنهادی</string>
+    <string name="voice_pack_languages_count">%1$d زبان</string>
+    <string name="voice_pack_meta">%1$s · %2$s · مجوز %3$s</string>
+    <string name="voice_pack_status_not_installed">دانلود نشده</string>
+    <string name="voice_pack_status_downloading">در حال دانلود</string>
+    <string name="voice_pack_status_downloading_percent">در حال دانلود %1$d%%</string>
+    <string name="voice_pack_status_installed">نصب‌شده · نسخهٔ %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">خراب شده، باید دوباره دانلود شود</string>
+    <string name="voice_pack_status_update">نسخهٔ جدید آمده؛ نسخهٔ قدیمی هم کار می‌کند</string>
+    <string name="voice_pack_status_importing">در حال وارد کردن…</string>
+    <string name="voice_pack_download">دانلود</string>
+    <string name="voice_pack_redownload">دانلود دوباره</string>
+    <string name="voice_pack_update">به‌روزرسانی</string>
+    <string name="voice_pack_cancel">لغو دانلود</string>
+    <string name="voice_pack_delete">حذف</string>
+    <string name="voice_pack_import">وارد کردن از فایل‌ها</string>
+    <string name="voice_pack_copy_urls">کپی پیوندهای دانلود</string>
+    <string name="voice_pack_download_failed">دانلود کامل نشد. دوباره امتحان کنید، یا فایل‌ها را روی رایانه دانلود و سپس وارد کنید.</string>
+    <string name="voice_pack_metered_title">با اینترنت همراه دانلود شود؟</string>
+    <string name="voice_pack_metered_body">حجم این بستهٔ صوتی حدود %1$s است. به شبکه‌ای با حجم محدود (مانند اینترنت همراه یا هات‌اسپات) وصل هستید.</string>
+    <string name="voice_pack_metered_confirm">با این حال دانلود شود</string>
+    <string name="voice_pack_delete_title">بستهٔ صوتی حذف شود؟</string>
+    <string name="voice_pack_delete_body">%1$s از این گوشی حذف می‌شود. اگر ورودی صوتی از آن استفاده می‌کند، به حالت خودکار برمی‌گردد.</string>
+    <string name="voice_pack_no_space">فضای کافی نیست: %1$s لازم است و فقط %2$s آزاد است.</string>
+    <string name="voice_pack_unsupported">این دستگاه نمی‌تواند این بستهٔ صوتی را اجرا کند.</string>
+    <string name="voice_pack_not_started">دانلود شروع نشد: شاید از قبل در حال دانلود یا وارد کردن باشد، یا پیوند دانلود قابل‌استفاده‌ای نیست.</string>
+    <string name="voice_pack_import_done">وارد شد و آمادهٔ استفاده است.</string>
+    <string name="voice_pack_import_missing">در فایل‌های انتخاب‌شده این‌ها نیست: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s با فهرست جور درنمی‌آید (اندازه یا مقدار بررسی فرق دارد)، پس چیزی وارد نشد.</string>
+    <string name="voice_pack_import_busy">این بستهٔ صوتی در حال دانلود یا وارد شدن است. پس از پایان دوباره امتحان کنید.</string>
+    <string name="voice_pack_import_failed">وارد نشد: فایل‌ها خوانده نشدند یا روی گوشی ذخیره نشدند.</string>
+    <string name="voice_pack_delete_failed">همه چیز حذف نشد. بعداً دوباره امتحان کنید.</string>
+    <string name="voice_pack_copied">پیوندهای دانلود کپی شد.</string>
+    <string name="voice_pack_needs_download">نیاز به دانلود</string>
+    <string name="voice_pack_corrupt_error">بستهٔ صوتی خراب است. لطفاً دوباره دانلودش کنید.</string>
+    <string name="voice_on_device_failed">تشخیص آفلاین ناموفق بود. دوباره امتحان کنید.</string>
+    <string name="voice_go_voice_packs">دانلود بستهٔ صوتی آفلاین</string>
+</resources>

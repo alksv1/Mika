@@ -7,7 +7,7 @@
     <string name="backup_warning_body">Tệp ZIP chứa mọi bí mật của bạn: khóa API, token OAuth và thông tin đăng nhập dịch vụ. Hãy giữ riêng tư, không chia sẻ, và xóa sau khi đã nhập.</string>
     <string name="backup_included_label">Những gì được bao gồm</string>
     <string name="backup_included_body">Nhà cung cấp và khóa, cuộc trò chuyện, nhân vật, kỹ năng, bộ nhớ, quy trình, lần chạy tác vụ và cài đặt.</string>
-    <string name="backup_excluded_body">Không bao gồm: ghép nối gỡ lỗi không dây (ghép nối lại sau khi nhập), cài đặt dịch vụ hỗ trợ tiếp cận (bật lại trong Cài đặt Android), không gian làm việc sandbox và tệp đính kèm thư viện tệp.</string>
+    <string name="backup_excluded_body">Không bao gồm: ghép nối gỡ lỗi không dây (ghép nối lại sau khi nhập), cài đặt dịch vụ hỗ trợ tiếp cận (bật lại trong Cài đặt Android), không gian làm việc sandbox và tệp đính kèm thư viện tệp. Gói giọng nói ngoại tuyến có dung lượng lớn nên không được sao lưu; hãy tải lại sau khi khôi phục.</string>
     <string name="backup_export">Xuất bản sao lưu</string>
     <string name="backup_export_sub">Lưu tệp ZIP chứa mọi dữ liệu của bạn</string>
     <string name="backup_import">Nhập bản sao lưu</string>

@@ -3,6 +3,7 @@ package com.wangzan101.mika.voice.model
 import com.wangzan101.mika.calls.VolcRealtimeException
 import com.wangzan101.mika.core.model.ModelError
 import com.wangzan101.mika.core.model.TtsError
+import com.wangzan101.mika.voice.ondevice.OnDeviceSttException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import java.io.IOException
@@ -50,10 +51,22 @@ sealed class VoiceModelError(
     class Cancelled(cause: Throwable? = null) :
         VoiceModelError(VoiceErrorCategory.CANCELLED, "Voice operation cancelled", cause)
 
+    /** 选中的(或备援链里的)本机语音包没装、文件不全,或清单里已经没有它;界面提示「需要下载」。 */
+    class PackMissing(val packId: String) :
+        VoiceModelError(VoiceErrorCategory.INCOMPLETE_CONFIG, "Voice pack is not installed: $packId")
+
+    /**
+     * 本机识别失败(文件损坏、内存不足、超时、设备跑不了、模型被释放)。原因链里不带服务商错误([ModelError]):
+     * [VoiceFailover.canTryNext] 先看原因链里的 ModelError,本机失败不能被当成网络错误。
+     */
+    class OnDeviceFailed(detail: String, cause: Throwable? = null) :
+        VoiceModelError(VoiceErrorCategory.SYSTEM_UNAVAILABLE, detail, cause?.takeUnless(::hasModelError))
+
     companion object {
         /** Maps existing protocol errors without changing their request or session implementations. */
         fun from(error: Throwable): VoiceModelError = when (error) {
             is VoiceModelError -> error
+            is OnDeviceSttException -> from(error, packId = "")
             is TimeoutCancellationException -> Protocol(VoiceErrorCategory.TIMEOUT, detailOf(error), error)
             is CancellationException -> Cancelled(error)
             is SocketTimeoutException -> Protocol(VoiceErrorCategory.TIMEOUT, detailOf(error), error)
@@ -87,6 +100,19 @@ sealed class VoiceModelError(
             is IllegalArgumentException -> Protocol(VoiceErrorCategory.INCOMPLETE_CONFIG, detailOf(error), error)
             else -> Protocol(VoiceErrorCategory.PROTOCOL_ERROR, detailOf(error), error)
         }
+
+        /** 本机识别的失败:文件不在是「需要下载」,其余都是本机不可用(都换下一个,见 [VoiceFailover])。 */
+        fun from(error: OnDeviceSttException, packId: String): VoiceModelError = when (error.kind) {
+            OnDeviceSttException.Kind.Missing -> PackMissing(packId)
+            OnDeviceSttException.Kind.Corrupt,
+            OnDeviceSttException.Kind.OutOfMemory,
+            OnDeviceSttException.Kind.Timeout,
+            OnDeviceSttException.Kind.Unsupported,
+            OnDeviceSttException.Kind.Failed -> OnDeviceFailed(detailOf(error), error)
+        }
+
+        private fun hasModelError(error: Throwable): Boolean =
+            generateSequence(error) { it.cause }.take(8).any { it is ModelError }
 
         private fun networkError(error: Throwable): VoiceModelError {
             val causes = generateSequence(error) { it.cause }

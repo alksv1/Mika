@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">離線語音包</string>
+    <string name="voice_packs_lead">下載後不連網也能把說話轉成文字，聲音留在手機上。手機自帶辨識用不了時，「自動」會用裝好的語音包。</string>
+    <string name="voice_packs_entry_sub">不連網也能轉文字</string>
+    <string name="voice_pack_recommended">推薦</string>
+    <string name="voice_pack_languages_count">%1$d 種語言</string>
+    <string name="voice_pack_meta">%1$s · %2$s · %3$s 授權</string>
+    <string name="voice_pack_status_not_installed">未下載</string>
+    <string name="voice_pack_status_downloading">下載中</string>
+    <string name="voice_pack_status_downloading_percent">下載中 %1$d%%</string>
+    <string name="voice_pack_status_installed">已安裝 · 第 %1$d 版 · 佔用 %2$s</string>
+    <string name="voice_pack_status_corrupt">已損壞，需要重新下載</string>
+    <string name="voice_pack_status_update">有新版本，舊版本照常能用</string>
+    <string name="voice_pack_status_importing">正在匯入…</string>
+    <string name="voice_pack_download">下載</string>
+    <string name="voice_pack_redownload">重新下載</string>
+    <string name="voice_pack_update">更新</string>
+    <string name="voice_pack_cancel">取消下載</string>
+    <string name="voice_pack_delete">刪除</string>
+    <string name="voice_pack_import">從檔案匯入</string>
+    <string name="voice_pack_copy_urls">複製下載網址</string>
+    <string name="voice_pack_download_failed">下載沒成功，可以重試，或在電腦上下載好後從檔案匯入。</string>
+    <string name="voice_pack_metered_title">用行動數據下載？</string>
+    <string name="voice_pack_metered_body">這個語音包約 %1$s。現在連的是按流量計費的網路（例如行動數據或熱點）。</string>
+    <string name="voice_pack_metered_confirm">繼續下載</string>
+    <string name="voice_pack_delete_title">刪除語音包？</string>
+    <string name="voice_pack_delete_body">「%1$s」會從這支手機上刪掉。正在用它時，語音輸入回到「自動」。</string>
+    <string name="voice_pack_no_space">空間不夠：需要 %1$s，只剩 %2$s。</string>
+    <string name="voice_pack_unsupported">這台裝置跑不了這個語音包。</string>
+    <string name="voice_pack_not_started">沒能開始下載：可能已經在下載或匯入，或者沒有可用的下載網址。</string>
+    <string name="voice_pack_import_done">已匯入，可以用了。</string>
+    <string name="voice_pack_import_missing">選的檔案裡缺少：%1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s 和清單對不上（大小或校驗值不同），沒有匯入。</string>
+    <string name="voice_pack_import_busy">這個語音包正在下載或匯入，等它結束再試。</string>
+    <string name="voice_pack_import_failed">沒能匯入：檔案讀不出來，或寫不進手機。</string>
+    <string name="voice_pack_delete_failed">沒能刪乾淨，稍後再試。</string>
+    <string name="voice_pack_copied">已複製下載網址。</string>
+    <string name="voice_pack_needs_download">需要下載</string>
+    <string name="voice_pack_corrupt_error">語音包已損壞，請重新下載</string>
+    <string name="voice_on_device_failed">離線辨識失敗，請重試</string>
+    <string name="voice_go_voice_packs">下載離線語音包</string>
+</resources>

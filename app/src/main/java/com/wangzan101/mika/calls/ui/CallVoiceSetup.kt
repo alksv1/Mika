@@ -87,7 +87,8 @@ internal fun CallVoiceScreen(runtime: CallRuntime, onBack: () -> Unit, onOpenSer
     val s = snapshot.selections
     val follows = s.callEngine == null && s.callStt == null && s.callTts == null && s.callRealtime == null
     val engine = s.resolvedCallEngine
-    val sharedListen = (s.stt as? SttSelection.Model)?.ref?.takeIf { it != SttSelectionController.SYSTEM_STT_REF }
+    // 通话只用云端听写:语音输入选的是手机自带识别或本机语音包时,通话没有可沿用的
+    val sharedListen = (s.stt as? SttSelection.Model)?.ref?.takeIf { it.usableForCalls() }
 
     fun run(action: suspend () -> CallActionResult) {
         if (busy) return
@@ -142,7 +143,7 @@ internal fun CallVoiceScreen(runtime: CallRuntime, onBack: () -> Unit, onOpenSer
                 val listen = s.callStt ?: sharedListen
                 GroupLabel(stringResource(R.string.call_mode_listen))
                 VoiceOptionList(
-                    voiceOptions(VoiceCapability.STT, snapshot, providers).filter { it.ref != SttSelectionController.SYSTEM_STT_REF },
+                    callListenOptions(snapshot, providers),
                     listen, stringResource(R.string.voice_try_stt), viewModel,
                     onPick = { option -> run { runtime.selectPhoneVoice(CallEngine.Standard, viewModel.ensureInCatalog(option), s.callTts, s.callTtsVoice) } },
                     onTest = { option -> viewModel.tryChoice(option, sample) },
