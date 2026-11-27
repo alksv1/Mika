@@ -43,9 +43,9 @@ import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RadioRow
 import com.wangzan101.mika.ui.components.RowActions
 import com.wangzan101.mika.ui.components.SegmentedControl
-import com.wangzan101.mika.ui.components.SettingsFocusKey
+import com.wangzan101.mika.settings.ui.SettingsFocusKey
 import com.wangzan101.mika.ui.components.TileTone
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import com.wangzan101.mika.ui.components.MikaTextField
@@ -99,7 +99,7 @@ fun McpScreen(runtime: McpRuntime, onBack: () -> Unit) {
                 ListRow(
                     MikaIcons.Desktop, stringResource(R.string.mcp_history_title), note = stringResource(R.string.mcp_history_detail),
                     first = true, onClick = { runtime.settings.setHistoryEnabled(!historyEnabled) },
-                    modifier = Modifier.settingsFocusTarget(SettingsFocusKey.MCP_HISTORY),
+                    modifier = Modifier.focusHighlightTarget(SettingsFocusKey.MCP_HISTORY),
                 ) {
                     MikaSwitch(historyEnabled, runtime.settings::setHistoryEnabled, Modifier.testTag("computer-history"))
                 }

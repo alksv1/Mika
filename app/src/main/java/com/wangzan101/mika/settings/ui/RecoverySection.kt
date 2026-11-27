@@ -33,8 +33,7 @@ import java.time.format.DateTimeFormatter
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.RowChevron
-import com.wangzan101.mika.ui.components.SettingsFocusKey
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.components.MikaSwitch
@@ -187,7 +186,7 @@ fun RecoverySection(
             val icon = iconOf(cap)
             ListRow(
                 icon, copy.title, if (busy == cap) RecoveryCopy.WORKING else null, first = i == 0,
-                modifier = Modifier.settingsFocusTarget(focusKeyOf(cap)),
+                modifier = Modifier.focusHighlightTarget(focusKeyOf(cap)),
             ) {
                 MikaSwitch(on, { want -> onToggle(cap, want) }, Modifier.testTag("recovery-${cap.name}"), enabled = busy == null)
             }
@@ -218,7 +217,7 @@ fun RecentsExclusionSection(excluded: Boolean, onSet: (Boolean) -> Boolean) {
             tr(R.string.rec_exclude_recents),
             tr(R.string.rec_exclude_recents_sub),
             first = true,
-            modifier = Modifier.settingsFocusTarget(SettingsFocusKey.RECENTS_EXCLUSION),
+            modifier = Modifier.focusHighlightTarget(SettingsFocusKey.RECENTS_EXCLUSION),
         ) {
             MikaSwitch(
                 current,

@@ -5,6 +5,7 @@ import com.wangzan101.mika.calls.VolcRealtimeEvent
 import com.wangzan101.mika.calls.VolcRealtimeException
 import com.wangzan101.mika.core.frontdesk.DeskBrain
 import com.wangzan101.mika.core.frontdesk.ReplyContext
+import com.wangzan101.mika.core.model.usage.ConversationMeter
 import com.wangzan101.mika.voice.Pcm16
 import com.wangzan101.mika.voice.SpeechEvent
 import com.wangzan101.mika.voice.SpeechFailure
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** What one utterance turned into. */
 private sealed interface Heard {
@@ -60,11 +62,12 @@ class CascadeVoiceSession internal constructor(
     private val aheadMs: Long = 5_000,
     private val chunkMs: Int = 100,
     private val maxFailures: Int = 3,
+    meter: ConversationMeter? = null,
 ) : CallRealtimeSession {
     /** Synthesized speech: 16-bit mono PCM at [sampleRate]. */
     class PcmAudioOut(val pcm: ByteArray, val sampleRate: Int)
 
-    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher + (meter ?: EmptyCoroutineContext))
     private val out = Channel<VolcRealtimeEvent>(Channel.UNLIMITED)
     override val events: Flow<VolcRealtimeEvent> = out.receiveAsFlow()
     override val inputSampleRate: Int get() = INPUT_RATE

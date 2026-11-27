@@ -8,6 +8,7 @@
     <string name="voice_steer_to">Сообщение для «%1$s»</string>
     <string name="voice_engine_phone">Телефон</string>
     <string name="voice_engine_phone_offline">Телефон · офлайн</string>
+    <string name="voice_engine_on_device">На устройстве · офлайн</string>
     <string name="voice_say_now">Говорите, я слушаю…</string>
     <string name="voice_recording">Идёт запись. Отпустите, и она превратится в текст…</string>
     <string name="voice_foot_live">Отпустите · слова попадут в поле, их можно будет изменить</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">Не удалось открыть страницу настроек «%1$s». Найдите приложение в списке приложений системы и включите микрофон.</string>
     <string name="voice_unavailable_provider_gone">Провайдер выбранной речевой модели удалён. Выберите другую в разделе «Настройки» › «Модели» › «Распознавание речи».</string>
     <string name="voice_unavailable_off">Распознавание речи выключено. Выберите вариант в разделе «Настройки» › «Модели» › «Распознавание речи».</string>
+    <string name="voice_unavailable_pack_missing">Нужно скачать голосовой пакет. Выбранного офлайн-пакета нет на этом телефоне; скачайте его в разделе «Настройки» › «Модели» › «Распознавание речи», и он сразу заработает — выбирать заново не нужно.</string>
+    <string name="voice_unavailable_on_device_unsupported">Это устройство не поддерживает офлайн-распознавание. Выберите другой способ распознавания в разделе «Настройки» › «Модели» › «Распознавание речи».</string>
     <string name="voice_go_pick">Выбрать</string>
     <string name="voice_permission_title">Mika нужен микрофон</string>
     <string name="voice_permission_body">Чтобы слышать вас, пока вы удерживаете кнопку, Mika должна записывать звук. Раньше доступ был отклонён, поэтому телефон больше не спросит. Включите микрофон на странице разрешений Mika в системных настройках.</string>

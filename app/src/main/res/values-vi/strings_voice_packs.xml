@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">Gói giọng nói ngoại tuyến</string>
+    <string name="voice_packs_lead">Sau khi tải xuống, lời nói được chuyển thành văn bản mà không cần mạng, và giọng nói của bạn ở lại trên điện thoại. Khi không dùng được nhận dạng tích hợp của điện thoại, Tự động sẽ dùng gói giọng nói đã cài.</string>
+    <string name="voice_packs_entry_sub">Chuyển giọng nói thành văn bản không cần mạng</string>
+    <string name="voice_pack_recommended">Đề xuất</string>
+    <string name="voice_pack_languages_count">%1$d ngôn ngữ</string>
+    <string name="voice_pack_meta">%1$s · %2$s · giấy phép %3$s</string>
+    <string name="voice_pack_status_not_installed">Chưa tải xuống</string>
+    <string name="voice_pack_status_downloading">Đang tải xuống</string>
+    <string name="voice_pack_status_downloading_percent">Đang tải xuống %1$d%%</string>
+    <string name="voice_pack_status_installed">Đã cài · phiên bản %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">Bị hỏng, cần tải xuống lại</string>
+    <string name="voice_pack_status_update">Có phiên bản mới; bản cũ vẫn dùng được</string>
+    <string name="voice_pack_status_importing">Đang nhập…</string>
+    <string name="voice_pack_download">Tải xuống</string>
+    <string name="voice_pack_redownload">Tải xuống lại</string>
+    <string name="voice_pack_update">Cập nhật</string>
+    <string name="voice_pack_cancel">Hủy tải xuống</string>
+    <string name="voice_pack_delete">Xóa</string>
+    <string name="voice_pack_import">Nhập từ tệp</string>
+    <string name="voice_pack_copy_urls">Sao chép liên kết tải xuống</string>
+    <string name="voice_pack_download_failed">Tải xuống chưa xong. Hãy thử lại, hoặc tải tệp trên máy tính rồi nhập vào.</string>
+    <string name="voice_pack_metered_title">Tải xuống bằng dữ liệu di động?</string>
+    <string name="voice_pack_metered_body">Gói giọng nói này khoảng %1$s. Bạn đang dùng mạng tính phí theo dung lượng (như dữ liệu di động hoặc điểm phát sóng).</string>
+    <string name="voice_pack_metered_confirm">Vẫn tải xuống</string>
+    <string name="voice_pack_delete_title">Xóa gói giọng nói?</string>
+    <string name="voice_pack_delete_body">%1$s sẽ bị xóa khỏi điện thoại này. Nếu nhập bằng giọng nói đang dùng nó, sẽ quay về Tự động.</string>
+    <string name="voice_pack_no_space">Không đủ dung lượng: cần %1$s, chỉ còn %2$s.</string>
+    <string name="voice_pack_unsupported">Thiết bị này không chạy được gói giọng nói này.</string>
+    <string name="voice_pack_not_started">Không thể bắt đầu tải xuống: có thể đang tải hoặc đang nhập, hoặc không có liên kết tải xuống dùng được.</string>
+    <string name="voice_pack_import_done">Đã nhập. Có thể dùng ngay.</string>
+    <string name="voice_pack_import_missing">Các tệp đã chọn còn thiếu: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s không khớp với danh mục (kích thước hoặc mã kiểm tra khác), nên chưa nhập gì.</string>
+    <string name="voice_pack_import_busy">Gói giọng nói này đang tải xuống hoặc đang nhập. Hãy thử lại khi xong.</string>
+    <string name="voice_pack_import_failed">Không nhập được: không đọc được tệp, hoặc không lưu được vào điện thoại.</string>
+    <string name="voice_pack_delete_failed">Không xóa hết được. Hãy thử lại sau.</string>
+    <string name="voice_pack_copied">Đã sao chép liên kết tải xuống.</string>
+    <string name="voice_pack_needs_download">Cần tải xuống</string>
+    <string name="voice_pack_corrupt_error">Gói giọng nói bị hỏng. Vui lòng tải xuống lại.</string>
+    <string name="voice_on_device_failed">Nhận dạng ngoại tuyến không thành công. Hãy thử lại.</string>
+    <string name="voice_go_voice_packs">Tải gói giọng nói ngoại tuyến</string>
+</resources>

@@ -32,9 +32,9 @@ import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.RadioRow
 import com.wangzan101.mika.ui.components.RowActions
-import com.wangzan101.mika.ui.components.SettingsFocusKey
+import com.wangzan101.mika.settings.ui.SettingsFocusKey
 import com.wangzan101.mika.ui.components.TileTone
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import com.wangzan101.mika.ui.theme.MikaIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -81,7 +81,7 @@ fun DeviceAccessSection(settings: DeviceAccessSettings, localTasks: Boolean = fa
             stringResource(if (localTasks) R.string.device_local_title else R.string.device_access_title),
             note = stringResource(if (localTasks) R.string.device_local_sub else R.string.device_access_sub),
             first = true,
-            modifier = Modifier.settingsFocusTarget(if (localTasks) SettingsFocusKey.LOCK_SCREEN_TASKS else SettingsFocusKey.REMOTE_DEVICE_ACCESS),
+            modifier = Modifier.focusHighlightTarget(if (localTasks) SettingsFocusKey.LOCK_SCREEN_TASKS else SettingsFocusKey.REMOTE_DEVICE_ACCESS),
         ) {
             MikaSwitch(if (localTasks) config.localEnabled else config.enabled,
                 { on -> change({ if (localTasks) settings.setLocalEnabled(on) else settings.setEnabled(on) }) },
@@ -97,7 +97,7 @@ fun DeviceAccessSection(settings: DeviceAccessSettings, localTasks: Boolean = fa
             MikaIcons.Key, stringResource(R.string.device_access_credential), stringResource(subtitle),
             tone = if (config.blocked) TileTone.Bad else TileTone.Neutral,
             onClick = { if (!busy) { kind = config.kind ?: CredentialKind.Pin; editing = true } },
-            modifier = if (localTasks) Modifier.settingsFocusTarget(SettingsFocusKey.LOCK_SCREEN_CREDENTIAL) else Modifier,
+            modifier = if (localTasks) Modifier.focusHighlightTarget(SettingsFocusKey.LOCK_SCREEN_CREDENTIAL) else Modifier,
         )
         if (config.kind != null && !editing) RowActions {
             MikaButton(stringResource(R.string.device_access_clear), { change({ settings.clearCredential() }) }, kind = ButtonKind.Tonal, size = ButtonSize.Small, enabled = !busy)

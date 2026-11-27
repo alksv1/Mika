@@ -1,6 +1,6 @@
 package com.wangzan101.mika.about
 
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import com.wangzan101.mika.download.DownloadUrls
 import java.io.File
 import java.security.MessageDigest
 
@@ -21,31 +21,14 @@ class ApkRejected(val reason: Reason) : Exception(reason.name) {
  * 所以下载完的文件一律再验:大小与 SHA-256(发布元数据给了才验)、包名、版本号、签名证书。
  */
 internal object ApkIntegrity {
-    private val official = "${MikaLinks.RELEASES}/download/".toHttpUrl()
-
-    fun requireOfficialUrl(url: String) {
-        val parsed = url.toHttpUrl()
-        require(parsed.isHttps && parsed.host == official.host && parsed.port == 443)
-        require(parsed.username.isEmpty() && parsed.password.isEmpty())
-        require(parsed.encodedPath.startsWith(official.encodedPath))
-        require(parsed.encodedPath.endsWith(".apk", ignoreCase = true))
-    }
+    fun requireOfficialUrl(url: String) = DownloadUrls.requireRelease(url, ".apk")
 
     /**
      * 下载地址只能是官方发布附件,或「内置/用户添加的镜像前缀 + 官方附件地址」。
      * 镜像本身仍由用户信任;下载完照样校验大小、摘要和签名,地址放宽不会让别的包装进来。
      */
-    fun requireTrustedDownloadUrl(url: String, officialUrl: String, mirrors: List<UpdateMirror>) {
-        if (url == officialUrl) {
-            requireOfficialUrl(url)
-            return
-        }
-        require(mirrors.any { url == it.prefix + officialUrl }) { "not an official or configured mirror URL" }
-        val parsed = url.toHttpUrl()
-        require(parsed.isHttps)
-        require(parsed.username.isEmpty() && parsed.password.isEmpty())
-        require(parsed.encodedPath.endsWith(".apk", ignoreCase = true))
-    }
+    fun requireTrustedDownloadUrl(url: String, officialUrl: String, mirrors: List<UpdateMirror>) =
+        DownloadUrls.requireTrusted(url, officialUrl, mirrors, ".apk")
 
     /** 给了摘要就必须是 sha256 且对得上;别的写法也算对不上,不放过。 */
     fun verify(file: File, size: Long?, digest: String?) {

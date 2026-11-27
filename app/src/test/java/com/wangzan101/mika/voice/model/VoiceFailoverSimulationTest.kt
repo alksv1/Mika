@@ -14,11 +14,26 @@ import com.wangzan101.mika.settings.ProviderConfig
 import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.activeApiKey
 import com.wangzan101.mika.settings.connect
+import com.wangzan101.mika.voice.ProviderSpeech
+import com.wangzan101.mika.voice.Recorder
+import com.wangzan101.mika.voice.SpeechEvent
 import com.wangzan101.mika.voice.Wav
+import com.wangzan101.mika.voice.model.adapters.FakeOnDeviceBackend
+import com.wangzan101.mika.voice.model.adapters.installTestPack
+import com.wangzan101.mika.voice.model.adapters.testOnDeviceAdapter
+import com.wangzan101.mika.voice.model.adapters.testPackEntry
+import com.wangzan101.mika.voice.ondevice.OnDeviceCatalog
+import com.wangzan101.mika.voice.ondevice.OnDeviceSttException
+import com.wangzan101.mika.voice.ondevice.OnDeviceTimeout
+import com.wangzan101.mika.voice.ondevice.VoicePackEntry
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -215,5 +230,134 @@ class VoiceFailoverSimulationTest {
         assertEquals(listOf(refs[1]), env.tts.backupsFor(refs[0]))
         assertEquals("不是朗读选中的模型就没有链", emptyList<VoiceModelRef>(), env.tts.backupsFor(refs[1]))
         assertFalse(env.tts.createTts(context, refs[0], TtsCapabilities()) is FallbackTtsModel)
+    }
+
+    // ---- 本机语音包进备援链 ----
+
+    private val packs by lazy { tmp.newFolder("voice-models") }
+
+    private fun onDeviceEnv(
+        backend: FakeOnDeviceBackend,
+        vararg entries: VoicePackEntry,
+        budgetMs: (Int) -> Long = { OnDeviceTimeout.budgetMs(it) },
+    ): VoiceModelEnvironment {
+        entries.forEach { catalog.installVoicePack(it) }
+        val registry = VoiceAdapterRegistry(
+            sttAdapters = VoiceAdapterRegistry.defaultSttAdapters() + testOnDeviceAdapter(packs, backend, *entries, budgetMs = budgetMs),
+        )
+        return voiceTestEnvironment(catalog, ProviderStoreVoiceAccountSource(store), registry = registry)
+    }
+
+    private fun cloudAnswers(text: String) {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                trace += request.path.orEmpty()
+                return MockResponse().setBody("""{"text":"$text"}""")
+            }
+        }
+    }
+
+    @Test fun packMissingFailsOver() = runBlocking {
+        val entry = testPackEntry("sense")
+        val backup = sttModel("backup", "b1", "whisper-1")
+        cloudAnswers("cloud")
+        val env = onDeviceEnv(FakeOnDeviceBackend(), entry)
+
+        val text = env.stt.transcribeChain(context, listOf(OnDeviceCatalog.ref("sense"), backup), "zh-CN")(wav)
+        assertEquals("cloud", text)
+        assertTrue(VoiceFailover.canTryNext(VoiceModelError.PackMissing("sense")))
+    }
+
+    @Test fun onDeviceCorruptFailsOver() = runBlocking {
+        val entry = testPackEntry("sense")
+        installTestPack(packs, entry)
+        val backup = sttModel("backup", "b1", "whisper-1")
+        cloudAnswers("cloud")
+        val backend = FakeOnDeviceBackend(loadFailure = OnDeviceSttException(OnDeviceSttException.Kind.Corrupt, "bad model"))
+        val env = onDeviceEnv(backend, entry)
+
+        val text = env.stt.transcribeChain(context, listOf(OnDeviceCatalog.ref("sense"), backup), "zh-CN")(wav)
+        assertEquals("cloud", text)
+    }
+
+    @Test fun onDeviceTimeoutFailsOverAndIsNotNetwork() = runBlocking {
+        val entry = testPackEntry("sense")
+        installTestPack(packs, entry)
+        val backup = sttModel("backup", "b1", "whisper-1")
+        cloudAnswers("cloud")
+        val backend = FakeOnDeviceBackend(transcribe = { _, _ -> kotlinx.coroutines.awaitCancellation() })
+        val env = onDeviceEnv(backend, entry, budgetMs = { 200 })
+        val pack = OnDeviceCatalog.ref("sense")
+
+        assertEquals("cloud", env.stt.transcribeChain(context, listOf(pack, backup), "zh-CN")(wav))
+
+        // 只有它时,交出去的是本机错误,不是网络错误
+        val error = assertThrows(VoiceModelError.OnDeviceFailed::class.java) {
+            runBlocking { env.stt.transcribeChain(context, listOf(pack), "zh-CN")(wav) }
+        }
+        assertEquals(VoiceErrorCategory.SYSTEM_UNAVAILABLE, error.category)
+        assertTrue(generateSequence<Throwable>(error) { it.cause }.none { it is ModelError })
+        assertTrue(VoiceFailover.canTryNext(error))
+    }
+
+    @Test fun cloudHeadFailsOverToOnDeviceTail() = runBlocking {
+        val entry = testPackEntry("sense")
+        installTestPack(packs, entry)
+        val primary = sttModel("primary", "k1", "whisper-1")
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                trace += request.path.orEmpty()
+                return MockResponse().setResponseCode(503).setBody("""{"error":{"message":"overloaded"}}""")
+            }
+        }
+        val env = onDeviceEnv(FakeOnDeviceBackend(transcribe = { _, _ -> "本机接手" }), entry)
+        catalog.setSttSelection(SttSelection.Model(primary))
+        assertTrue(catalog.setFallback(VoiceCapability.STT, 0, OnDeviceCatalog.ref("sense")))
+
+        val text = env.stt.transcribeChain(context, listOf(primary) + env.stt.backupsFor(primary), "zh-CN")(wav)
+        assertEquals("本机接手", text)
+        assertTrue(trace.any { it.startsWith("/primary/") })
+    }
+
+    @Test fun unreachableCloudHeadFailsOverToOnDeviceTail() = runBlocking {
+        val entry = testPackEntry("sense")
+        installTestPack(packs, entry)
+        // 连不上的地址(本机 9 号端口没人听),模拟没网时的云端链头
+        val p = store.connect("dead", ProviderConfig.Kind.OpenAiCompat, "http://127.0.0.1:9/v1", "k1", emptyList())
+        KeyPoolManager.shared.reset(p.id)
+        val service = VoiceService("provider:${p.id}", "dead", VoiceAccount.ExistingProvider(p.id))
+        catalog.upsertService(service)
+        catalog.upsertModel(VoiceModel(service.id, "whisper-1", "whisper-1", stt = SttBinding(SttProtocol.AudioTranscriptions)))
+        val primary = VoiceModelRef(service.id, "whisper-1", VoiceCapability.STT)
+        val env = onDeviceEnv(FakeOnDeviceBackend(transcribe = { _, _ -> "本机接手" }), entry)
+        catalog.setSttSelection(SttSelection.Model(primary))
+        assertTrue(catalog.setFallback(VoiceCapability.STT, 0, OnDeviceCatalog.ref("sense")))
+
+        val text = env.stt.transcribeChain(context, listOf(primary) + env.stt.backupsFor(primary), "zh-CN")(wav)
+        assertEquals("本机接手", text)
+    }
+
+    @Test fun emptyTextIsNotFailure() {
+        val entry = testPackEntry("sense")
+        installTestPack(packs, entry)
+        val backup = sttModel("backup", "b1", "whisper-1")
+        cloudAnswers("cloud")
+        val env = onDeviceEnv(FakeOnDeviceBackend(transcribe = { _, _ -> "" }), entry)
+        val recorder = object : Recorder {
+            override val level: StateFlow<Float> = MutableStateFlow(0f)
+            override fun start() = true
+            override fun stop() = ShortArray(Wav.RATE)
+            override fun cancel() {}
+        }
+        val session = ProviderSpeech(
+            recorder,
+            env.stt.transcribeChain(context, listOf(OnDeviceCatalog.ref("sense"), backup), "zh-CN"),
+        )
+        session.release()
+        val events = runBlocking {
+            withTimeout(5_000) { session.events.filter { it !is SpeechEvent.Level }.toList() }
+        }
+        assertEquals("没听清照没听清处理,不换下一个", listOf(SpeechEvent.Converting, SpeechEvent.Final("")), events)
+        assertTrue(trace.isEmpty())
     }
 }

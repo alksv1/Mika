@@ -2,10 +2,13 @@ package com.wangzan101.mika.task
 
 import com.wangzan101.mika.chat.ConversationSettings
 import com.wangzan101.mika.chat.ConversationStore
+import com.wangzan101.mika.core.agent.GroupPool
 import com.wangzan101.mika.core.model.Capabilities
 import com.wangzan101.mika.core.model.ChatModel
+import com.wangzan101.mika.core.model.GroupMember
 import com.wangzan101.mika.core.model.ListedModel
 import com.wangzan101.mika.core.model.Message
+import com.wangzan101.mika.core.model.ModelGroup
 import com.wangzan101.mika.core.model.ModelReply
 import com.wangzan101.mika.core.model.ModelRole
 import com.wangzan101.mika.core.model.ModelSession
@@ -22,6 +25,7 @@ import com.wangzan101.mika.settings.choose
 import com.wangzan101.mika.settings.connect
 import com.wangzan101.mika.settings.ensureConfig
 import com.wangzan101.mika.settings.removeProvider
+import com.wangzan101.mika.settings.saveGroup
 import com.wangzan101.mika.settings.setMainFallback
 import com.wangzan101.mika.settings.setFallback
 import org.junit.Assert.assertEquals
@@ -142,6 +146,28 @@ class TaskModelSnapshotTest {
         assertEquals("override", snapshot.main!!.name)
         assertEquals("light", snapshot.light!!.name)
         assertTrue(snapshot.routeLightSeparately)
+    }
+
+    @Test fun mainGroupWithLightSameAsMainSkipsStepRouting() {
+        val s = providers()
+        val p = s.connectOne("P", "m1", "m2", "light")
+        val a = s.member(p, "m1")
+        val b = s.member(p, "m2")
+        assertTrue(s.saveGroup(ModelGroup("g", "g", members = listOf(GroupMember(a, 0), GroupMember(b, 1)))))
+        assertTrue(s.choose(ModelRole.Main, RoleChoice.Group("g")))
+
+        val same = TaskModelSnapshot.capture(s, ModelSession.of("chat"))
+        assertTrue(same.main is GroupPool)
+        assertTrue(same.light is GroupPool)
+        assertFalse(same.routeLightSeparately)
+
+        // 轻量另选了模型时照旧逐步分工
+        val light = s.member(p, "light")
+        assertTrue(s.choose(ModelRole.Light, RoleChoice.Model(light)))
+        val split = TaskModelSnapshot.capture(s, ModelSession.of("chat"))
+        assertTrue(split.main is GroupPool)
+        assertEquals("light", split.light!!.name)
+        assertTrue(split.routeLightSeparately)
     }
 
     private class FakeModel(override val name: String, override val capabilities: Capabilities) : ChatModel {

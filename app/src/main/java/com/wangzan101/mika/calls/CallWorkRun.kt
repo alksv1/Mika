@@ -95,7 +95,8 @@ internal suspend fun CallRuntime.runWork(w: Work) {
         val standard = standardCalls
         // 标准通话:所属任务的状态每轮作为尾随附注给电话前台,系统提示保持字节不变
         val ownerBackground = w.ownerTask?.let(PhoneDesk::background)
-        val provider = if (standard) CascadeCallProvider(cascade, CallUse.Phone, background = ownerBackground) else if (migrated) {
+        val provider = if (standard) CascadeCallProvider(cascade, CallUse.Phone, background = ownerBackground,
+            meter = w.ownerConversationId?.let(app.conversations::meter)) else if (migrated) {
             try {
                 realtimeController.callProvider()
             } catch (e: VoiceModelError) {

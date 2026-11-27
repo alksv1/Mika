@@ -2,6 +2,12 @@ package com.wangzan101.mika.voice.model
 
 import android.content.Context
 import com.wangzan101.mika.settings.ProviderStore
+import com.wangzan101.mika.voice.model.adapters.OnDeviceSttAdapter
+import com.wangzan101.mika.voice.ondevice.OnDeviceBackends
+import com.wangzan101.mika.voice.ondevice.OnDeviceEngines
+import com.wangzan101.mika.voice.ondevice.VoicePackCatalog
+import com.wangzan101.mika.voice.ondevice.VoicePackStore
+import java.io.File
 
 /**
  * Durable marker that the one-time legacy migration has completed. It lives outside the catalog JSON so a
@@ -27,6 +33,12 @@ class VoiceModelEnvironment(
     /** Writable voice-owned credential store; null in tests that never persist owned accounts. */
     val credentialStore: VoiceCredentialStore? = null,
     private val migrationMarker: MigrationMarker = MigrationMarker.None,
+    /** 本机语音包的存放(`filesDir/voice-models`),App 里共用这一份;测试里不用时为 null。 */
+    val voicePacks: VoicePackStore? = null,
+    /** 随 APK 的语音包清单,第一次用到时读;测试里不用时为 null。 */
+    val voicePackCatalog: (() -> VoicePackCatalog)? = null,
+    /** 本机识别引擎(看设备跑不跑得了某个语音包);测试里不用时为 null。 */
+    val voicePackBackends: OnDeviceBackends? = null,
 ) {
     /** Set when the one-time legacy migration failed; the catalog page surfaces it while legacy behavior is retained. */
     @Volatile
@@ -113,6 +125,9 @@ class VoiceModelEnvironment(
     val realtime: RealtimeSelectionController by lazy { RealtimeSelectionController(this) }
 
     companion object {
+        /** 语音包在 `filesDir` 下的目录;备份不包含它。 */
+        const val VOICE_PACK_DIR = "voice-models"
+
         @Volatile
         private var shared: VoiceModelEnvironment? = null
 
@@ -139,13 +154,23 @@ class VoiceModelEnvironment(
                     prefs.edit().remove("migration_complete").apply()
                 }
             }
+            val backends = OnDeviceBackends()
+            val packCatalog by lazy { VoicePackCatalog.load(context, backends::supports) }
+            val packCatalogSource = { packCatalog }
+            val packs = VoicePackStore(File(context.filesDir, VOICE_PACK_DIR))
             return VoiceModelEnvironment(
                 catalog = VoiceCatalogStore(backend, migrated = prefs.getBoolean("migration_complete", false)),
                 accountResolver = VoiceAccountResolver(ProviderStore.get(context), credentials),
-                registry = VoiceAdapterRegistry(),
+                registry = VoiceAdapterRegistry(
+                    sttAdapters = VoiceAdapterRegistry.defaultSttAdapters() +
+                        OnDeviceSttAdapter(packCatalogSource, packs, OnDeviceEngines.shared, backends),
+                ),
                 credentials = credentials,
                 credentialStore = credentials,
                 migrationMarker = marker,
+                voicePacks = packs,
+                voicePackCatalog = packCatalogSource,
+                voicePackBackends = backends,
             )
         }
     }

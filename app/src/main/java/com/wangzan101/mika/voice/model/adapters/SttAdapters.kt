@@ -65,6 +65,9 @@ interface SttAdapter {
      * 备援链和密钥池轮换按它把同一段录音交给下一个模型/下一把密钥。流式和系统识别为 null。
      */
     fun utterance(context: Context, model: ResolvedVoiceModel, language: String?): UtteranceTranscribe? = null
+
+    /** 按下说话时提前准备(本机识别在后台加载模型);备援链开会话不经 [start],由它补上。默认不做事。 */
+    fun prewarm(model: ResolvedVoiceModel) {}
 }
 
 /** 一段 WAV 进、文字出。 */

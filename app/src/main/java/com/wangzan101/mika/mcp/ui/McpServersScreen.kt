@@ -1,5 +1,6 @@
 package com.wangzan101.mika.mcp.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,8 +32,6 @@ import com.wangzan101.mika.ui.theme.MikaIcons
 import kotlinx.coroutines.launch
 import com.wangzan101.mika.memory.ui.Link
 
-private enum class McpRoute { List, Catalog, Connect, Manage, Custom }
-
 /** 设置 › MCP 服务器:连接外部 MCP server(outbound),和「连接电脑」的 inbound 设置分开。 */
 @Composable
 fun McpServersScreen(store: McpServerStore, onBack: () -> Unit) {
@@ -40,25 +39,35 @@ fun McpServersScreen(store: McpServerStore, onBack: () -> Unit) {
     val connector = remember { McpConnectorState(store, store.catalog, scope) }
     var route by remember { mutableStateOf(McpRoute.List) }
     var editing by remember { mutableStateOf<McpServerConfig?>(null) }
+    // 「自定义服务器」是从列表还是目录进来的:返回时回原来那一级
+    var customFrom by remember { mutableStateOf(McpRoute.List) }
+
+    // 系统返回键和顶栏返回按钮走同一条路:逐级回到上一层,到了列表才离开这一页
+    val back: () -> Unit = {
+        if (route == McpRoute.Connect) connector.cancel()
+        if (route == McpRoute.Manage) editing = null
+        route.up(if (editing != null) McpRoute.Manage else customFrom)?.let { route = it } ?: onBack()
+    }
+    BackHandler(onBack = back)
 
     when (route) {
         McpRoute.List -> McpServerList(
             store = store,
             onBrowseCatalog = { route = McpRoute.Catalog },
-            onCustomServer = { editing = null; route = McpRoute.Custom },
+            onCustomServer = { editing = null; customFrom = McpRoute.List; route = McpRoute.Custom },
             onEdit = { editing = it; route = McpRoute.Manage },
-            onBack = onBack,
+            onBack = back,
         )
         McpRoute.Catalog -> McpCatalogScreen(
             catalog = store.catalog,
             onOpenPreset = { connector.openPreset(it); route = McpRoute.Connect },
-            onCustomServer = { editing = null; route = McpRoute.Custom },
-            onBack = { route = McpRoute.List },
+            onCustomServer = { editing = null; customFrom = McpRoute.Catalog; route = McpRoute.Custom },
+            onBack = back,
         )
         McpRoute.Connect -> McpConnectScreen(
             connector = connector,
             onDone = { connector.close(); route = McpRoute.List },
-            onBack = { connector.cancel(); route = McpRoute.Catalog },
+            onBack = back,
         )
         McpRoute.Manage -> editing?.let { cfg ->
             McpServerManageScreen(
@@ -67,14 +76,14 @@ fun McpServersScreen(store: McpServerStore, onBack: () -> Unit) {
                 config = cfg,
                 onEdit = { route = McpRoute.Custom },
                 onDeleted = { editing = null; route = McpRoute.List },
-                onBack = { editing = null; route = McpRoute.List },
+                onBack = back,
             )
         }
         McpRoute.Custom -> McpCustomServerScreen(
             store = store,
             initial = editing,
             onSaved = { route = if (editing == null) McpRoute.List else McpRoute.Manage },
-            onBack = { route = if (editing == null) McpRoute.List else McpRoute.Manage },
+            onBack = back,
         )
     }
 }

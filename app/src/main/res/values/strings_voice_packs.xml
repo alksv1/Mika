@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">Offline voice packs</string>
+    <string name="voice_packs_lead">Once downloaded, speech turns into text without a network connection, and your voice stays on the phone. When the phone’s built-in recognition can’t be used, Auto uses an installed voice pack.</string>
+    <string name="voice_packs_entry_sub">Speech to text without a network</string>
+    <string name="voice_pack_recommended">Recommended</string>
+    <string name="voice_pack_languages_count">%1$d languages</string>
+    <string name="voice_pack_meta">%1$s · %2$s · %3$s license</string>
+    <string name="voice_pack_status_not_installed">Not downloaded</string>
+    <string name="voice_pack_status_downloading">Downloading</string>
+    <string name="voice_pack_status_downloading_percent">Downloading %1$d%%</string>
+    <string name="voice_pack_status_installed">Installed · version %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">Damaged, needs downloading again</string>
+    <string name="voice_pack_status_update">New version available; the old one still works</string>
+    <string name="voice_pack_status_importing">Importing…</string>
+    <string name="voice_pack_download">Download</string>
+    <string name="voice_pack_redownload">Download again</string>
+    <string name="voice_pack_update">Update</string>
+    <string name="voice_pack_cancel">Cancel download</string>
+    <string name="voice_pack_delete">Delete</string>
+    <string name="voice_pack_import">Import from files</string>
+    <string name="voice_pack_copy_urls">Copy download links</string>
+    <string name="voice_pack_download_failed">The download didn’t finish. Try again, or download the files on a computer and import them.</string>
+    <string name="voice_pack_metered_title">Download over mobile data?</string>
+    <string name="voice_pack_metered_body">This voice pack is about %1$s. You’re on a metered network (such as mobile data or a hotspot).</string>
+    <string name="voice_pack_metered_confirm">Download anyway</string>
+    <string name="voice_pack_delete_title">Delete voice pack?</string>
+    <string name="voice_pack_delete_body">%1$s will be removed from this phone. If voice input is using it, it goes back to Auto.</string>
+    <string name="voice_pack_no_space">Not enough space: needs %1$s, only %2$s free.</string>
+    <string name="voice_pack_unsupported">This device can’t run this voice pack.</string>
+    <string name="voice_pack_not_started">Couldn’t start the download: it may already be downloading or importing, or no download link is usable.</string>
+    <string name="voice_pack_import_done">Imported. Ready to use.</string>
+    <string name="voice_pack_import_missing">The selected files are missing: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s doesn’t match the catalog (different size or checksum), so nothing was imported.</string>
+    <string name="voice_pack_import_busy">This voice pack is already downloading or importing. Try again when it’s done.</string>
+    <string name="voice_pack_import_failed">Couldn’t import: the files couldn’t be read, or couldn’t be saved on the phone.</string>
+    <string name="voice_pack_delete_failed">Couldn’t delete everything. Try again later.</string>
+    <string name="voice_pack_copied">Download links copied.</string>
+    <string name="voice_pack_needs_download">Needs download</string>
+    <string name="voice_pack_corrupt_error">The voice pack is damaged. Please download it again.</string>
+    <string name="voice_on_device_failed">Offline recognition failed. Try again.</string>
+    <string name="voice_go_voice_packs">Download an offline voice pack</string>
+</resources>

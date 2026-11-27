@@ -38,8 +38,7 @@ import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.ui.components.RowValue
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.GroupLabel
-import com.wangzan101.mika.ui.components.SettingsFocusKey
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.cap.sandbox.SandboxUsage
@@ -182,7 +181,7 @@ fun AdvancedSection(
     GroupCard {
         ListRow(
             MikaIcons.Link, SandboxCopy.NETWORK_TITLE, first = true,
-            modifier = Modifier.settingsFocusTarget(SettingsFocusKey.SANDBOX_NETWORK),
+            modifier = Modifier.focusHighlightTarget(SettingsFocusKey.SANDBOX_NETWORK),
         ) {
             MikaSwitch(networkAllowed, onNetworkChange, Modifier.testTag("sandbox-network"))
         }
@@ -192,7 +191,7 @@ fun AdvancedSection(
             MikaIcons.Close, tr(R.string.sandbox_reset), SandboxCopy.resetSubtitle(status),
             titleColor = MikaTheme.colors.bad, tone = TileTone.Bad,
             onClick = if (status is SandboxStatus.Installing) null else ({ confirming = true }),
-            modifier = Modifier.settingsFocusTarget(SettingsFocusKey.SANDBOX_RESET),
+            modifier = Modifier.focusHighlightTarget(SettingsFocusKey.SANDBOX_RESET),
         )
     }
 
@@ -247,7 +246,7 @@ private fun UsageGroup(
     val c = MikaTheme.colors
     GroupLabel(SandboxCopy.USAGE_TITLE)
     GroupCard {
-        Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.SANDBOX_USAGE)) {
+        Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.SANDBOX_USAGE)) {
             SandboxCopy.usageRows(u).forEachIndexed { i, (name, bytes) ->
                 ListRow(null, name, first = i == 0) { RowValue(SandboxCopy.size(bytes)) }
             }

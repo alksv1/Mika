@@ -6,7 +6,7 @@
     <string name="backup_warning_body">ZIP には API キー、OAuth トークン、サービス資格情報などすべての機密が含まれます。非公開に保ち、共有せず、インポート後に削除してください。</string>
     <string name="backup_included_label">含まれるもの</string>
     <string name="backup_included_body">プロバイダーとキー、チャット、ペルソナ、スキル、メモリ、ワークフロー、タスク実行、設定。</string>
-    <string name="backup_excluded_body">含まれないもの：ワイヤレスデバッグのペアリング（インポート後に再ペアリング）、アクセシビリティサービス設定（Android 設定で再び有効化）、サンドボックスワークスペース、ファイルライブラリの添付。</string>
+    <string name="backup_excluded_body">含まれないもの：ワイヤレスデバッグのペアリング（インポート後に再ペアリング）、アクセシビリティサービス設定（Android 設定で再び有効化）、サンドボックスワークスペース、ファイルライブラリの添付。音声パックはサイズが大きいためバックアップされません。復元後に再ダウンロードしてください。</string>
     <string name="backup_export">バックアップを書き出す</string>
     <string name="backup_export_sub">全データを ZIP ファイルに保存</string>
     <string name="backup_import">バックアップをインポート</string>

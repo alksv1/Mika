@@ -6,7 +6,7 @@
     <string name="backup_warning_body">O arquivo ZIP contém todos os seus segredos: chaves de API, tokens OAuth e credenciais de serviços. Mantenha-o privado, não o compartilhe e exclua-o após importar.</string>
     <string name="backup_included_label">O que está incluído</string>
     <string name="backup_included_body">Provedores e chaves, conversas, personas, habilidades, memória, fluxos de trabalho, execuções de tarefas e configurações.</string>
-    <string name="backup_excluded_body">Não incluídos: pareamento da depuração sem fio (emparelhe novamente após importar), a configuração do serviço de acessibilidade (ative novamente nas Configurações do Android), o espaço de trabalho isolado e os anexos da biblioteca de arquivos.</string>
+    <string name="backup_excluded_body">Não incluídos: pareamento da depuração sem fio (emparelhe novamente após importar), a configuração do serviço de acessibilidade (ative novamente nas Configurações do Android), o espaço de trabalho isolado e os anexos da biblioteca de arquivos. Os pacotes de voz offline são grandes e não entram no backup; baixe-os novamente após restaurar.</string>
     <string name="backup_export">Exportar backup</string>
     <string name="backup_export_sub">Salve um arquivo ZIP com todos os seus dados</string>
     <string name="backup_import">Importar backup</string>

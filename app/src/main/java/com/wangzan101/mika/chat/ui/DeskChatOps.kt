@@ -1,6 +1,7 @@
 package com.wangzan101.mika.chat.ui
 
 import com.wangzan101.mika.R
+import com.wangzan101.mika.chat.BranchWorkspace
 import com.wangzan101.mika.chat.RetryAttachmentStatus
 import com.wangzan101.mika.core.agent.DeskTurn
 import com.wangzan101.mika.core.agent.Turn
@@ -298,10 +299,14 @@ internal class DeskChatOps(
         })
     }
 
-    /** 把这条会话工作区里的文件复制进子会话 [child] 的工作区;有一个没复制成就整件不派(返回 null)。 */
+    /**
+     * 把这条会话工作区里的文件复制进子会话 [child] 的工作区;有一个没复制成就整件不派(返回 null)。
+     * 这批文件导入时已按单个文件的上限收下,总量至少给到它们导入时大小的合计;合计不到默认总量时,剩下的额度照旧用来复制其余历史附件。
+     */
     private suspend fun copyFiles(child: String, files: List<Pair<String, Long>>): List<Pair<String, Long>>? {
         val workspace = vm.branchWorkspace ?: return null
-        val copied = workspace.copyInboxForRetry(conversationId, child, files.map { it.first })
+        val maxBytes = maxOf(BranchWorkspace.DEFAULT_MAX_BYTES, files.sumOf { it.second })
+        val copied = workspace.copyInboxForRetry(conversationId, child, files.map { it.first }, maxBytes)
         if (copied.size != files.size || copied.any { it.status != RetryAttachmentStatus.COPIED || it.sizeBytes == null }) return null
         return copied.map { it.path to it.sizeBytes!! }
     }
@@ -351,7 +356,9 @@ internal class DeskChatOps(
             val tasks = mutableListOf(taskId)
             try {
                 prepare(brain)
-                brain.notice(noticeText(report), context(runId, reply, tasks, executor(DeskWords.None)))
+                withContext(vm.store.meter(conversationId)) {
+                    brain.notice(noticeText(report), context(runId, reply, tasks, executor(DeskWords.None)))
+                }
             } catch (e: CancellationException) {
                 val text = reply.toString()
                 if (e is Stopped && text.isNotBlank()) {
@@ -403,7 +410,9 @@ internal class DeskChatOps(
         try {
             prepare(brain)
             current = UserWords.saidToDesk(text).ifBlank { null }
-            brain.reply(text, context(runId, reply, tasks, executor(words)))
+            withContext(vm.store.meter(conversationId)) {
+                brain.reply(text, context(runId, reply, tasks, executor(words)))
+            }
         } catch (e: CancellationException) {
             current = null
             // 被停下:已经说出来的留着,这一轮收尾

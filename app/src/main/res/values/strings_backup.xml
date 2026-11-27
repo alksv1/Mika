@@ -7,7 +7,7 @@
     <string name="backup_warning_body">The ZIP file contains all your secrets: API keys, OAuth tokens, and service credentials. Keep it private, do not share it, and delete it after you have imported it.</string>
     <string name="backup_included_label">What is included</string>
     <string name="backup_included_body">Providers and keys, chats, personas, skills, memory, workflows, task runs, and settings.</string>
-    <string name="backup_excluded_body">Not included: wireless-debugging pairing (re-pair after import), the accessibility service setting (turn it back on in Android Settings), the sandbox workspace, and file library attachments.</string>
+    <string name="backup_excluded_body">Not included: wireless-debugging pairing (re-pair after import), the accessibility service setting (turn it back on in Android Settings), the sandbox workspace, and file library attachments. Offline voice packs are large and are not backed up; download them again after restoring.</string>
     <string name="backup_export">Export backup</string>
     <string name="backup_export_sub">Save a ZIP file with all your data</string>
     <string name="backup_import">Import backup</string>

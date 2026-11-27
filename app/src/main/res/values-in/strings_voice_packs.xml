@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">Paket suara offline</string>
+    <string name="voice_packs_lead">Setelah diunduh, ucapan diubah menjadi teks tanpa koneksi jaringan, dan suara Anda tetap di ponsel. Jika pengenalan bawaan ponsel tidak bisa dipakai, Otomatis memakai paket suara yang terpasang.</string>
+    <string name="voice_packs_entry_sub">Ucapan ke teks tanpa jaringan</string>
+    <string name="voice_pack_recommended">Disarankan</string>
+    <string name="voice_pack_languages_count">%1$d bahasa</string>
+    <string name="voice_pack_meta">%1$s · %2$s · lisensi %3$s</string>
+    <string name="voice_pack_status_not_installed">Belum diunduh</string>
+    <string name="voice_pack_status_downloading">Mengunduh</string>
+    <string name="voice_pack_status_downloading_percent">Mengunduh %1$d%%</string>
+    <string name="voice_pack_status_installed">Terpasang · versi %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">Rusak, perlu diunduh ulang</string>
+    <string name="voice_pack_status_update">Ada versi baru; versi lama tetap bisa dipakai</string>
+    <string name="voice_pack_status_importing">Mengimpor…</string>
+    <string name="voice_pack_download">Unduh</string>
+    <string name="voice_pack_redownload">Unduh ulang</string>
+    <string name="voice_pack_update">Perbarui</string>
+    <string name="voice_pack_cancel">Batalkan unduhan</string>
+    <string name="voice_pack_delete">Hapus</string>
+    <string name="voice_pack_import">Impor dari file</string>
+    <string name="voice_pack_copy_urls">Salin tautan unduhan</string>
+    <string name="voice_pack_download_failed">Unduhan tidak selesai. Coba lagi, atau unduh file di komputer lalu impor.</string>
+    <string name="voice_pack_metered_title">Unduh dengan data seluler?</string>
+    <string name="voice_pack_metered_body">Paket suara ini sekitar %1$s. Anda memakai jaringan berkuota (seperti data seluler atau hotspot).</string>
+    <string name="voice_pack_metered_confirm">Tetap unduh</string>
+    <string name="voice_pack_delete_title">Hapus paket suara?</string>
+    <string name="voice_pack_delete_body">%1$s akan dihapus dari ponsel ini. Jika input suara sedang memakainya, akan kembali ke Otomatis.</string>
+    <string name="voice_pack_no_space">Ruang tidak cukup: perlu %1$s, hanya tersisa %2$s.</string>
+    <string name="voice_pack_unsupported">Perangkat ini tidak bisa menjalankan paket suara ini.</string>
+    <string name="voice_pack_not_started">Tidak bisa mulai mengunduh: mungkin sedang diunduh atau diimpor, atau tidak ada tautan unduhan yang bisa dipakai.</string>
+    <string name="voice_pack_import_done">Sudah diimpor. Siap dipakai.</string>
+    <string name="voice_pack_import_missing">File yang dipilih tidak berisi: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s tidak cocok dengan katalog (ukuran atau checksum berbeda), jadi tidak ada yang diimpor.</string>
+    <string name="voice_pack_import_busy">Paket suara ini sedang diunduh atau diimpor. Coba lagi setelah selesai.</string>
+    <string name="voice_pack_import_failed">Tidak bisa mengimpor: file tidak bisa dibaca, atau tidak bisa disimpan di ponsel.</string>
+    <string name="voice_pack_delete_failed">Tidak semuanya bisa dihapus. Coba lagi nanti.</string>
+    <string name="voice_pack_copied">Tautan unduhan disalin.</string>
+    <string name="voice_pack_needs_download">Perlu diunduh</string>
+    <string name="voice_pack_corrupt_error">Paket suara rusak. Silakan unduh ulang.</string>
+    <string name="voice_on_device_failed">Pengenalan offline gagal. Coba lagi.</string>
+    <string name="voice_go_voice_packs">Unduh paket suara offline</string>
+</resources>

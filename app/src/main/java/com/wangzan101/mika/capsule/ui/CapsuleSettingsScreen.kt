@@ -31,8 +31,8 @@ import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RadioRow
 import com.wangzan101.mika.ui.components.RowValue
-import com.wangzan101.mika.ui.components.SettingsFocusKey
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.settings.ui.SettingsFocusKey
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import kotlin.math.roundToInt
@@ -100,7 +100,7 @@ fun CapsuleScreen(
         }
         GroupLabel(CapsuleSettingsCopy.IDLE_OPACITY)
         GroupCard {
-            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.CAPSULE_IDLE_OPACITY).padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.CAPSULE_IDLE_OPACITY).padding(horizontal = 16.dp, vertical = 12.dp)) {
                 ListRow(
                     MikaIcons.Photo, CapsuleSettingsCopy.IDLE_OPACITY,
                     first = true, titleColor = if (mode == CapsuleMode.Off) MikaTheme.colors.ink3 else androidx.compose.ui.graphics.Color.Unspecified,
@@ -120,7 +120,7 @@ fun CapsuleScreen(
         }
         GroupLabel(CapsuleSettingsCopy.CARD_SIZE)
         GroupCard {
-            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.CAPSULE_CARD_SIZE).padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.CAPSULE_CARD_SIZE).padding(horizontal = 16.dp, vertical = 12.dp)) {
                 ListRow(
                     MikaIcons.Photo, CapsuleSettingsCopy.CARD_SIZE,
                     first = true, titleColor = if (mode == CapsuleMode.Off) MikaTheme.colors.ink3 else androidx.compose.ui.graphics.Color.Unspecified,
@@ -141,17 +141,17 @@ fun CapsuleScreen(
         GroupCard {
             ListRow(MikaIcons.EyeOff, stringResource(R.string.capsule_hide_at_edge), first = true,
                 onClick = { flags.setCapsuleHideAtEdge(!hideAtEdge) },
-                modifier = Modifier.settingsFocusTarget(SettingsFocusKey.CAPSULE_HIDE_AT_EDGE)) {
+                modifier = Modifier.focusHighlightTarget(SettingsFocusKey.CAPSULE_HIDE_AT_EDGE)) {
                 MikaSwitch(hideAtEdge, flags::setCapsuleHideAtEdge, Modifier.testTag("capsule-hide-at-edge"))
             }
             ListRow(MikaIcons.Screens, stringResource(R.string.capsule_hide_fullscreen),
                 onClick = { flags.setCapsuleHideFullscreen(!hideFullscreen) },
-                modifier = Modifier.settingsFocusTarget(SettingsFocusKey.CAPSULE_HIDE_FULLSCREEN)) {
+                modifier = Modifier.focusHighlightTarget(SettingsFocusKey.CAPSULE_HIDE_FULLSCREEN)) {
                 MikaSwitch(hideFullscreen, flags::setCapsuleHideFullscreen, Modifier.testTag("capsule-hide-fullscreen"))
             }
             ListRow(MikaIcons.Apps, stringResource(R.string.capsule_tile_enabled),
                 onClick = { setQuickSettings(!quickSettings) },
-                modifier = Modifier.settingsFocusTarget(SettingsFocusKey.CAPSULE_QUICK_SETTINGS)) {
+                modifier = Modifier.focusHighlightTarget(SettingsFocusKey.CAPSULE_QUICK_SETTINGS)) {
                 MikaSwitch(quickSettings, ::setQuickSettings, Modifier.testTag("capsule-quick-settings"))
             }
         }

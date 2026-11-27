@@ -8,6 +8,7 @@
     <string name="voice_steer_to">در حال گفتن به «%1$s»</string>
     <string name="voice_engine_phone">گوشی</string>
     <string name="voice_engine_phone_offline">گوشی · آفلاین</string>
+    <string name="voice_engine_on_device">روی دستگاه · آفلاین</string>
     <string name="voice_say_now">بفرمایید، گوش می‌دهم…</string>
     <string name="voice_recording">در حال ضبط. رها کنید تا به متن تبدیل شود…</string>
     <string name="voice_foot_live">رها کنید · کلمات برای ویرایش وارد کادر می‌شوند</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">صفحهٔ تنظیمات «%1$s» باز نشد. آن را در فهرست برنامه‌های سیستم پیدا کنید و میکروفون را روشن کنید.</string>
     <string name="voice_unavailable_provider_gone">ارائه‌دهندهٔ مدل گفتاری انتخاب‌شده حذف شده است. گزینهٔ دیگری در تنظیمات › مدل‌ها › گفتار به متن انتخاب کنید.</string>
     <string name="voice_unavailable_off">گفتار به متن خاموش است. یک گزینه در تنظیمات › مدل‌ها › گفتار به متن انتخاب کنید.</string>
+    <string name="voice_unavailable_pack_missing">باید بستهٔ صوتی را دانلود کنید. بستهٔ صوتی آفلاینی که انتخاب کرده‌اید روی این گوشی نیست؛ آن را در تنظیمات › مدل‌ها › گفتار به متن دانلود کنید تا بدون انتخاب دوباره فوراً کار کند.</string>
+    <string name="voice_unavailable_on_device_unsupported">این دستگاه از تشخیص آفلاین پشتیبانی نمی‌کند. روش تشخیص دیگری را در تنظیمات › مدل‌ها › گفتار به متن انتخاب کنید.</string>
     <string name="voice_go_pick">انتخاب</string>
     <string name="voice_permission_title">میکا به میکروفون نیاز دارد</string>
     <string name="voice_permission_body">برای شنیدن صدای شما هنگام نگه داشتن دکمهٔ صحبت، میکا باید صدا ضبط کند. این مجوز قبلاً رد شده و گوشی دیگر دوباره نمی‌پرسد. میکروفون را در صفحهٔ مجوزهای میکا در تنظیمات سیستم روشن کنید.</string>

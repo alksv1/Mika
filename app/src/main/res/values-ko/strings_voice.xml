@@ -7,6 +7,7 @@
     <string name="voice_steer_to">“%1$s”에게 전달 중</string>
     <string name="voice_engine_phone">휴대전화</string>
     <string name="voice_engine_phone_offline">휴대전화 · 오프라인</string>
+    <string name="voice_engine_on_device">기기 내 · 오프라인</string>
     <string name="voice_say_now">말씀하세요, 듣고 있어요…</string>
     <string name="voice_recording">녹음 중이에요. 손을 떼면 텍스트로 바꿔요…</string>
     <string name="voice_foot_live">손 떼기 · 말한 내용이 입력창에 들어가 수정할 수 있어요</string>
@@ -36,6 +37,8 @@
     <string name="voice_service_settings_failed">“%1$s”의 설정 페이지를 열지 못했어요. 시스템의 앱 목록에서 찾아 마이크를 켜세요.</string>
     <string name="voice_unavailable_provider_gone">선택한 음성 모델의 제공업체가 삭제됐어요. 설정 › 모델 › 음성 텍스트 변환에서 다른 것을 선택하세요.</string>
     <string name="voice_unavailable_off">음성 텍스트 변환이 꺼져 있어요. 설정 › 모델 › 음성 텍스트 변환에서 선택하세요.</string>
+    <string name="voice_unavailable_pack_missing">음성 팩을 다운로드해야 해요. 선택한 오프라인 음성 팩이 이 휴대전화에 없어요. 설정 › 모델 › 음성 텍스트 변환에서 다운로드하면 다시 선택하지 않아도 바로 쓸 수 있어요.</string>
+    <string name="voice_unavailable_on_device_unsupported">이 기기는 오프라인 인식을 지원하지 않아요. 설정 › 모델 › 음성 텍스트 변환에서 다른 인식 방식을 선택하세요.</string>
     <string name="voice_go_pick">선택하기</string>
     <string name="voice_permission_title">Mika에 마이크 권한이 필요해요</string>
     <string name="voice_permission_body">길게 눌러 말하는 동안 목소리를 들으려면 Mika가 오디오를 녹음해야 해요. 전에 거부해서 휴대전화가 다시 묻지 않아요. 시스템 설정의 Mika 권한 페이지에서 마이크를 켜세요.</string>

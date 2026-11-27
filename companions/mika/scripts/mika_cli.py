@@ -566,7 +566,8 @@ def inspect_screen(args):
     output = process.stdout or ""
     if len(output.encode("utf-8", errors="replace")) > MAX_RESPONSE:
         raise CliError("screen_unavailable", "The phone returned a screen larger than the CLI accepts.", reason="too_large")
-    lines = [line for line in output.splitlines() if line.strip()]
+    # Only LF ends a line: screen text can hold U+2028 and other separators that the phone's JSON leaves unescaped.
+    lines = [line for line in output.split("\n") if line.strip()]
     result = None
     if lines and lines[-1].lstrip().startswith("{"):
         try:

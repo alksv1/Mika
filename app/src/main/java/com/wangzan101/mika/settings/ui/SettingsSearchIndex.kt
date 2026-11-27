@@ -3,7 +3,6 @@ package com.wangzan101.mika.settings.ui
 import com.wangzan101.mika.R
 import com.wangzan101.mika.settings.ui.SettingsDestination.ModelRoute
 import com.wangzan101.mika.settings.ui.SettingsDestination.Page
-import com.wangzan101.mika.ui.components.SettingsFocusKey
 
 /**
  * 设置搜索能找到的页面和页内条目。顺序就是同分时的先后,按设置首页从上到下、再到各级子页排。

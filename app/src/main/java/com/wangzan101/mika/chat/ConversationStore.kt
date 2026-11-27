@@ -82,16 +82,27 @@ class ConversationStore(
 
     @Synchronized
     private fun updateUsage(id: String, change: (ConversationUsage) -> ConversationUsage) {
-        if (safe(id) in deleted) return
+        var changed = applyUsageUpdate(id, change)
+        // 前台派出的子任务运行在隐藏子会话里,同步把用量和最近一次主模型请求记回所属前台对话。
+        if (hiddenDeskChild(id)) {
+            deskParent(id)?.takeIf { it != safe(id) }?.let { parent ->
+                if (applyUsageUpdate(parent, change)) changed = true
+            }
+        }
+        if (changed) usageRevision.value++
+    }
+
+    private fun applyUsageUpdate(id: String, change: (ConversationUsage) -> ConversationUsage): Boolean {
+        if (safe(id) in deleted) return false
         val old = usageSnapshot(id)
         val next = change(old)
-        if (old == next) return
+        if (old == next) return false
         dir.mkdirs()
         val dest = usageFile(id)
         val tmp = File(dir, "${dest.name}.tmp")
         tmp.writeText(usageJson.encodeToString(ConversationUsage.serializer(), next))
         Files.move(tmp.toPath(), dest.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-        usageRevision.value++
+        return true
     }
 
     private val _changes = MutableSharedFlow<String>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -250,6 +261,7 @@ class ConversationStore(
         }
         usageRevision.value++
         deleted += safe(conversationId)
+        liveDeskParents.remove(safe(conversationId))
         pendingMainChoices.remove(safe(conversationId))
         firstMessages.remove(main)
         messageTimes.remove(main)

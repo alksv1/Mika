@@ -1,6 +1,7 @@
 package com.wangzan101.mika.voice
 
 import com.wangzan101.mika.core.model.ModelError
+import com.wangzan101.mika.voice.model.VoiceModelError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,9 @@ class ProviderSpeech(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: ModelError) {
+                    SpeechEvent.Failed(SpeechFailure.Provider(e))
+                } catch (e: VoiceModelError) {
+                    // 语音层自己的分类(本机语音包没装、本机识别失败……)原样交给界面,不包成「回复解析不了」
                     SpeechEvent.Failed(SpeechFailure.Provider(e))
                 } catch (e: Exception) {
                     SpeechEvent.Failed(SpeechFailure.Provider(ModelError.BadResponse(e.message.orEmpty(), e)))

@@ -1,7 +1,6 @@
 package com.wangzan101.mika.settings.ui
 
 import com.wangzan101.mika.i18n.ResFileTexts
-import com.wangzan101.mika.ui.components.SettingsFocusKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

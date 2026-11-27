@@ -58,8 +58,7 @@ import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RadioRow
-import com.wangzan101.mika.ui.components.SettingsFocusKey
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
@@ -86,7 +85,7 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
         // 语言和外观放在同一页:都是「界面长什么样」
         GroupLabel(stringResource(R.string.appearance_group))
         GroupCard {
-            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.APPEARANCE)) {
+            Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.APPEARANCE)) {
                 ThemeMode.entries.forEachIndexed { idx, m ->
                     RadioRow(
                         appearanceLabel(m), selected = m == themeMode, first = idx == 0,
@@ -101,7 +100,7 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
         }
         GroupLabel(stringResource(R.string.accent_group))
         GroupCard {
-            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.ACCENT_COLOR)) {
+            Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.ACCENT_COLOR)) {
                 val dark = MikaTheme.colors.isDark
                 // 背景图片的颜色在当强调色时,这里选的暂时不用,行变灰
                 val followingImage = skin.accentHue != null
@@ -119,7 +118,7 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
         }
         GroupLabel(stringResource(R.string.skin_group))
         GroupCard {
-            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.BACKGROUND_SKIN)) {
+            Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.BACKGROUND_SKIN)) {
                 ListRow(
                     null, stringResource(if (skin.active) R.string.skin_change else R.string.skin_pick), first = true,
                     onClick = { pickSkin.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
@@ -181,7 +180,7 @@ fun LanguageScreen(language: AppLanguage, onLanguage: (AppLanguage) -> Unit, onB
             }
         }
         GroupCard(Modifier.animateContentSize()) {
-            Column(Modifier.fillMaxWidth().settingsFocusTarget(SettingsFocusKey.APP_LANGUAGE)) {
+            Column(Modifier.fillMaxWidth().focusHighlightTarget(SettingsFocusKey.APP_LANGUAGE)) {
                 if (filteredLanguages.isEmpty()) {
                     Box(
                         Modifier.fillMaxWidth().padding(vertical = 16.dp),

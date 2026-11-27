@@ -23,6 +23,26 @@ class SpeechResolverTest {
         )
     }
 
+    @Test fun autoPrefersUsableSystem() {
+        assertEquals(
+            SpeechEngineSpec.System(onDevice = false),
+            SpeechResolver.resolve(SpeechChoice.Auto, SystemCapability(true, false), emptyList(), autoPack = "sense"),
+        )
+    }
+
+    @Test fun autoUsesInstalledPackWhenSystemMissingOrSilent() {
+        assertEquals(SpeechEngineSpec.OnDevice("sense"), SpeechResolver.resolve(SpeechChoice.Auto, none, emptyList(), autoPack = "sense"))
+        val silent = SystemCapability(available = true, onDevice = true, responsive = false)
+        assertEquals(SpeechEngineSpec.OnDevice("sense"), SpeechResolver.resolve(SpeechChoice.Auto, silent, emptyList(), autoPack = "sense"))
+    }
+
+    @Test fun autoPackDoesNotAffectExplicitSystemChoice() {
+        assertEquals(
+            SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.SystemGone),
+            SpeechResolver.resolve(SpeechChoice.System, none, emptyList(), autoPack = "sense"),
+        )
+    }
+
     @Test fun systemChosenButGone() {
         assertEquals(
             SpeechEngineSpec.Unavailable(SpeechEngineSpec.Why.SystemGone),

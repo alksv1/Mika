@@ -4,7 +4,7 @@ import com.wangzan101.mika.core.model.ModelError
 import com.wangzan101.mika.settings.ProviderStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -19,6 +19,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Base64
@@ -129,6 +130,14 @@ internal object VendorHttp {
     fun rfc1123(epochMs: Long): String = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
         .apply { timeZone = TimeZone.getTimeZone("GMT") }.format(epochMs)
 
+    /**
+     * Waits at most [timeoutMs] for [block]. On timeout it throws [ModelError.Network] wrapping a [SocketTimeoutException]
+     * rather than a cancellation: callers treat a cancellation as the caller stopping, so they neither report it nor fail
+     * over. A cancellation of the caller itself still propagates as one.
+     */
+    suspend fun <T : Any> within(timeoutMs: Long, what: String, block: suspend () -> T): T =
+        withTimeoutOrNull(timeoutMs) { block() } ?: throw ModelError.Network(SocketTimeoutException("$what timed out"))
+
     /** A WebSocket as a channel of text frames; the channel closes on close/failure (failure carried as the cause). */
     class Socket(val ws: WebSocket, val frames: Channel<String>)
 
@@ -147,7 +156,7 @@ internal object VendorHttp {
             }
         })
         try {
-            withTimeout(timeoutMs) { opened.await() }
+            within(timeoutMs, "socket open") { opened.await() }
         } catch (e: Throwable) {
             ws.cancel()
             throw e

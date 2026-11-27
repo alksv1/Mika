@@ -28,8 +28,7 @@ import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.LocalFocusTarget
 import com.wangzan101.mika.ui.components.PageScaffold
-import com.wangzan101.mika.ui.components.SettingsFocusKey
-import com.wangzan101.mika.ui.components.settingsFocusTarget
+import com.wangzan101.mika.ui.components.focusHighlightTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -158,7 +157,7 @@ class SettingsSearchScreenTest {
                             }
                             ListRow(
                                 null, "目标设置项",
-                                modifier = Modifier.testTag("focus-target-row").settingsFocusTarget("target_bottom"),
+                                modifier = Modifier.testTag("focus-target-row").focusHighlightTarget("target_bottom"),
                             )
                         }
                     }

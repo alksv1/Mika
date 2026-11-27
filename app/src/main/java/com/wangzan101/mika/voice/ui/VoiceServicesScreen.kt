@@ -1,5 +1,6 @@
 package com.wangzan101.mika.voice.ui
 
+import com.wangzan101.mika.voice.ondevice.OnDeviceCatalog
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -173,7 +174,7 @@ private fun ServiceList(
     val c = MikaTheme.colors
     val own = snapshot.services.filter {
         it.account !is VoiceAccount.ExistingProvider && it.id != SttSelectionController.SYSTEM_STT_SERVICE.id &&
-            it.id != TtsSelectionController.SYSTEM_TTS_REF.serviceId
+            it.id != TtsSelectionController.SYSTEM_TTS_REF.serviceId && it.id != OnDeviceCatalog.SERVICE_ID
     }
     val unconnected = VoiceVendors.all.filter { vendor -> own.none { vendor.owns(it.id) } }
     Page(stringResource(R.string.voice_hub_services), onBack) {

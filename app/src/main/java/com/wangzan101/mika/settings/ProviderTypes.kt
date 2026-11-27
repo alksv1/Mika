@@ -226,10 +226,11 @@ data class RoleChoices(
         is RoleChoice.Group, RoleChoice.Off, null -> null
     }
 
-    /** 两个用途是否解析到同一条配置;任一用途没配时不算相同。 */
+    /** 两个用途是否解析到同一条配置或同一个模型组;任一用途没配时不算相同。 */
     fun sameModel(first: ModelRole, second: ModelRole): Boolean {
-        val a = resolve(first) ?: return false
-        return a == resolve(second)
+        resolveConfig(first)?.let { return it == resolveConfig(second) }
+        val g = resolveGroup(first) ?: return false
+        return g == resolveGroup(second)
     }
 
     /** 这个用途实际用的组 id:「用主模型」取主模型的;具体模型、不用、或主模型还没选时为 null。 */

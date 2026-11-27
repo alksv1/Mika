@@ -740,6 +740,18 @@ else:
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertEqual(0, body["node_count"])
 
+    def test_screen_keeps_a_line_separator_in_screen_text(self):
+        # kotlinx.serialization escapes only U+0000-U+001F, so screen text reaches the CLI with its U+2028, U+2029 or
+        # U+0085 as is.
+        for char in ("\u2028", "\u2029", "\x85"):
+            ok = {"status": "ok", "accessibility_services_suppressed": False,
+                  "windows": [{"display_id": 0, "root": {"text": "a" + char + "b"}}], "node_count": 1}
+            with self.subTest(char=hex(ord(char))), api() as server:
+                adb, env, _, _ = self.fake_adb(server, screen_stdout=json.dumps(ok, ensure_ascii=False) + "\n")
+                result, body = self.invoke("screen", "--adb", str(adb), env=env)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertEqual("a" + char + "b", body["windows"][0]["root"]["text"])
+
     def test_screen_reports_the_phone_side_reason_without_retrying(self):
         for reason, expected in (("connect_failed", "connect_failed"), ("timeout", "timeout"),
                                  ("unsupported", "unsupported"), ("something else", "screen_unavailable")):

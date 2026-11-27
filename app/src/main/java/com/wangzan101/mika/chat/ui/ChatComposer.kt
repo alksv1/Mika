@@ -123,6 +123,8 @@ internal fun Composer(
     onVoiceSend: ((String) -> Unit)? = null,
     /** 「还不能语音输入」里的「去选」:到设置里选转文字。 */
     onPickSpeech: () -> Unit = {},
+    /** 「还不能语音输入」里的「下载离线语音包」:到离线语音包那一页。 */
+    onOpenVoicePacks: () -> Unit = {},
     /** 听筒按钮:进语音通话;为 null 时不显示。 */
     /** 任务在跑时说的话交给谁:卡片顶上写「插话给『…』」。 */
     steerTarget: String? = null,
@@ -310,7 +312,7 @@ internal fun Composer(
             }
             if (vh != null) VoiceBarCover(vh, vState, reduceMotion, Modifier.matchParentSize())
             }
-            if (vh != null) VoiceSheetHost(vh, onPickSpeech)
+            if (vh != null) VoiceSheetHost(vh, onPickSpeech, onOpenVoicePacks)
         }
     }
 }

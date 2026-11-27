@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">离线语音包</string>
+    <string name="voice_packs_lead">下载后不联网也能把说话转成文字，声音留在手机上。手机自带识别用不了时，「自动」会用装好的语音包。</string>
+    <string name="voice_packs_entry_sub">不联网也能转文字</string>
+    <string name="voice_pack_recommended">推荐</string>
+    <string name="voice_pack_languages_count">%1$d 种语言</string>
+    <string name="voice_pack_meta">%1$s · %2$s · %3$s 许可</string>
+    <string name="voice_pack_status_not_installed">未下载</string>
+    <string name="voice_pack_status_downloading">下载中</string>
+    <string name="voice_pack_status_downloading_percent">下载中 %1$d%%</string>
+    <string name="voice_pack_status_installed">已安装 · 第 %1$d 版 · 占用 %2$s</string>
+    <string name="voice_pack_status_corrupt">已损坏，需要重新下载</string>
+    <string name="voice_pack_status_update">有新版本，旧版本照常能用</string>
+    <string name="voice_pack_status_importing">正在导入…</string>
+    <string name="voice_pack_download">下载</string>
+    <string name="voice_pack_redownload">重新下载</string>
+    <string name="voice_pack_update">更新</string>
+    <string name="voice_pack_cancel">取消下载</string>
+    <string name="voice_pack_delete">删除</string>
+    <string name="voice_pack_import">从文件导入</string>
+    <string name="voice_pack_copy_urls">复制下载地址</string>
+    <string name="voice_pack_download_failed">下载没成功，可以重试，或在电脑上下好后从文件导入。</string>
+    <string name="voice_pack_metered_title">用流量下载？</string>
+    <string name="voice_pack_metered_body">这个语音包约 %1$s。现在连的是按流量计费的网络（比如移动数据或热点）。</string>
+    <string name="voice_pack_metered_confirm">继续下载</string>
+    <string name="voice_pack_delete_title">删除语音包？</string>
+    <string name="voice_pack_delete_body">「%1$s」会从这台手机上删掉。正在用它时，语音输入回到「自动」。</string>
+    <string name="voice_pack_no_space">空间不够：需要 %1$s，只剩 %2$s。</string>
+    <string name="voice_pack_unsupported">这台设备跑不了这个语音包。</string>
+    <string name="voice_pack_not_started">没能开始下载：可能已经在下载或导入，或者没有可用的下载地址。</string>
+    <string name="voice_pack_import_done">已导入，可以用了。</string>
+    <string name="voice_pack_import_missing">选的文件里缺少：%1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s 和清单对不上（大小或校验值不同），没有导入。</string>
+    <string name="voice_pack_import_busy">这个语音包正在下载或导入，等它结束再试。</string>
+    <string name="voice_pack_import_failed">没能导入：文件读不出来，或写不进手机。</string>
+    <string name="voice_pack_delete_failed">没能删干净，稍后再试。</string>
+    <string name="voice_pack_copied">已复制下载地址。</string>
+    <string name="voice_pack_needs_download">需要下载</string>
+    <string name="voice_pack_corrupt_error">语音包已损坏，请重新下载</string>
+    <string name="voice_on_device_failed">离线识别失败，请重试</string>
+    <string name="voice_go_voice_packs">下载离线语音包</string>
+</resources>

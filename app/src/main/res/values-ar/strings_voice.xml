@@ -8,6 +8,7 @@
     <string name="voice_steer_to">جارٍ إخبار «%1$s»</string>
     <string name="voice_engine_phone">الهاتف</string>
     <string name="voice_engine_phone_offline">الهاتف · غير متصل</string>
+    <string name="voice_engine_on_device">على الجهاز · دون اتصال</string>
     <string name="voice_say_now">تفضل، أنا أستمع…</string>
     <string name="voice_recording">جارٍ التسجيل. ارفع إصبعك لتحويل كلامك إلى نص…</string>
     <string name="voice_foot_live">ارفع إصبعك · سيُدرج الكلام في المربع لتعديله</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">تعذّر فتح صفحة إعدادات «%1$s». ابحث عنه في قائمة تطبيقات النظام وفعّل الميكروفون.</string>
     <string name="voice_unavailable_provider_gone">أُزيل المزوّد الخاص بنموذج الكلام المحدد. اختر مزوّدًا آخر ضمن الإعدادات › النماذج › تحويل الكلام إلى نص.</string>
     <string name="voice_unavailable_off">ميزة تحويل الكلام إلى نص متوقفة. اختر واحدة ضمن الإعدادات › النماذج › تحويل الكلام إلى نص.</string>
+    <string name="voice_unavailable_pack_missing">يلزم تنزيل حزمة الصوت. حزمة الصوت دون اتصال التي اخترتها غير موجودة على هذا الهاتف؛ نزّلها ضمن الإعدادات › النماذج › تحويل الكلام إلى نص وستعمل فورًا دون الحاجة إلى اختيارها من جديد.</string>
+    <string name="voice_unavailable_on_device_unsupported">لا يدعم هذا الجهاز التعرّف دون اتصال. اختر طريقة تعرّف أخرى ضمن الإعدادات › النماذج › تحويل الكلام إلى نص.</string>
     <string name="voice_go_pick">اختيار</string>
     <string name="voice_permission_title">تحتاج Mika إلى الميكروفون</string>
     <string name="voice_permission_body">لكي تسمعك Mika عند الضغط مطولًا للتحدث، يلزمها تسجيل الصوت. سبق أن رُفض الإذن، لذا لن يطلب الهاتف الإذن مجددًا. فعّل الميكروفون في صفحة أذونات Mika ضمن إعدادات النظام.</string>

@@ -3,6 +3,8 @@ package com.wangzan101.mika.core.model.usage
 import com.wangzan101.mika.core.agent.ContextBuilder
 import com.wangzan101.mika.core.agent.ContextKind
 import com.wangzan101.mika.core.agent.TokenEstimate
+import com.wangzan101.mika.core.frontdesk.DeskBackground
+import com.wangzan101.mika.core.frontdesk.LlmBrain
 import com.wangzan101.mika.core.model.Author
 import com.wangzan101.mika.core.model.Message
 import com.wangzan101.mika.core.model.Part
@@ -47,9 +49,25 @@ data class RequestComposition(
                             ContextKind.UserScreen -> toolsAndMedia += size
                             ContextKind.Notice, ContextKind.Channel, ContextKind.RuntimeState, ContextKind.Observed, ContextKind.DeskNote -> runtime += size
                             ContextKind.PriorTurns -> dialogue += size
-                            null -> when (message.role) {
-                                Role.System -> instructions += size
-                                Role.Tool -> toolsAndMedia += size
+                            null -> when {
+                                message.role == Role.System -> instructions += size
+                                message.role == Role.Tool -> toolsAndMedia += size
+                                message.role == Role.User && message.author == Author.Mika -> {
+                                    when {
+                                        part.text.startsWith(LlmBrain.BACKGROUND_PREFIX) -> {
+                                            val memoryAt = part.text.indexOf(DeskBackground.MEMORY_HEADING)
+                                            if (memoryAt >= 0) {
+                                                runtime += TokenEstimate.of(part.text.substring(0, memoryAt))
+                                                references += TokenEstimate.of(part.text.substring(memoryAt))
+                                            } else {
+                                                runtime += size
+                                            }
+                                        }
+                                        part.text.startsWith(LlmBrain.UPDATE_PREFIX) -> runtime += size
+                                        LlmBrain.isLateResultNote(part.text) -> toolsAndMedia += size
+                                        else -> dialogue += size
+                                    }
+                                }
                                 else -> dialogue += size
                             }
                         }
@@ -84,7 +102,7 @@ class ConversationMeter(private val update: ((ConversationUsage) -> Conversation
     fun record(usage: Usage?, attempts: Int) = update { it.add(usage, attempts) }
     fun request(composition: RequestComposition) = update { it.copy(latest = composition) }
 
-    /** Set only at the primary agent's call site. Auxiliary calls still contribute tokens. */
+    /** Set at primary agent and user-facing front desk call sites. Auxiliary calls still contribute tokens. */
     internal class MainRequest(val step: Int) : AbstractCoroutineContextElement(Key) {
         companion object Key : CoroutineContext.Key<MainRequest>
     }

@@ -42,4 +42,38 @@ class WavTest {
         assertEquals(44 + 32000, wav.size)
         assertTrue(wav.drop(44).all { it == 0.toByte() })
     }
+
+    @Test
+    fun decodeRoundTripsEncode() {
+        val pcm = shortArrayOf(0, 1, -1, 0x0102, Short.MAX_VALUE, Short.MIN_VALUE)
+        assertArrayEquals(pcm, Wav.decode(Wav.encode(pcm)))
+    }
+
+    @Test
+    fun `解码跳过 data 之前的其他块`() {
+        val wav = Wav.encode(shortArrayOf(7, -7))
+        val extra = ByteBuffer.allocate(12).order(ByteOrder.LITTLE_ENDIAN)
+            .put("LIST".toByteArray(Charsets.US_ASCII)).putInt(4).put("INFO".toByteArray(Charsets.US_ASCII)).array()
+        val withList = wav.copyOfRange(0, 36) + extra + wav.copyOfRange(36, wav.size)
+        assertArrayEquals(shortArrayOf(7, -7), Wav.decode(withList))
+    }
+
+    @Test
+    fun `data 块长度超出文件时读到文件末尾`() {
+        for (len in intArrayOf(Int.MAX_VALUE, -1, 1_000)) {
+            val wav = Wav.encode(shortArrayOf(1, 2, 3))
+            ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN).putInt(40, len)
+            assertArrayEquals("len=$len", shortArrayOf(1, 2, 3), Wav.decode(wav))
+        }
+    }
+
+    @Test
+    fun `其他块长度很大时不越界`() {
+        val wav = Wav.encode(shortArrayOf(5))
+        val junk = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
+            .put("JUNK".toByteArray(Charsets.US_ASCII)).putInt(-8).array()
+        val bad = wav.copyOfRange(0, 36) + junk + wav.copyOfRange(36, wav.size)
+        Wav.decode(bad)    // 不抛异常就行:找不到 data 块时按 44 字节头之后处理
+        assertArrayEquals(ShortArray(0), Wav.decode(ByteArray(10)))
+    }
 }
