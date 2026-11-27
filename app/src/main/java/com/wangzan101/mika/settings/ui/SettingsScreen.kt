@@ -144,6 +144,8 @@ fun SettingsScreen(
     /** 别处的「去暂停页」(如助手已暂停的提示)直接打开「暂停 Mika」页。 */
     openPause: Boolean = false,
     onPauseOpened: () -> Unit = {},
+    /** 模型下的子页(用量、语音输入、朗读、通话方式、语音服务、图片/视频模型),由 Activity 路由打开。 */
+    onOpenModelRoute: ((SettingsModelRoute) -> Unit)? = null,
 ) {
     val configs by store.configs.collectAsState()
     val roles by store.roles.collectAsState()
@@ -284,17 +286,28 @@ fun SettingsScreen(
         if (personalStart) add(SettingsRequirement.PersonalStart)
         if (onOpenPersonas != null) add(SettingsRequirement.Personas)
         if (onOpenMemory != null) add(SettingsRequirement.Memory)
+        if (onOpenModelRoute != null) add(SettingsRequirement.ModelSubPages)
+        if (parallel != null) add(SettingsRequirement.ParallelTasks)
+        if (status.sdkInt >= 36) add(SettingsRequirement.LiveTaskUpdates)
     }
     val openSearchResult: (SettingsDestination) -> Unit = { d ->
         when (d) {
-            is SettingsDestination.Page -> page = d.page
+            is SettingsDestination.Page -> if (d.page == SettingsPage.Home) {
+                searchQuery = ""
+            } else {
+                page = d.page
+            }
             SettingsDestination.Models -> onOpenModels()
+            is SettingsDestination.ModelRoute -> onOpenModelRoute?.invoke(d.route)
             SettingsDestination.Plans -> onOpenPlans()
             SettingsDestination.Files -> onOpenFiles()
             SettingsDestination.Personal -> onOpenPersonal()
             SettingsDestination.Personas -> onOpenPersonas?.invoke()
             SettingsDestination.Memory -> onOpenMemory?.invoke()
             SettingsDestination.AutoArchive -> editingAutoArchive = true
+            SettingsDestination.Proxy -> editingProxy = true
+            SettingsDestination.WebSearch -> editingSearch = true
+            SettingsDestination.Quit -> confirmingQuit = true
             SettingsDestination.About -> onOpenAbout()
         }
     }

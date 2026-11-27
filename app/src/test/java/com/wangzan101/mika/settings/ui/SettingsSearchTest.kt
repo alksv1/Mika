@@ -4,10 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** 设置搜索的匹配、排序与高亮:只看已经换成当前语言的标题和所在位置,与界面无关。 */
+/** 设置搜索的匹配、排序与高亮:只看已经换成当前语言的标题、所在位置和同义词,与界面无关。 */
 class SettingsSearchTest {
-    private fun item(id: String, title: String, path: String = "") =
-        SettingsSearchItem(SettingsSearchEntry(id, SettingsDestination.Models, 0), title, path)
+    private fun item(id: String, title: String, path: String = "", aliases: List<String> = emptyList()) =
+        SettingsSearchItem(SettingsSearchEntry(id, SettingsDestination.Models, 0), title, path, aliases)
 
     private val sample = listOf(
         item("plans", "Scheduled tasks", "Capabilities"),
@@ -78,5 +78,19 @@ class SettingsSearchTest {
         for (text in listOf("Ngôn ngữ và giao diện", "İleri düzey", "設定を検索", "Поиск в настройках", "ابحث في الإعدادات", "설정")) {
             assertEquals(text.length, SettingsSearch.fold(text).length)
         }
+    }
+
+    @Test
+    fun aliasMatchesRankBelowTitleAndPathWithoutSpuriousHighlights() {
+        val items = listOf(
+            item("alias_only", "Appearance", "Preferences › Language", aliases = listOf("Always dark")),
+            item("path_hit", "Accent color", "Dark theme"),
+            item("title_hit", "Dark mode", "Preferences"),
+        )
+        val hits = SettingsSearch.search(items, "dark")
+        assertEquals(listOf("title_hit", "path_hit", "alias_only"), hits.map { it.item.entry.id })
+        val aliasHit = hits.last()
+        assertTrue(aliasHit.titleMatches.isEmpty())
+        assertTrue(aliasHit.pathMatches.isEmpty())
     }
 }

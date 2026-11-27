@@ -130,6 +130,7 @@ import com.wangzan101.mika.settings.ui.Fix
 import com.wangzan101.mika.settings.ui.LanguagePromptDialog
 import com.wangzan101.mika.settings.ui.PersonaScreen
 import com.wangzan101.mika.settings.ui.PhoneSetupScreen
+import com.wangzan101.mika.settings.ui.SettingsModelRoute
 import com.wangzan101.mika.settings.ui.SettingsScreen
 import com.wangzan101.mika.settings.ui.UsageScreen
 import com.wangzan101.mika.settings.ui.models.ImageModelScreen
@@ -850,7 +851,18 @@ private fun MikaRoot(
                 onOpenVoiceCatalog = { nav.push(Route.VoiceServices) },
                 mcpServers = app.mcpServers,
                 openPhoneOps = openPhoneOps, onPhoneOpsOpened = { openPhoneOps = false },
-                openPause = openPause, onPauseOpened = { openPause = false }) }
+                openPause = openPause, onPauseOpened = { openPause = false },
+                onOpenModelRoute = { route ->
+                    nav.push(when (route) {
+                        SettingsModelRoute.Usage -> Route.Usage
+                        SettingsModelRoute.Speech -> Route.SpeechModel
+                        SettingsModelRoute.Voice -> Route.VoiceModel
+                        SettingsModelRoute.CallMode -> Route.CallMode
+                        SettingsModelRoute.VoiceServices -> Route.VoiceServices
+                        SettingsModelRoute.Image -> Route.ImageModel
+                        SettingsModelRoute.Video -> Route.VideoModel
+                    })
+                }) }
         }
         // 设置里点进去的独立页面同样用简约列表样式
         Route.Models -> com.wangzan101.mika.ui.components.PlainListTheme { ModelsScreen(store, onBack = back, onOpenSpeech = { nav.push(Route.SpeechModel) }, onOpenVoice = { nav.push(Route.VoiceModel) }, onOpenImage = { nav.push(Route.ImageModel) }, onOpenVideo = { nav.push(Route.VideoModel) }, onOpenUsage = { nav.push(Route.Usage) }, onOpenVoiceCatalog = { nav.push(Route.VoiceServices) }, onOpenCallMode = { nav.push(Route.CallMode) }) }

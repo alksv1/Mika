@@ -16,6 +16,7 @@ import com.wangzan101.mika.ChineseUi
 import com.wangzan101.mika.core.device.shell.BuiltinShellStatus
 import com.wangzan101.mika.settings.AccessibilityState
 import com.wangzan101.mika.settings.SystemStatus
+import com.wangzan101.mika.ui.components.SettingsFocusKey
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -92,5 +93,38 @@ class SettingsSearchScreenTest {
         Espresso.pressBack()
         compose.onNodeWithTag("settings-status").assertIsDisplayed()
         assertEquals("", query)
+    }
+
+    @Test
+    fun directDialogsInPageItemsAndAliasesOpenExpectedDestinations() {
+        home()
+        compose.onNodeWithTag("settings-search-input").performTextInput("网络代理")
+        compose.onNodeWithTag("settings-search-proxy").performClick()
+        assertEquals(listOf<SettingsDestination>(SettingsDestination.Proxy), opened)
+
+        query = ""
+        compose.waitForIdle()
+        compose.onNodeWithTag("settings-search-input").performTextInput("步数上限")
+        compose.onNodeWithTag("settings-search-${SettingsFocusKey.STEP_LIMIT}").performClick()
+        assertEquals(
+            listOf(
+                SettingsDestination.Proxy,
+                SettingsDestination.Page(SettingsPage.DuringWork, SettingsFocusKey.STEP_LIMIT),
+            ),
+            opened,
+        )
+
+        query = ""
+        compose.waitForIdle()
+        compose.onNodeWithTag("settings-search-input").performTextInput("深色")
+        compose.onNodeWithTag("settings-search-${SettingsFocusKey.APPEARANCE}").performClick()
+        assertEquals(
+            listOf(
+                SettingsDestination.Proxy,
+                SettingsDestination.Page(SettingsPage.DuringWork, SettingsFocusKey.STEP_LIMIT),
+                SettingsDestination.Page(SettingsPage.Language, SettingsFocusKey.APPEARANCE),
+            ),
+            opened,
+        )
     }
 }
