@@ -212,6 +212,7 @@ class TaskRun(
     internal var triggerThreadId: String? = null
     internal var mcpExternalId: String? = null
     internal var workflowAttemptId: String? = null
+    internal var workflowReadOnly: Boolean = false
     /** 前台派活时附的补充说明;进任务上下文时是 Mika 的说明,不是用户原话。没有为 null。 */
     internal var brief: String? = null
     internal var channelPeer: ChannelPeer? = null
@@ -770,6 +771,9 @@ class TaskRun(
      * 放弃、失败、取消的不判(结局已经清楚),返回 null;判不成是 [RunOutcome.Unknown]。
      */
     suspend fun settleOutcome(end: TaskState, conversations: ConversationStore): JudgedOutcome? = runTeardown.settleOutcome(end, conversations)
+
+    suspend fun evaluateWorkflowGate(condition: String, answer: String): com.wangzan101.mika.core.agent.StepGateDecision =
+        runTeardown.evaluateWorkflowGate(condition, answer)
 
     /**
      * 结果通知发出之后调用:记下用到的个人技能的结果、提取记忆、起草技能,提示挂到这一轮的结果卡片上并存进对话。

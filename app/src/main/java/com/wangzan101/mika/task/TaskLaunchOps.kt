@@ -64,7 +64,7 @@ internal fun TaskService.begin(newGoal: String, requestedConversation: String?,
     provenance: RunProvenance = RunProvenance(), triggerKey: String? = null,
     triggerActionGoal: String? = null, triggerThreadId: String? = null, mcpExternalId: String? = null, messageId: String? = null,
     channelPeer: ChannelPeer? = null, channelMessageId: String? = null, triggerCondition: String? = null, workflowAttemptId: String? = null,
-    brief: String? = null) {
+    brief: String? = null, workflowReadOnly: Boolean = false) {
     if (pausedBlocks()) {
         finishPausedStart(provenance, triggerKey, mcpExternalId, workflowAttemptId, channelPeer, channelMessageId, followUp = null)
         return
@@ -101,7 +101,7 @@ internal fun TaskService.begin(newGoal: String, requestedConversation: String?,
     }
     startNew(newGoal, requestedConversation, provenance, triggerKey, triggerActionGoal, triggerThreadId, mcpExternalId,
         triggerCondition = triggerCondition, channelPeer = channelPeer, channelMessageId = channelMessageId, workflowAttemptId = workflowAttemptId,
-        brief = brief)
+        brief = brief, workflowReadOnly = workflowReadOnly)
 }
 
 /**
@@ -113,7 +113,7 @@ internal fun TaskService.startNew(newGoal: String, requestedConversation: String
     triggerActionGoal: String? = null, triggerThreadId: String? = null, mcpExternalId: String? = null,
     followUp: QueuedFollowUp? = null, triggerCondition: String? = null,
     channelPeer: ChannelPeer? = null, channelMessageId: String? = null, workflowAttemptId: String? = null,
-    brief: String? = null) {
+    brief: String? = null, workflowReadOnly: Boolean = false) {
     if (pausedBlocks()) {
         finishPausedStart(provenance, triggerKey, mcpExternalId, workflowAttemptId, channelPeer, channelMessageId, followUp)
         return
@@ -150,6 +150,7 @@ internal fun TaskService.startNew(newGoal: String, requestedConversation: String
             }
             r.run.mcpExternalId = mcpExternalId
             r.run.workflowAttemptId = workflowAttemptId
+            r.run.workflowReadOnly = workflowReadOnly
             r.run.brief = brief
             r.run.channelPeer = channelPeer
             r.run.channelMessageId = channelMessageId
@@ -180,6 +181,7 @@ internal fun TaskService.startNew(newGoal: String, requestedConversation: String
             }
             run.mcpExternalId = mcpExternalId
             run.workflowAttemptId = workflowAttemptId
+            run.workflowReadOnly = workflowReadOnly
             run.brief = brief
             run.channelPeer = channelPeer
             run.channelMessageId = channelMessageId
@@ -243,7 +245,9 @@ internal fun TaskService.launch(run: TaskRun, store: ConversationStore) {
     run.job = scope.launch(meter) {
         center.markRunning(run)
         // 定时任务没人在场,卡住了没人停:跑过设置里的最长运行时间就停下(默认不限制)
-        val limitMinutes = if (run.triggerWindowKey != null) FeatureFlags.get(service).triggerRunMinutes() else null
+        val limitMinutes = if (run.triggerWindowKey != null || run.provenance.origin == RunOrigin.Trigger) {
+            FeatureFlags.get(service).triggerRunMinutes()
+        } else null
         val result = try {
             val prior = runCatching { store.turns(run.conversationId) }.getOrDefault(emptyList()).map(::withKeptState)
             if (limitMinutes == null) run.execute(prior) else withTimeout(limitMinutes * 60_000L) { run.execute(prior) }
@@ -281,11 +285,32 @@ internal fun TaskService.launch(run: TaskRun, store: ConversationStore) {
         // Reuse the existing outcome judge once; unknown/partial results remain for the user to resolve.
         val workflowJudged = if (run.workflowAttemptId != null) runCatching { run.settleOutcome(end, store) }.getOrNull() else null
         run.workflowAttemptId?.let { attempt ->
+            val workflows = (application as com.wangzan101.mika.MikaApp).workflows
+            val stepSucceeded = end is TaskState.Succeeded && workflowJudged?.outcome == RunOutcome.Done
+            val answer = (end as? TaskState.Succeeded)?.answer.orEmpty()
+            var earlyStop = false
+            var earlyStopReason = ""
+            var finalSuccess = stepSucceeded
+            var problem = (end as? TaskState.Failed)?.reason ?: workflowJudged?.reason.orEmpty()
+            if (stepSucceeded) {
+                val continueIf = withContext(Dispatchers.IO) { workflows.store.stepContinueIf(attempt) }
+                if (continueIf != null) {
+                    val gate = run.evaluateWorkflowGate(continueIf, answer)
+                    when (gate.shouldContinue) {
+                        true -> Unit
+                        false -> {
+                            earlyStop = true
+                            earlyStopReason = gate.reason
+                        }
+                        null -> {
+                            finalSuccess = false
+                            problem = "condition_uncertain"
+                        }
+                    }
+                }
+            }
             withContext(Dispatchers.IO) {
-                (application as com.wangzan101.mika.MikaApp).workflows.complete(attempt,
-                    end is TaskState.Succeeded && workflowJudged?.outcome == RunOutcome.Done,
-                    (end as? TaskState.Succeeded)?.answer.orEmpty(),
-                    (end as? TaskState.Failed)?.reason ?: workflowJudged?.reason.orEmpty())
+                workflows.complete(attempt, finalSuccess, answer, problem, earlyStop, earlyStopReason)
             }
         }
         stopRunId?.let { summarizeStop(run, it, draft, store) }

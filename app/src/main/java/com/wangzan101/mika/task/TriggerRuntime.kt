@@ -25,12 +25,17 @@ import com.wangzan101.mika.core.trigger.TriggerSnapshot
 import com.wangzan101.mika.core.trigger.TriggerWindowState
 import com.wangzan101.mika.core.trigger.rescheduledTo
 import com.wangzan101.mika.core.trigger.EditedSchedule
+import com.wangzan101.mika.core.trigger.WORKFLOW_BUSY
+import com.wangzan101.mika.core.trigger.WORKFLOW_TEMPLATE_DELETED
 import com.wangzan101.mika.core.trigger.afterCheck
 import com.wangzan101.mika.core.trigger.conditionCheckGoal
 import com.wangzan101.mika.core.trigger.revertFire
 import com.wangzan101.mika.core.run.PauseFlag
 import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.settings.MikaPause
+import com.wangzan101.mika.workflow.WorkflowException
+import com.wangzan101.mika.workflow.WorkflowNotifier
+import com.wangzan101.mika.workflow.WorkflowProblem
 import java.io.File
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -123,6 +128,53 @@ object TriggerRuntime {
         engine(context, store).rearm(System.currentTimeMillis())
     }
 
+    @Synchronized fun skippedWorkflow(context: Context, key: String, reason: String) {
+        val store = store(context)
+        if (store.windows().none { it.key == key }) return
+        store.mark(key, TriggerWindowState.Skipped, reason)
+        engine(context, store).rearm(System.currentTimeMillis())
+    }
+
+    @Synchronized fun workflowDelivered(
+        context: Context,
+        key: String,
+        threadId: String?,
+        title: String,
+        result: String,
+        workflowRunId: String,
+    ) {
+        val store = store(context)
+        if (threadId != null) {
+            val conversations = ConversationStore.shared(context)
+            val runId = "workflow-trigger:$key"
+            if (conversations.turns(threadId).none { it.runId == runId }) {
+                conversations.append(threadId, Turn(title, result, "succeeded", runId = runId))
+            }
+        }
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        TaskService.ensureChannels(context)
+        if (notifications.areNotificationsEnabled()) {
+            val open = WorkflowNotifier.openRunIntent(context, workflowRunId)
+            runCatching {
+                notifications.notify(
+                    key.hashCode(),
+                    Notification.Builder(context, TaskService.CHANNEL_RESULT)
+                        .setSmallIcon(R.drawable.ic_notification)
+                        .setContentTitle(title)
+                        .setContentText(result)
+                        .setStyle(Notification.BigTextStyle().bigText(result))
+                        .setContentIntent(open)
+                        .setAutoCancel(true)
+                        .applyScheduledQuietHours(context)
+                        .build(),
+                )
+            }.onFailure { Log.w("MikaTrigger", "workflow notification failed", it) }
+        }
+        store.mark(key, TriggerWindowState.Delivered)
+        store.retireDeliveredOneShots()
+        engine(context, store).rearm(System.currentTimeMillis())
+    }
+
     /** 暂停期间到了任务服务门口的时段(派发后、开跑前用户暂停了):记成「因暂停跳过」,恢复后不补跑。 */
     @Synchronized fun skippedPaused(context: Context, key: String) {
         val store = store(context)
@@ -211,13 +263,8 @@ object TriggerRuntime {
         if (MikaPause.get(context).paused()) error(tr(R.string.pause_blocked_plan))
         val window = store.claimNow(id, System.currentTimeMillis()) ?: error(tr(R.string.trigger_busy))
         try {
-            if (trigger.reminderText != null) deliverReminder(context, store, trigger, window.key)
-            else TaskService.startTrigger(context, trigger.goal, trigger.threadId, window.key,
-                trigger.conditionCheckGoal(ZoneId.systemDefault()), trigger.conditionGoal)
+            dispatchTrigger(context, store, trigger, window, manual = true)
             store.mark(window.key, TriggerWindowState.Dispatched)
-        } catch (e: Exception) {
-            reportStartFailure(context, store, trigger, window.key, e)
-            throw e
         } finally {
             engine(context, store).rearm(System.currentTimeMillis())
         }
@@ -252,11 +299,62 @@ object TriggerRuntime {
     private fun engine(context: Context, store: FileTriggerStore) = TriggerEngine(store,
         { at -> arm(context, at) }, isIdle = { !((context.applicationContext as MikaApp).taskState.busy.value) },
         paused = MikaPause.get(context)) { trigger, window ->
-            if (trigger.reminderText != null) deliverReminder(context, store, trigger, window.key)
-            else try { TaskService.startTrigger(context, trigger.goal, trigger.threadId, window.key,
-                    trigger.conditionCheckGoal(ZoneId.systemDefault()), trigger.conditionGoal) }
-                catch (e: Exception) { reportStartFailure(context, store, trigger, window.key, e); throw e }
+            dispatchTrigger(context, store, trigger, window, manual = false)
         }
+
+    private fun dispatchTrigger(
+        context: Context,
+        store: FileTriggerStore,
+        trigger: TriggerDefinition,
+        window: com.wangzan101.mika.core.trigger.TriggerWindow,
+        manual: Boolean,
+    ) {
+        when {
+            trigger.reminderText != null -> deliverReminder(context, store, trigger, window.key)
+            trigger.workflowTemplateId != null -> {
+                val input = trigger.workflowParams[""].orEmpty()
+                val params = trigger.workflowParams - ""
+                try {
+                    (context.applicationContext as MikaApp).workflows.startScheduled(
+                        trigger.workflowTemplateId!!,
+                        input,
+                        params,
+                        window.key,
+                        trigger.threadId,
+                    )
+                    store.mark(window.key, TriggerWindowState.Dispatched)
+                } catch (e: WorkflowException) {
+                    when (e.problem) {
+                        WorkflowProblem.Busy -> {
+                            store.mark(window.key, TriggerWindowState.Skipped, WORKFLOW_BUSY)
+                            if (manual) throw IllegalStateException(tr(R.string.workflow_busy), e)
+                        }
+                        WorkflowProblem.Changed -> {
+                            store.mark(window.key, TriggerWindowState.Failed, WORKFLOW_TEMPLATE_DELETED)
+                            store.upsert(trigger.copy(enabled = false))
+                            notifyLocal(context, trigger.threadId, window.key, trigger.goal, tr(R.string.workflow_template_deleted))
+                            if (manual) throw IllegalStateException(tr(R.string.workflow_template_deleted), e)
+                        }
+                        WorkflowProblem.Paused -> {
+                            store.mark(window.key, TriggerWindowState.Skipped, PauseFlag.REASON)
+                            if (manual) throw IllegalStateException(tr(R.string.pause_blocked_plan), e)
+                        }
+                        else -> {
+                            reportStartFailure(context, store, trigger, window.key, e)
+                            if (manual) throw e
+                        }
+                    }
+                }
+            }
+            else -> try {
+                TaskService.startTrigger(context, trigger.goal, trigger.threadId, window.key,
+                    trigger.conditionCheckGoal(ZoneId.systemDefault()), trigger.conditionGoal)
+            } catch (e: Exception) {
+                reportStartFailure(context, store, trigger, window.key, e)
+                throw e
+            }
+        }
+    }
 
     private fun deliverReminder(context: Context, store: FileTriggerStore, trigger: TriggerDefinition, key: String) {
         val text = trigger.reminderText ?: return

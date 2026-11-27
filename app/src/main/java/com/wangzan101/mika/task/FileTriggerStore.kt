@@ -34,6 +34,8 @@ private data class ConditionPlanState(
     val source: TriggerSource = TriggerSource.Model,
     val executionWindowZone: String? = null,
     val executionWindows: List<ExecutionWindow> = emptyList(),
+    val workflowTemplateId: String? = null,
+    val workflowParams: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -59,7 +61,7 @@ private fun ByteArray.sha256(): String =
 
 private fun TriggerDefinition.conditionState() = ConditionPlanState(
     notifyWhen, cooldownMs, lastValue, baselineValue, baselineAtMs, lastFiredAtMs, calendarTimes, source,
-    executionWindowZone, executionWindows,
+    executionWindowZone, executionWindows, workflowTemplateId, workflowParams,
 )
 
 private fun TriggerSnapshot.conditionStates(): Map<String, ConditionPlanState> =
@@ -77,6 +79,8 @@ private fun TriggerDefinition.legacy() = copy(
     source = TriggerSource.Model,
     executionWindowZone = null,
     executionWindows = emptyList(),
+    workflowTemplateId = null,
+    workflowParams = emptyMap(),
 )
 
 private fun TriggerDefinition.withConditionState(state: ConditionPlanState?): TriggerDefinition {
@@ -88,11 +92,17 @@ private fun TriggerDefinition.withConditionState(state: ConditionPlanState?): Tr
         state.executionWindows.isNotEmpty() && state.executionWindows.all(::isValidExecutionWindow) &&
             runCatching { java.time.ZoneId.of(zone) }.isSuccess
     }
+    val wfId = state.workflowTemplateId?.takeIf { it.isNotBlank() && reminderText == null && conditionGoal == null }
+    val wfParams = if (wfId != null) {
+        state.workflowParams.entries.take(16).associate { (k, v) -> k to v.take(4_000) }.filterValues { it.isNotEmpty() }
+    } else emptyMap()
     val plan = copy(
         source = state.source,
         calendarTimes = times,
         executionWindowZone = executionZone,
         executionWindows = if (executionZone == null) emptyList() else state.executionWindows,
+        workflowTemplateId = wfId,
+        workflowParams = wfParams,
     )
     if (conditionGoal == null) return plan
     return plan.copy(

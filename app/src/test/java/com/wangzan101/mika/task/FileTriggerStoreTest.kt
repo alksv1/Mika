@@ -206,4 +206,37 @@ class FileTriggerStoreTest {
         assertEquals(true, File(file.parentFile, sidecar.name + ".corrupt").isFile)
         assertEquals(false, File(file.parentFile, file.name + ".corrupt").exists())
     }
+
+    @Test fun workflowPlanRoundTripsInSidecarWithoutChangingLegacySchema() {
+        val file = Files.createTempDirectory("trigger-workflow").resolve("triggers.json").toFile()
+        val store = FileTriggerStore(file)
+        val original = TriggerDefinition(
+            id = "wf-sched",
+            threadId = "thread",
+            goal = "Weekly Report",
+            nextAtMs = 1_000,
+            calendarTime = "16:30",
+            calendarZone = "Asia/Shanghai",
+            calendarDays = listOf(5),
+            source = TriggerSource.User,
+            workflowTemplateId = "tpl-weekly",
+            workflowParams = mapOf("project" to "Alpha", "" to "Include summary"),
+        )
+        store.upsert(original)
+        assertEquals(false, file.readText().contains("workflowTemplateId"))
+        assertEquals(false, file.readText().contains("workflowParams"))
+        Json.decodeFromString<TriggerSnapshot>(file.readText())
+
+        val restored = FileTriggerStore(file).get("wf-sched")!!
+        assertEquals(original, restored)
+
+        // Corrupted sidecar with conflicting reminder + workflow must not crash loading main plans.
+        val reminderFile = Files.createTempDirectory("trigger-wf-bad").resolve("triggers.json").toFile()
+        FileTriggerStore(reminderFile).upsert(TriggerDefinition("rem", "thread", "Drink", 1_000, reminderText = "Drink"))
+        File(reminderFile.parentFile, reminderFile.name + ".conditions")
+            .writeText("""{"states":{"rem":{"workflowTemplateId":"bad-tpl"}}}""")
+        val safe = FileTriggerStore(reminderFile).get("rem")!!
+        assertEquals(null, safe.workflowTemplateId)
+        assertEquals("Drink", safe.reminderText)
+    }
 }

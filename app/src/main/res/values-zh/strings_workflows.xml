@@ -45,4 +45,7 @@
     <string name="workflow_busy">另一个流程正在执行，请先暂停它。</string>
     <string name="workflow_read_failed">没能读取已存任务，请重试。</string>
     <string name="workflow_result_save_failed">进度没能保存，后续步骤尚未开始。请重试保存后继续。</string>
+    <string name="workflow_checkpoint_notify">已完成第 %1$d/%2$d 步，点此查看结果并继续。</string>
+    <string name="workflow_review_notify">这一步需要你处理，点此查看。</string>
+    <string name="workflow_template_deleted">关联的流程已被删除，该定时计划已暂停。</string>
 </resources>

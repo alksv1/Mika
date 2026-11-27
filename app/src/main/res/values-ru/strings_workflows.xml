@@ -45,4 +45,7 @@
     <string name="workflow_busy">Другая многошаговая задача выполняется. Сначала приостановите её.</string>
     <string name="workflow_read_failed">Не удалось прочитать сохранённые задачи. Повторите попытку.</string>
     <string name="workflow_result_save_failed">Не удалось сохранить прогресс. Следующие шаги не начаты. Повторите сохранение.</string>
+    <string name="workflow_checkpoint_notify">Шаг %1$d из %2$d выполнен. Нажмите, чтобы проверить и продолжить.</string>
+    <string name="workflow_review_notify">Этот шаг требует вашего внимания. Нажмите, чтобы открыть.</string>
+    <string name="workflow_template_deleted">Связанная многошаговая задача была удалена, поэтому расписание приостановлено.</string>
 </resources>

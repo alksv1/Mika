@@ -45,4 +45,7 @@
     <string name="workflow_busy">کار چندمرحله‌ای دیگری در حال اجراست. ابتدا آن را متوقف کنید.</string>
     <string name="workflow_read_failed">خواندن کارهای ذخیره‌شده ممکن نشد. دوباره تلاش کنید.</string>
     <string name="workflow_result_save_failed">پیشرفت ذخیره نشد. مرحله‌های بعدی شروع نشده‌اند. ذخیره را دوباره امتحان کنید.</string>
+    <string name="workflow_checkpoint_notify">مرحله %1$d از %2$d انجام شد. برای بررسی و ادامه ضربه بزنید.</string>
+    <string name="workflow_review_notify">این مرحله به بررسی شما نیاز دارد. برای مشاهده ضربه بزنید.</string>
+    <string name="workflow_template_deleted">کار چندمرحله‌ای متصل حذف شد، بنابراین این زمان‌بندی متوقف شد.</string>
 </resources>

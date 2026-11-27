@@ -210,9 +210,25 @@ class TaskService : Service() {
                         }
                         if (dispatch != null) {
                             if (teachingBlocks()) withContext(Dispatchers.IO) { workflows.complete(attemptId, false, "", "start_failed") }
-                            else withContext(Dispatchers.Main) {
-                                begin(getString(R.string.workflow_step_prompt, dispatch.step.instruction, dispatch.input, dispatch.previous),
-                                    dispatch.conversationId, workflowAttemptId = dispatch.attemptId)
+                            else {
+                                val artifacts = withContext(Dispatchers.IO) {
+                                    com.wangzan101.mika.workflow.WorkflowWorkspace(
+                                        com.wangzan101.mika.cap.sandbox.SandboxDirs(this@TaskService),
+                                    ).listArtifacts(dispatch.runId)
+                                }
+                                val prompt = com.wangzan101.mika.workflow.WorkflowPromptBuilder.build(dispatch, artifacts)
+                                val provenance = if (dispatch.unattended) {
+                                    RunProvenance(RunOrigin.Trigger, com.wangzan101.mika.core.run.Attendance.Unattended)
+                                } else RunProvenance()
+                                withContext(Dispatchers.Main) {
+                                    begin(
+                                        prompt,
+                                        dispatch.conversationId,
+                                        provenance = provenance,
+                                        workflowAttemptId = dispatch.attemptId,
+                                        workflowReadOnly = dispatch.step.readOnly,
+                                    )
+                                }
                             }
                         }
                     } catch (e: CancellationException) {

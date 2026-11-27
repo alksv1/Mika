@@ -164,6 +164,7 @@ class MainActivity : ComponentActivity() {
     private var voiceCallSignal by mutableIntStateOf(0)
     private var requestedCallStandby by mutableStateOf(false)
     private var openTeach by mutableStateOf(false)
+    private var requestedWorkflowRunId by mutableStateOf<String?>(null)
     private var requestedSharedDraft by mutableStateOf<SharedDraftRequest?>(null)
     private var shareJob: Job? = null
     private var shareSerial = 0L
@@ -196,6 +197,7 @@ class MainActivity : ComponentActivity() {
         takeVoiceCall(intent)
         takeCallStandby(intent)
         takeTeach(intent)
+        takeWorkflowRun(intent)
         shareInCurrent = savedInstanceState?.getBoolean(STATE_SHARE_IN_CURRENT, false) ?: false
         shareHandled = savedInstanceState?.getBoolean(STATE_SHARE_HANDLED, false) ?: false
         verifiedShareUris = savedInstanceState?.getStringArrayList(STATE_VERIFIED_SHARE_URIS).orEmpty()
@@ -231,6 +233,8 @@ class MainActivity : ComponentActivity() {
                         onTeachOpened = { openTeach = false },
                         requestedCallStandby = requestedCallStandby,
                         onCallStandbyOpened = { requestedCallStandby = false },
+                        requestedWorkflowRunId = requestedWorkflowRunId,
+                        onWorkflowRunOpened = { requestedWorkflowRunId = null },
                     )
                 }
             }
@@ -249,12 +253,15 @@ class MainActivity : ComponentActivity() {
         requestedConversation = intent.getStringExtra(EXTRA_OPEN_CONVERSATION)
         requestedCalls = intent.getBooleanExtra(EXTRA_OPEN_CALLS, false)
         requestedCallHistoryId = intent.getStringExtra(EXTRA_CALL_HISTORY_ID)
-        if (requestedConversation != null || intent.getBooleanExtra(EXTRA_OPEN_TEACH, false)) {
+        if (requestedConversation != null || intent.getBooleanExtra(EXTRA_OPEN_TEACH, false) ||
+            intent.getStringExtra(EXTRA_OPEN_WORKFLOW_RUN) != null) {
             app.chat.cancelPendingSharedDraft()
         }
         takeVoiceCall(intent)
         takeCallStandby(intent)
         takeTeach(intent)
+        takeWorkflowRun(intent)
+        takeWorkflowRun(intent)
         requestedSharedDraft?.let { app.sharedDrafts.discard(it.draft.attachments) }
         requestedSharedDraft = null
         // 界面已在后台存活时收到分享:放入当前打开的会话,而不是新建会话。
@@ -440,6 +447,12 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra(EXTRA_OPEN_CALL_STANDBY)
     }
 
+    private fun takeWorkflowRun(intent: Intent) {
+        val id = intent.getStringExtra(EXTRA_OPEN_WORKFLOW_RUN) ?: return
+        requestedWorkflowRunId = id
+        intent.removeExtra(EXTRA_OPEN_WORKFLOW_RUN)
+    }
+
     companion object {
         const val EXTRA_OPEN_CONVERSATION = "open_conversation"
         const val EXTRA_OPEN_CALLS = "open_calls"
@@ -448,6 +461,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN_TEACH = "open_teach"
         const val EXTRA_TEACH_GOAL = "teach_goal"
         const val EXTRA_OPEN_VOICE_CALL = "open_voice_call"
+        const val EXTRA_OPEN_WORKFLOW_RUN = "open_workflow_run"
         private const val STATE_SHARE_IN_CURRENT = "share_in_current"
         private const val STATE_SHARE_HANDLED = "share_handled"
         private const val STATE_VERIFIED_SHARE_URIS = "verified_share_uris"
@@ -514,11 +528,13 @@ private fun MikaRoot(
     onTeachOpened: () -> Unit,
     requestedCallStandby: Boolean = false,
     onCallStandbyOpened: () -> Unit = {},
+    requestedWorkflowRunId: String? = null,
+    onWorkflowRunOpened: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var focusedCallHistoryId by remember { mutableStateOf<String?>(null) }
     val personalStart = remember { FeatureFlags.get(context).personalStart() }
-    val nav = rememberNavStack(if (personalStart && requestedConversation == null) Route.Personal else Route.Chat)
+    val nav = rememberNavStack(if (personalStart && requestedConversation == null && requestedWorkflowRunId == null) Route.Personal else Route.Chat)
     var filesFromDrawer by rememberSaveable { mutableStateOf(false) }
     var filesConversation by rememberSaveable { mutableStateOf<String?>(null) }
     // 从设置页「重新配对」进来时先回到配对一步
@@ -620,6 +636,11 @@ private fun MikaRoot(
             onConversationOpened()
         }
     }
+    LaunchedEffect(requestedWorkflowRunId) {
+        if (requestedWorkflowRunId != null && nav.current != Route.Chat) {
+            nav.reset()
+        }
+    }
     LaunchedEffect(requestedCalls, requestedCallHistoryId) {
         if (requestedCalls) {
             focusedCallHistoryId = requestedCallHistoryId
@@ -713,7 +734,7 @@ private fun MikaRoot(
         }
     }
     LaunchedEffect(Unit) {
-        if (onboarding == null && requestedConversation == null && nav.current != Route.Personal) {
+        if (onboarding == null && requestedConversation == null && requestedWorkflowRunId == null && nav.current != Route.Personal) {
             Onboarding.start(onboardingInputs())?.let(::goOnboarding)
         }
     }
@@ -813,6 +834,8 @@ private fun MikaRoot(
                                 }
                             },
                             openCallSettings = { nav.push(Route.CallMode) },
+                            requestedWorkflowRunId = requestedWorkflowRunId,
+                            onWorkflowRunOpened = onWorkflowRunOpened,
                         )
                     }
                     var installUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }

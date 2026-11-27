@@ -45,4 +45,7 @@
     <string name="workflow_busy">Otra tarea de varios pasos está en marcha. Páusala primero.</string>
     <string name="workflow_read_failed">No se pudieron leer las tareas guardadas. Reintenta.</string>
     <string name="workflow_result_save_failed">No se pudo guardar el progreso. Los pasos siguientes no han comenzado. Reintenta el guardado.</string>
+    <string name="workflow_checkpoint_notify">Paso %1$d de %2$d completado. Toca para revisar y continuar.</string>
+    <string name="workflow_review_notify">Este paso requiere tu atención. Toca para revisarlo.</string>
+    <string name="workflow_template_deleted">Se eliminó la tarea de varios pasos vinculada, por lo que esta programación se ha pausado.</string>
 </resources>

@@ -45,4 +45,7 @@
     <string name="workflow_busy">هناك مهمة متعددة الخطوات قيد التنفيذ. أوقفها مؤقتًا أولًا.</string>
     <string name="workflow_read_failed">تعذرت قراءة المهام المحفوظة. حاول مجددًا.</string>
     <string name="workflow_result_save_failed">تعذر حفظ التقدم. لم تبدأ الخطوات التالية. أعد محاولة الحفظ.</string>
+    <string name="workflow_checkpoint_notify">اكتملت الخطوة %1$d من %2$d. انقر للمراجعة والمتابعة.</string>
+    <string name="workflow_review_notify">تتطلب هذه الخطوة مراجعتك. انقر للمعاينة.</string>
+    <string name="workflow_template_deleted">تم حذف المهمة المرتبطة متعددة الخطوات، لذا تم إيقاف هذا الجدول مؤقتًا.</string>
 </resources>

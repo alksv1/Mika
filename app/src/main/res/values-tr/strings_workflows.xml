@@ -45,4 +45,7 @@
     <string name="workflow_busy">Başka bir çok adımlı görev çalışıyor. Önce onu duraklatın.</string>
     <string name="workflow_read_failed">Kayıtlı görevler okunamadı. Tekrar deneyin.</string>
     <string name="workflow_result_save_failed">İlerleme kaydedilemedi. Sonraki adımlar başlamadı. Devam etmek için kaydetmeyi yeniden deneyin.</string>
+    <string name="workflow_checkpoint_notify">%2$d adımdan %1$d\'i tamamlandı. Gözden geçirip devam etmek için dokunun.</string>
+    <string name="workflow_review_notify">Bu adım dikkatinizi gerektiriyor. İncelemek için dokunun.</string>
+    <string name="workflow_template_deleted">Bağlı çok adımlı görev silindiği için bu zamanlama duraklatıldı.</string>
 </resources>

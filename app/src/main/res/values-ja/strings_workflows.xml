@@ -45,4 +45,7 @@
     <string name="workflow_busy">別の複数ステップタスクが実行中です。先に一時停止してください。</string>
     <string name="workflow_read_failed">保存したタスクを読み込めません。再試行してください。</string>
     <string name="workflow_result_save_failed">進捗を保存できませんでした。後続のステップは未開始です。保存を再試行してください。</string>
+    <string name="workflow_checkpoint_notify">%2$d ステップ中 %1$d が完了しました。タップして確認し続行します。</string>
+    <string name="workflow_review_notify">確認が必要なステップがあります。タップして確認してください。</string>
+    <string name="workflow_template_deleted">関連付けられたタスクが削除されたため、このスケジュールを一時停止しました。</string>
 </resources>

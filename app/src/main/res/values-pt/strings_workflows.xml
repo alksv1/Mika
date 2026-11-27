@@ -45,4 +45,7 @@
     <string name="workflow_busy">Outra tarefa com várias etapas está em execução. Pause primeiro.</string>
     <string name="workflow_read_failed">Não foi possível ler as tarefas salvas. Tente novamente.</string>
     <string name="workflow_result_save_failed">Não foi possível salvar o progresso. As próximas etapas não começaram. Tente salvar novamente.</string>
+    <string name="workflow_checkpoint_notify">Etapa %1$d de %2$d concluída. Toque para revisar e continuar.</string>
+    <string name="workflow_review_notify">Esta etapa precisa da sua atenção. Toque para conferir.</string>
+    <string name="workflow_template_deleted">A tarefa com várias etapas vinculada foi excluída, então este agendamento foi pausado.</string>
 </resources>

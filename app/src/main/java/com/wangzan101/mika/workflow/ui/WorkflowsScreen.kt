@@ -34,12 +34,18 @@ import com.wangzan101.mika.settings.ui.models.use
 import com.wangzan101.mika.ui.Route
 
 @Composable
-internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpenConversation: ((String) -> Unit)? = null, onUseResult: ((String) -> Unit)? = null) {
+internal fun WorkflowsScreen(runtime: WorkflowRuntime, onBack: () -> Unit, onOpenConversation: ((String) -> Unit)? = null, onUseResult: ((String) -> Unit)? = null, initialRunId: String? = null) {
     val data by runtime.store.data.collectAsState()
     val loaded by runtime.store.loaded.collectAsState()
     val saveError by runtime.saveError.collectAsState()
     var selectedTemplate by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedRun by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedRun by rememberSaveable { mutableStateOf<String?>(initialRunId) }
+    LaunchedEffect(initialRunId) {
+        if (initialRunId != null) {
+            selectedTemplate = null
+            selectedRun = initialRunId
+        }
+    }
     var editor by rememberSaveable { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<WorkflowProblem?>(null) }
     var starting by remember { mutableStateOf<WorkflowTemplate?>(null) }

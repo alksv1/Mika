@@ -45,4 +45,7 @@
     <string name="workflow_busy">Một tác vụ nhiều bước khác đang chạy. Hãy tạm dừng tác vụ đó trước.</string>
     <string name="workflow_read_failed">Không đọc được các tác vụ đã lưu. Hãy thử lại.</string>
     <string name="workflow_result_save_failed">Không lưu được tiến trình. Các bước tiếp theo chưa bắt đầu. Hãy thử lưu lại để tiếp tục.</string>
+    <string name="workflow_checkpoint_notify">Đã xong bước %1$d / %2$d. Nhấn để xem lại và tiếp tục.</string>
+    <string name="workflow_review_notify">Bước này cần bạn xử lý. Nhấn để kiểm tra.</string>
+    <string name="workflow_template_deleted">Tác vụ nhiều bước được liên kết đã bị xóa nên lịch này đã được tạm dừng.</string>
 </resources>

@@ -203,7 +203,7 @@ internal suspend fun TaskRun.assemblePrompt(a: RunAssembly, priorTurns: List<Tur
     val stepLimit = if (conditionCheck) null else FeatureFlags.get(service).taskStepLimit()
     val runSpec = RunSpec(RunId(key), goal, conversationId,
         priorTurns,
-        provenance, if (conditionCheck) setOf("web", "sandbox") else null, readOnly = conditionCheck,
+        provenance, if (conditionCheck) setOf("web", "sandbox") else null, readOnly = conditionCheck || workflowReadOnly,
         stepBudget = stepLimit, tokenBudget = tokenBudget)
     return RunPrompt(userScreens, basePrompt, personaLabel, runSpec)
 }

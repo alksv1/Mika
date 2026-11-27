@@ -45,4 +45,7 @@
     <string name="workflow_busy">另一個流程正在執行，請先暫停它。</string>
     <string name="workflow_read_failed">無法讀取已存任務，請重試。</string>
     <string name="workflow_result_save_failed">進度無法儲存，後續步驟尚未開始。請重試儲存後繼續。</string>
+    <string name="workflow_checkpoint_notify">已完成第 %1$d/%2$d 步，點此檢視結果並繼續。</string>
+    <string name="workflow_review_notify">這一步需要你處理，點此檢視。</string>
+    <string name="workflow_template_deleted">關聯的流程已被刪除，該定時排程已暫停。</string>
 </resources>

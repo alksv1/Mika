@@ -113,12 +113,16 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         scope.launch(Dispatchers.IO) { workflows.complete(attemptId, false, "", com.wangzan101.mika.core.run.PauseFlag.REASON) }
     }
     val workflows by lazy {
+        val workspace = com.wangzan101.mika.workflow.WorkflowWorkspace(com.wangzan101.mika.cap.sandbox.SandboxDirs(this))
         com.wangzan101.mika.workflow.WorkflowRuntime(
             com.wangzan101.mika.workflow.WorkflowStore(
                 java.io.File(filesDir, com.wangzan101.mika.workflow.WorkflowStore.FILE),
                 com.wangzan101.mika.settings.KeystoreKeyCipher("mika-workflows"),
+                onRunsRemoved = { ids -> scope.launch(Dispatchers.IO) { ids.forEach { workspace.delete(it) } } },
             ),
             com.wangzan101.mika.settings.MikaPause.get(this),
+            onStepDone = { runId, stepIndex, result -> workspace.writeStepResult(runId, stepIndex, result) },
+            onTransition = { run -> com.wangzan101.mika.workflow.WorkflowNotifier.onRunTransition(this, run) },
         ) { dispatch -> TaskService.startWorkflow(this, dispatch.attemptId) }
     }
 
@@ -308,7 +312,9 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
     val projects: ProjectStore by lazy { ProjectStore(this) }
 
     /** 对话编号到工作区的解析器(不依赖 [chat] 避免循环 lazy)。 */
-    val workspaceResolver: WorkspaceResolver by lazy { WorkspaceResolver(conversations, projects) }
+    val workspaceResolver: WorkspaceResolver by lazy {
+        WorkspaceResolver(conversations, projects, workflowRunIdOf = { id -> workflows.store.runIdForConversation(id) })
+    }
 
     /** 系统分享尚未发送的草稿和它的私有附件副本。 */
     val sharedDrafts: SharedDraftStore by lazy { SharedDraftStore(java.io.File(filesDir, "shared-drafts")) }

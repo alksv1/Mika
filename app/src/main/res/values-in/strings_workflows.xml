@@ -45,4 +45,7 @@
     <string name="workflow_busy">Tugas beberapa langkah lain sedang berjalan. Jeda dahulu.</string>
     <string name="workflow_read_failed">Tugas tersimpan tidak dapat dibaca. Coba lagi.</string>
     <string name="workflow_result_save_failed">Progres gagal disimpan. Langkah berikutnya belum dimulai. Coba simpan lagi.</string>
+    <string name="workflow_checkpoint_notify">Langkah %1$d dari %2$d selesai. Ketuk untuk meninjau dan melanjutkan.</string>
+    <string name="workflow_review_notify">Langkah ini memerlukan perhatian Anda. Ketuk untuk memeriksa.</string>
+    <string name="workflow_template_deleted">Tugas beberapa langkah terkait telah dihapus, sehingga jadwal ini dijeda.</string>
 </resources>

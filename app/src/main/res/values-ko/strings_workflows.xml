@@ -45,4 +45,7 @@
     <string name="workflow_busy">다른 여러 단계 작업이 실행 중입니다. 먼저 일시정지하세요.</string>
     <string name="workflow_read_failed">저장된 작업을 읽지 못했습니다. 다시 시도하세요.</string>
     <string name="workflow_result_save_failed">진행 상황을 저장하지 못했습니다. 다음 단계는 시작되지 않았습니다. 저장을 다시 시도하세요.</string>
+    <string name="workflow_checkpoint_notify">%2$d단계 중 %1$d단계 완료. 눌러서 확인하고 계속하세요.</string>
+    <string name="workflow_review_notify">확인이 필요한 단계가 있습니다. 눌러서 확인하세요.</string>
+    <string name="workflow_template_deleted">연결된 여러 단계 작업이 삭제되어 이 예약이 일시정지되었습니다.</string>
 </resources>

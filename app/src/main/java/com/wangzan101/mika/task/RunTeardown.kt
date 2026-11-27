@@ -9,9 +9,11 @@ import com.wangzan101.mika.core.agent.JudgedOutcome
 import com.wangzan101.mika.core.agent.LearnGate
 import com.wangzan101.mika.core.agent.OutcomeJudge
 import com.wangzan101.mika.core.agent.RunOutcome
+import com.wangzan101.mika.core.agent.StepGateDecision
 import com.wangzan101.mika.core.agent.StopSummary
 import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.core.agent.Turn
+import com.wangzan101.mika.core.agent.WorkflowStepGate
 import com.wangzan101.mika.core.assembly.knownTools
 import com.wangzan101.mika.core.learn.knowledge.AppKnowledgeDrafter
 import com.wangzan101.mika.core.learn.knowledge.GuideCatalog
@@ -128,6 +130,11 @@ internal class RunTeardown(
             saveRoute(goal, withContext(Dispatchers.IO) { s.events(runId) }, k.dispatcher.index)
         }
         return judged
+    }
+
+    suspend fun evaluateWorkflowGate(condition: String, answer: String): StepGateDecision {
+        val k = kit() ?: return StepGateDecision(null)
+        return WorkflowStepGate(k.light ?: k.model, k.model).evaluate(condition, answer)
     }
 
     /**

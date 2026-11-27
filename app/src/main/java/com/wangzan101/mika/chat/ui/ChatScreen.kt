@@ -151,6 +151,8 @@ fun ChatScreen(
     openDeskRun: (taskId: String, phase: com.wangzan101.mika.core.frontdesk.DeskTaskPhase) -> Unit = { _, _ -> },
     /** 右上角 ⋯ 里的「通话设置」。 */
     openCallSettings: () -> Unit = {},
+    requestedWorkflowRunId: String? = null,
+    onWorkflowRunOpened: () -> Unit = {},
 ) {
     val checklistStore = checklists ?: (LocalContext.current.applicationContext as? MikaApp)?.savedChecklists
     val workflowRuntime = workflows ?: (LocalContext.current.applicationContext as? MikaApp)?.workflows
@@ -228,6 +230,14 @@ fun ChatScreen(
     var checklistIncoming by remember(ui.conversationId) { mutableStateOf<ChecklistSource?>(null) }
     var pendingChecklistDraft by remember(ui.conversationId) { mutableStateOf<String?>(null) }
     var showWorkflows by rememberSaveable { mutableStateOf(false) }
+    var initialWorkflowRunId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(requestedWorkflowRunId) {
+        if (requestedWorkflowRunId != null) {
+            initialWorkflowRunId = requestedWorkflowRunId
+            showWorkflows = true
+            onWorkflowRunOpened()
+        }
+    }
     // 面板开着时选照片会把首页的草稿提升成对话(id 从 null 变成新值),所以不跟对话 id 绑;换对话时用户本来就会先关掉
     var showPlus by rememberSaveable { mutableStateOf(false) }
     var showMainModel by rememberSaveable(ui.conversationId) { mutableStateOf(false) }
@@ -854,16 +864,17 @@ fun ChatScreen(
         )
     }
     if (showWorkflows && workflowRuntime != null) androidx.compose.ui.window.Dialog(
-        onDismissRequest = { showWorkflows = false },
+        onDismissRequest = { showWorkflows = false; initialWorkflowRunId = null },
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
     ) {
         androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
-            WorkflowsScreen(workflowRuntime, onBack = { showWorkflows = false },
-                onOpenConversation = { id -> showWorkflows = false; vm.openWorkflowConversation(id) },
+            WorkflowsScreen(workflowRuntime, onBack = { showWorkflows = false; initialWorkflowRunId = null },
+                onOpenConversation = { id -> showWorkflows = false; initialWorkflowRunId = null; vm.openWorkflowConversation(id) },
                 onUseResult = { text ->
-                    showWorkflows = false
+                    showWorkflows = false; initialWorkflowRunId = null
                     if (vm.ui.value.input.isEmpty()) vm.input(text) else pendingExample = text
-                })
+                },
+                initialRunId = initialWorkflowRunId)
         }
     }
     saveTaskPrompt?.let { prompt ->
