@@ -26,6 +26,9 @@ const val CONDITION_NOT_MET = "condition_not_met"
 const val CONDITION_UNCHANGED = "condition_unchanged"
 const val CONDITION_COOLDOWN = "cooldown"
 const val CONDITION_PLAN_EDITED = "plan_edited"
+const val WORKFLOW_EARLY_STOP = "workflow_early_stop"
+const val WORKFLOW_BUSY = "workflow_busy"
+const val WORKFLOW_TEMPLATE_DELETED = "workflow_template_deleted"
 
 /** 编辑界面可能打开了很久，保留存储中的最新检查状态，除非用户修改了检查规则。 */
 internal fun TriggerDefinition.withConditionHistoryFrom(previous: TriggerDefinition): TriggerDefinition {

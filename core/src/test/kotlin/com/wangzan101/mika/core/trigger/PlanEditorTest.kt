@@ -286,6 +286,34 @@ class PlanEditorTest {
         assertNull(edited.lastValue)
     }
 
+    @Test fun workflowPlanRoundTripsAndClearsSingleStepCondition() {
+        val input = draft().copy(
+            content = "Weekly Report",
+            condition = "should be cleared",
+            cooldownMinutes = "30",
+            workflowTemplateId = "wf-weekly",
+            workflowParams = mapOf("project" to "  Alpha ", "empty" to "   ", "" to " include tables "),
+            repeat = PlanRepeat.Weekly,
+            clock = "16:30",
+            weekdays = setOf(5),
+        )
+        val created = editedTrigger(input, null, "wf-plan", "thread", now)
+        assertEquals("wf-weekly", created.workflowTemplateId)
+        assertEquals(mapOf("project" to "Alpha", "" to "include tables"), created.workflowParams)
+        assertNull(created.conditionGoal)
+        assertNull(created.cooldownMs)
+        assertNull(created.reminderText)
+
+        val roundTrip = created.toPlanDraft()
+        assertEquals("wf-weekly", roundTrip.workflowTemplateId)
+        assertEquals(mapOf("project" to "Alpha", "" to "include tables"), roundTrip.workflowParams)
+
+        val copy = editedTrigger(created.toCopyPlanDraft(now), null, "wf-copy", "thread", now)
+        assertEquals("wf-weekly", copy.workflowTemplateId)
+        assertEquals(created.workflowParams, copy.workflowParams)
+        assertFalse(copy.enabled)
+    }
+
     private fun assertInvalid(input: PlanDraft, expected: PlanValidation) {
         val error = runCatching { editedTrigger(input, null, "id", "thread", now) }.exceptionOrNull()
         assertTrue("expected $expected but got $error", error is PlanValidationException)

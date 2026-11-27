@@ -49,6 +49,8 @@ data class PlanDraft(
     val executionWindow: PlanExecutionWindow = PlanExecutionWindow.Anytime,
     val windowStart: String = "22:00",
     val windowEnd: String = "02:00",
+    val workflowTemplateId: String? = null,
+    val workflowParams: Map<String, String> = emptyMap(),
 )
 
 private val EDIT_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm")
@@ -123,6 +125,8 @@ fun TriggerDefinition.toPlanDraft(): PlanDraft {
         executionWindow = executionWindow,
         windowStart = custom?.let { formatExecutionWindowMinute(it.startMinute) } ?: "22:00",
         windowEnd = custom?.let { formatExecutionWindowMinute(it.endMinute) } ?: "02:00",
+        workflowTemplateId = workflowTemplateId,
+        workflowParams = workflowParams,
     )
 }
 
@@ -163,7 +167,14 @@ fun editedTrigger(
     val content = draft.content.trim()
     if (content.isEmpty()) invalid(PlanValidation.MissingContent)
     if (content.length > if (draft.reminder) 2_000 else 4_000) invalid(PlanValidation.ContentTooLong)
-    val condition = draft.condition.trim().ifEmpty { null }
+    val workflowTemplateId = if (draft.reminder) null else draft.workflowTemplateId?.trim()
+    if (workflowTemplateId != null && workflowTemplateId.isEmpty()) invalid(PlanValidation.MissingContent)
+    val workflowParams = if (workflowTemplateId != null) {
+        draft.workflowParams.mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }.also { clean ->
+            if (clean.size > 16 || clean.values.any { it.length > 4_000 }) invalid(PlanValidation.ContentTooLong)
+        }
+    } else emptyMap()
+    val condition = if (workflowTemplateId != null) null else draft.condition.trim().ifEmpty { null }
     if ((condition?.length ?: 0) > 2_000) invalid(PlanValidation.ConditionTooLong)
     if (draft.reminder && condition != null) invalid(PlanValidation.ReminderWithCondition)
     val zone = try { ZoneId.of(draft.zone.trim()) } catch (e: Exception) {
@@ -251,6 +262,8 @@ fun editedTrigger(
         cooldownMs = cooldownMs,
         executionWindowZone = execution?.first,
         executionWindows = execution?.second.orEmpty(),
+        workflowTemplateId = workflowTemplateId,
+        workflowParams = workflowParams,
     )
     return if (original == null) updated else updated.withConditionHistoryFrom(original)
 }

@@ -51,6 +51,10 @@ data class TriggerDefinition(
     /** 模型任务允许执行的当地窗口；空表示随时执行。固定提醒和手动立即执行不受此限制。 */
     val executionWindowZone: String? = null,
     val executionWindows: List<ExecutionWindow> = emptyList(),
+    /** 关联的多步骤工作流模板；非空时到点按工作流执行，不走普通单任务或固定提醒。 */
+    val workflowTemplateId: String? = null,
+    /** 关联工作流的参数值（空键 "" 存可选本次要求，其余键对应模板 {{参数}}）。 */
+    val workflowParams: Map<String, String> = emptyMap(),
 ) {
     init {
         require(id.isNotBlank() && threadId.isNotBlank() && goal.isNotBlank())
@@ -62,6 +66,8 @@ data class TriggerDefinition(
         require(executionWindows.isEmpty() || (executionWindowZone != null &&
             runCatching { ZoneId.of(executionWindowZone) }.isSuccess && executionWindows.all(::isValidExecutionWindow)))
         require(executionWindows.isNotEmpty() || executionWindowZone == null)
+        require(workflowTemplateId == null || (workflowTemplateId.isNotBlank() && reminderText == null && conditionGoal == null))
+        require(workflowTemplateId != null || workflowParams.isEmpty())
     }
 
     fun calendarClocks(): List<String> = calendarTimes.ifEmpty { listOfNotNull(calendarTime) }
