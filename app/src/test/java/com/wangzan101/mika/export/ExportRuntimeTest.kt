@@ -26,6 +26,7 @@ import java.io.File
 import java.io.InputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.zip.ZipFile
 
 class ExportRuntimeTest {
     @Test fun previewUsesSelectedSourceSnapshot() = runBlocking {
@@ -71,11 +72,66 @@ class ExportRuntimeTest {
                 assertFalse(File(html.directory, "assets/gone.txt").exists())
                 assertTrue(html.warnings.any { it.code == "asset_missing" && it.detail == "gone.txt" })
                 assertEquals("document.html", html.entry)
-                assertTrue(File(html.directory, html.entry).readText().contains("href=\"assets/a%20b.txt\""))
+                val document = File(html.directory, html.entry).readText()
+                assertTrue(document.contains("href=\"assets/a%20b.txt\""))
+                assertTrue("document.html has no warning line for gone.txt", document.contains("Missing: gone.txt"))
             } finally {
                 html.release()
             }
             assertFalse(html.directory.exists())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test fun previewDocumentListsTooLargeAsset() = runBlocking {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        try {
+            // 比单个附件的上限 50 MB 多 1 字节。
+            val source = FakeSource("answer", linkedMapOf("big.bin" to ByteArray((50 shl 20) + 1)))
+            val processor = ExportProcessor(ExportLabels.English, "test", "en", root)
+
+            val html = processor.preview(
+                source, source, "title", ExportSelection("c1"), ExportContent(),
+                ExportPresentation(), "html",
+            ) {} as ExportPreview.Html
+            try {
+                assertFalse(File(html.directory, "assets/big.bin").exists())
+                assertTrue(html.warnings.any { it.code == "asset_too_large" && it.detail == "big.bin" })
+                assertTrue(
+                    "document.html has no warning line for big.bin",
+                    File(html.directory, html.entry).readText().contains("Too large: big.bin"),
+                )
+            } finally {
+                html.release()
+            }
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test fun exportedMarkdownListsAssetWarnings() = runBlocking {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        try {
+            val source = FakeSource(
+                "answer",
+                linkedMapOf("gone.txt" to null, "big.bin" to ByteArray((50 shl 20) + 1)),
+            )
+            val processor = ExportProcessor(ExportLabels.English, "test", "en", File(root, "cache"))
+            var markdown = ""
+
+            val outcome = processor.export(
+                source, source, "title", ExportSelection("c1"), ExportContent(),
+                ExportPresentation(), "markdown", bundle = true,
+            ) { file, _ ->
+                markdown = ZipFile(file).use { zip ->
+                    zip.getInputStream(zip.getEntry("document.md")).use { it.readBytes().toString(Charsets.UTF_8) }
+                }
+            }
+
+            assertEquals(listOf("asset_missing", "asset_too_large"), outcome.warnings.map { it.code })
+            assertTrue("document.md has no warning line for gone.txt", markdown.contains("Missing: gone.txt"))
+            assertTrue("document.md has no warning line for big.bin", markdown.contains("Too large: big.bin"))
         } finally {
             root.deleteRecursively()
         }

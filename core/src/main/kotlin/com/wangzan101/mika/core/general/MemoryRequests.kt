@@ -198,7 +198,7 @@ internal object MemoryRequests {
             "помнишь|помню|вы\\s+помнит|помнит(?:е)?\\s*(?:ли\\s+)?(?:вы|ты)|запомнил(?:а|и|о)?${W1}|запомнишь|вспомн|не\\s+помнит|запоминаешь",
         ),
         saveNegation = Regex(
-            "не\\s+(?:надо|нужно|стоит|обязательно|требуется|пока)?\\s*" + RU_GAP + "(?:это\\s+|вс[её]\\s+это\\s+|так\\s+)?" +
+            "${W0}не\\s+(?:надо|нужно|стоит|обязательно|требуется|пока)?\\s*" + RU_GAP + "(?:это\\s+|вс[её]\\s+это\\s+|так\\s+)?" +
                 "(?:запоминай|запоминайте|запоминать|запомнить|запомни|запомните|сохраняй|сохраняйте|сохранять|сохрани|сохраните|" +
                 "записывай|записывайте|записать|запиши|запишите|держи|держите|держать|заноси|заносить)|" +
                 "(?:запомин\\p{L}+|сохран\\p{L}+|записыва\\p{L}+)\\s+не\\s+(?:надо|нужно|стоит|обязательно)|" +
@@ -242,8 +242,8 @@ internal object MemoryRequests {
                 "sabes\\s+si\\s+recuerdas|cu[aá]nto\\s+recuerdas|qu[eé]\\s+recuerdas|recuerda\\s+(?: usted| t[uú])${W1}",
         ),
         saveNegation = Regex(
-            "(?:no|n[aã]o)\\s+" + ES_GAP + "(?:record|acu[eé]rd|memoric|guard|apunt|anot|salv|almacen|a[nñ]ad)|" +
-                "sin\\s+(?:recordar|guardar|almacenar|apuntar|anotar|memorizar|salvar)|" +
+            "${W0}(?:no|n[aã]o)\\s+" + ES_GAP + "(?:record|acu[eé]rd|memoric|guard|apunt|anot|salv|almacen|a[nñ]ad)|" +
+                "${W0}sin\\s+(?:recordar|guardar|almacenar|apuntar|anotar|memorizar|salvar)|" +
                 "olv[ií]d(?:a|ide|ida)(?:l[oa]s?|me|te|se|nos|te)${W1}|olv[ií]date${W1}",
         ),
         update = Regex(
@@ -287,8 +287,8 @@ internal object MemoryRequests {
                 "lembras|se\\s+lembr|recordas|se\\s+recorda|lembro${W1})",
         ),
         saveNegation = Regex(
-            "(?:no|n[aã]o)\\s+" + ES_GAP + "(?:lembr|guard|salv|anot|apont|memoriz|regist|armazen|adicion)|" +
-                "sem\\s+(?:lembrar|guardar|salvar|anotar|registrar|armazenar)|esquec(?:e${W1}|e\\s+(?:isso|isto|aquilo|de\\s+isso))",
+            "${W0}(?:no|n[aã]o)\\s+" + ES_GAP + "(?:lembr|guard|salv|anot|apont|memoriz|regist|armazen|adicion)|" +
+                "${W0}sem\\s+(?:lembrar|guardar|salvar|anotar|registrar|armazenar)|esquec(?:e${W1}|e\\s+(?:isso|isto|aquilo|de\\s+isso))",
         ),
         update = Regex(
             "${W0}(?:(?:mud(?:a|e|es|em|ar|á)|alter(?:a|e|es|em|ar|á)|edit(?:a|e|es|em|ar|á)|fund(?:a|e|em|ir|amos)|junt(?:a|e|em|ar)|" +
@@ -490,30 +490,30 @@ internal object MemoryRequests {
         prepare = { it.lowercase() },
         save = Regex(
             "(?:tolong|mohon)\\s+(?:ingat|diingat|disimpan|dicatat)|harap\\s+diingat|diingat\\s+ya|ingat\\s+(?:ini|itu|ya|selalu|terus|baik-baik|dengan\\s+baik|bahwa|soal|soalnya)(?!\\p{L})|" +
-                "(?:catat|simpan|hafalkan)(?!\\p{L})|jangan\\s+(?:sampai\\s+)?lupa|jangan\\s+dilupakan|jangan\\s+lupakan",
+                "(?:catat|simpan|hafalkan)(?!\\p{L})|${W0}jangan\\s+(?:sampai\\s+)?lupa|${W0}jangan\\s+dilupakan|${W0}jangan\\s+lupakan",
         ),
         recallQuestion = Regex(
             "ingat\\s+(?:nggak|ngga|gak|ga|enggak|engga|tidak|tak|kan|kah)(?!\\p{L})|(?:masih|apa|apakah|begitu)\\s+ingat(?!\\p{L})|ingat\\s*[?？]|" +
                 "(?:kamu|anda|kau|lo|lu|kalian)\\s+ingat(?!\\s+(?:ini|itu|ya|selalu|terus|bahwa|soal))|(?:aku|saya|gue)\\s+ingat|lupa\\s*(?:nggak|gak|ga|tidak|tak|enggak)",
         ),
         saveNegation = Regex(
-            "jangan\\s+" + ID_GAP + "(?:catat|simpan|hafal|ingat|dicatat|disimpan|dihafal|diingat|di-?save|save)|" +
-                "(?:tidak|nggak|gak|ga)\\s+(?:perlu|usah|jadi)\\s+(?:\\p{L}+\\s+){0,3}?(?:catat|simpan|hafal|ingat|dicatat|disimpan|diingat)|" +
+            "${W0}jangan\\s+" + ID_GAP + "(?:catat|simpan|hafal|ingat|dicatat|disimpan|dihafal|diingat|di-?save|save)|" +
+                "${ID_NOT}\\s+(?:perlu|usah|jadi)\\s+(?:\\p{L}+\\s+){0,3}?(?:catat|simpan|hafal|ingat|dicatat|disimpan|diingat)|" +
                 "tanpa\\s+(?:mencatat|menyimpan|menghafal)|lupakan\\s+(?:saja|aja)",
         ),
         update = Regex(
             "${W0}(?:perbarui|ubah|rubah|edit|koreksi|revisi|tulis\\s+ulang|ringkas|gabung|ganti|sesuaikan|sunting|rapikan|perbaiki)(?!\\p{L})",
         ),
         updateNegation = Regex(
-            "jangan\\s+" + ID_GAP + "(?:ubah|rubah|edit|koreksi|revisi|ganti|sunting|rapikan|perbaiki|diubah|diedit|direvisi|diganti|disunting|di-?(?:edit|update|save)|update)|" +
-                "(?:tidak|nggak|gak|ga)\\s+(?:perlu|usah|jadi)\\s+(?:\\p{L}+\\s+){0,3}?(?:ubah|edit|koreksi|revisi|ganti|sunting)|" + ID_KEEP,
+            "${W0}jangan\\s+" + ID_GAP + "(?:ubah|rubah|edit|koreksi|revisi|ganti|sunting|rapikan|perbaiki|diubah|diedit|direvisi|diganti|disunting|di-?(?:edit|update|save)|update)|" +
+                "${ID_NOT}\\s+(?:perlu|usah|jadi)\\s+(?:\\p{L}+\\s+){0,3}?(?:ubah|edit|koreksi|revisi|ganti|sunting)|" + ID_KEEP,
         ),
         delete = Regex(
             "${W0}(?:hapus|apus|hilangkan|buang|lupakan|singkirkan|dihapus|dibuang|dilupakan)(?!\\p{L})|(?:tolong|mohon|bisa)\\s+dihapus",
         ),
         deleteNegation = Regex(
-            "jangan\\s+" + ID_GAP + "(?:hapus|apus|hilangkan|buang|lupakan|singkirkan|dihapus|dibuang|dilupakan|di-?delete|delete|remove)|" +
-                "(?:tidak|nggak|gak|ga)\\s+(?:perlu|usah|jadi)\\s+(?:\\p{L}+\\s+){0,3}?(?:hapus|dihapus|apus|buang|hilangkan|lupakan)|" + ID_KEEP,
+            "${W0}jangan\\s+" + ID_GAP + "(?:hapus|apus|hilangkan|buang|lupakan|singkirkan|dihapus|dibuang|dilupakan|di-?delete|delete|remove)|" +
+                "${ID_NOT}\\s+(?:perlu|usah|jadi)\\s+(?:\\p{L}+\\s+){0,3}?(?:hapus|dihapus|apus|buang|hilangkan|lupakan)|" + ID_KEEP,
         ),
         hypothetical = Regex(
             "(?:kalau|jika|kalo|seandainya|andai|seumpama|bagaimana\\s+(?:jika|kalau|kalo))\\s+(?:saya|aku)\\s+(?:minta|bilang|suruh|menyuruh|perintah(?:kan)?|nyuruh|pesan)",
@@ -557,6 +557,7 @@ internal object MemoryRequests {
     }
 }
 
+/** 词的起点。否定词(не、no / não、sin、sem、ga、jangan)也只认词首:「мне」「teléfono」「Wisconsin」「precisem」「juga」「tunjangan」的词尾和它们同形,不是否定。 */
 private const val W0 = "(?<!\\p{L})"
 
 private const val W1 = "(?!\\p{L})"
@@ -585,6 +586,7 @@ private const val KO_UPDATE_WORDS = "수정|변경|편집|업데이트|갱신|�
 
 private const val KO_DELETE_WORDS = "삭제|제거|지우|지워|없애|버리|버려|까먹"
 
+/** 「안」前面不加词首限定:不空格的「그건안지워도 돼」也要算否定。 */
 private fun koNegated(verbs: String) =
     "(?:$verbs)(?:하)?\\s*지\\s*(?:마|말|않)|안\\s*(?:$verbs)|" +
         "(?:$verbs)(?:을|를|은|는|할)?\\s*(?:안|못)\\s*(?:해|하|할|하고|했다|할게|할래|해도|한다|된)|" +
@@ -610,8 +612,8 @@ private const val RU_KEEP =
 
 /** 不让改 / 不让删:「не меняй」「не надо удалять」;「оставь как есть」「не трогай」两种都不让。 */
 private fun ruNegated(verbs: String) =
-    "не\\s+(?:надо|нужно|стоит|обязательно|требуется|пока)?\\s*" + RU_GAP + "(?:$verbs)|" +
-        "не\\s+(?:хочу|желаю|намерен|собираюсь),?\\s*(?:чтобы\\s+(?:ты|вы)\\s+\\p{L}*?)?\\s*" + RU_GAP + "(?:$verbs)|" +
+    "${W0}не\\s+(?:надо|нужно|стоит|обязательно|требуется|пока)?\\s*" + RU_GAP + "(?:$verbs)|" +
+        "${W0}не\\s+(?:хочу|желаю|намерен|собираюсь),?\\s*(?:чтобы\\s+(?:ты|вы)\\s+\\p{L}*?)?\\s*" + RU_GAP + "(?:$verbs)|" +
         "(?:$verbs)\\p{L}*\\s+не\\s+(?:надо|нужно|стоит|обязательно)|можно\\s+не\\s+(?:$verbs)"
 
 /**
@@ -635,7 +637,7 @@ private const val ES_DELETE_WORDS = "borr|elimin|suprim|remov|remuev|quit|olvid|
 private const val ES_KEEP =
     "conserv|mant[eé]n|mantiene|guarda(?:r)?\\s+(?:eso|esa|ese|aquell\\p{L}*|el|la|lo|las|los)|deja(?:r)?\\s+(?:eso|esa|ese|aquell\\p{L}*|el|la|lo|las|los|as[ií]|asi|como|tal|igual)"
 
-private fun esNegated(verbs: String) = "(?:no|n[aã]o)\\s+" + ES_GAP + "(?:$verbs)|sin\\s+(?:\\p{L}+\\s+){0,2}(?:$verbs)|" + ES_KEEP
+private fun esNegated(verbs: String) = "${W0}(?:no|n[aã]o)\\s+" + ES_GAP + "(?:$verbs)|${W0}sin\\s+(?:\\p{L}+\\s+){0,2}(?:$verbs)|" + ES_KEEP
 
 /** 不让改删的词。 */
 private const val PT_UPDATE_WORDS = "mud|alter|modif|atualiz|corr|edit|reescrev|reformul|encurt|simplif|fund|junt|combin|substitu|troc|toc"
@@ -645,7 +647,7 @@ private const val PT_DELETE_WORDS = "apag|delet|elimin|esque|remov|tir|exclu|des
 private const val PT_KEEP =
     "conserv|mant(?:en|[eé]m)|preserv|guarda(?:r)?\\s+(?:isso|isto|esse|essa|aquele|aquela|o|a|os|as)|deix(?:a|e)\\s+(?:isso|isto|esse|essa|aquilo|o|a|os|as|como|assim)"
 
-private fun ptNegated(verbs: String) = "(?:no|n[aã]o)\\s+" + ES_GAP + "(?:$verbs)|sem\\s+(?:\\p{L}+\\s+){0,2}(?:$verbs)|" + PT_KEEP
+private fun ptNegated(verbs: String) = "${W0}(?:no|n[aã]o)\\s+" + ES_GAP + "(?:$verbs)|${W0}sem\\s+(?:\\p{L}+\\s+){0,2}(?:$verbs)|" + PT_KEEP
 
 /** 「olduğu gibi bırak」「aynen kalsın」:不让改、不让删的通用说法。 */
 private const val TR_KEEP =
@@ -671,9 +673,12 @@ private const val FA_KEEP =
 private const val VI_KEEP =
     "giữ\\s+(?:lại|nguyên|đi|nó|cho)|cứ\\s+để\\s+nguyên|để\\s+nguyên|đừng\\s+(?:động|đụng)\\s+vào|đừng\\s+làm\\s+gì|cứ\\s+giữ|vẫn\\s+giữ"
 
+/** 「tidak」和它口语里的各种写法,只认词首。enggak、ngga、ngak、kagak 这些原先靠词尾的 gak、ga 认出,所以逐个列出。 */
+private const val ID_NOT = "${W0}(?:tidak|enggak|engga|engak|enga|nggak|ngga|ngak|nga|kagak|kaga|gak|ga)"
+
 /** 「jangan」和动词之间只放行这几个宾语;「jangan lupa」(别忘了)里的 lupa 不在其中,是让它记。 */
 private const val ID_GAP = "(?:(?:ini|itu|semua|semuanya|dia|mereka|nya|hal|yang|saja|aja|dulu)\\s+){0,3}"
 
 /** 「biarkan saja」(就这样吧)、「pertahankan」(保留):不让改、不让删的通用说法。 */
 private const val ID_KEEP =
-    "biarkan\\s+saja|biar\\s+saja|tetap\\s+(?:disimpan|ada|seperti|sama|begitu|dipertahankan)|simpan\\s+saja|pertahankan|jangan\\s+di-?apa-?apa-?kan|jangan\\s+di-?ubah"
+    "biarkan\\s+saja|biar\\s+saja|tetap\\s+(?:disimpan|ada|seperti|sama|begitu|dipertahankan)|simpan\\s+saja|pertahankan|${W0}jangan\\s+di-?apa-?apa-?kan|${W0}jangan\\s+di-?ubah"

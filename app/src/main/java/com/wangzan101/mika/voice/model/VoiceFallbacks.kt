@@ -26,6 +26,8 @@ object VoiceFallbacks {
         SttProtocol.AzureShortAudio,
         SttProtocol.TencentSentence,
         SttProtocol.XfyunDictation,
+        // 本机语音包也是松手后整段转写:能当链头,也能当云端模型的备援
+        SttProtocol.OnDevice,
     )
 
     /** [model] 能不能进 [capability] 的备援链(也是这条链能不能挂在它后面)。实时通话没有备援链。 */

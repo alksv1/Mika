@@ -7,6 +7,7 @@
     <string name="voice_steer_to">插話給「%1$s」</string>
     <string name="voice_engine_phone">手機自帶</string>
     <string name="voice_engine_phone_offline">手機自帶 · 離線</string>
+    <string name="voice_engine_on_device">本機 · 離線</string>
     <string name="voice_say_now">說吧，我在聽…</string>
     <string name="voice_recording">在錄音，說完放開再轉成文字…</string>
     <string name="voice_foot_live">放開 · 字填進輸入框，可以再改</string>
@@ -36,6 +37,8 @@
     <string name="voice_service_settings_failed">沒能打開「%1$s」的設定頁。請到系統的應用程式管理裡找到它，打開「麥克風」。</string>
     <string name="voice_unavailable_provider_gone">選的語音模型所在的服務商已經刪掉了。到「設定 › 模型 › 語音轉文字」重新選一個就能用。</string>
     <string name="voice_unavailable_off">語音轉文字設成了不用。到「設定 › 模型 › 語音轉文字」選一個就能用。</string>
+    <string name="voice_unavailable_pack_missing">需要下載語音包。選的離線語音包不在這臺手機上，到「設定 › 模型 › 語音轉文字」下載後就能直接用，不用重新選。</string>
+    <string name="voice_unavailable_on_device_unsupported">此裝置不支援離線辨識。到「設定 › 模型 › 語音轉文字」換一種辨識方式。</string>
     <string name="voice_go_pick">去選</string>
     <string name="voice_permission_title">要允許錄音才能按住說話</string>
     <string name="voice_permission_body">按住說話時要錄音才能聽到你。之前沒有允許，手機不會再問了：到系統設定裡 Mika 的權限頁，打開「麥克風」就能用。</string>

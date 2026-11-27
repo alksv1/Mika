@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_packs_title">Çevrimdışı ses paketleri</string>
+    <string name="voice_packs_lead">İndirildikten sonra konuşma ağ bağlantısı olmadan metne dönüşür ve sesiniz telefonda kalır. Telefonun yerleşik tanıması kullanılamadığında Otomatik, yüklü bir ses paketini kullanır.</string>
+    <string name="voice_packs_entry_sub">Ağ olmadan konuşmayı metne</string>
+    <string name="voice_pack_recommended">Önerilen</string>
+    <string name="voice_pack_languages_count">%1$d dil</string>
+    <string name="voice_pack_meta">%1$s · %2$s · %3$s lisansı</string>
+    <string name="voice_pack_status_not_installed">İndirilmedi</string>
+    <string name="voice_pack_status_downloading">İndiriliyor</string>
+    <string name="voice_pack_status_downloading_percent">İndiriliyor %%%1$d</string>
+    <string name="voice_pack_status_installed">Yüklü · sürüm %1$d · %2$s</string>
+    <string name="voice_pack_status_corrupt">Bozuk, yeniden indirilmesi gerekiyor</string>
+    <string name="voice_pack_status_update">Yeni sürüm var; eski sürüm çalışmaya devam ediyor</string>
+    <string name="voice_pack_status_importing">İçe aktarılıyor…</string>
+    <string name="voice_pack_download">İndir</string>
+    <string name="voice_pack_redownload">Yeniden indir</string>
+    <string name="voice_pack_update">Güncelle</string>
+    <string name="voice_pack_cancel">İndirmeyi iptal et</string>
+    <string name="voice_pack_delete">Sil</string>
+    <string name="voice_pack_import">Dosyalardan içe aktar</string>
+    <string name="voice_pack_copy_urls">İndirme bağlantılarını kopyala</string>
+    <string name="voice_pack_download_failed">İndirme tamamlanmadı. Yeniden deneyin ya da dosyaları bilgisayarda indirip içe aktarın.</string>
+    <string name="voice_pack_metered_title">Mobil veriyle indirilsin mi?</string>
+    <string name="voice_pack_metered_body">Bu ses paketi yaklaşık %1$s. Ölçülü bir ağdasınız (mobil veri veya erişim noktası gibi).</string>
+    <string name="voice_pack_metered_confirm">Yine de indir</string>
+    <string name="voice_pack_delete_title">Ses paketi silinsin mi?</string>
+    <string name="voice_pack_delete_body">%1$s bu telefondan silinecek. Sesli giriş bunu kullanıyorsa Otomatik’e döner.</string>
+    <string name="voice_pack_no_space">Yeterli alan yok: %1$s gerekiyor, yalnızca %2$s boş.</string>
+    <string name="voice_pack_unsupported">Bu cihaz bu ses paketini çalıştıramaz.</string>
+    <string name="voice_pack_not_started">İndirme başlatılamadı: zaten indiriliyor ya da içe aktarılıyor olabilir veya kullanılabilir bir indirme bağlantısı yok.</string>
+    <string name="voice_pack_import_done">İçe aktarıldı. Kullanıma hazır.</string>
+    <string name="voice_pack_import_missing">Seçilen dosyalarda eksik: %1$s</string>
+    <string name="voice_pack_import_mismatch">%1$s katalogla eşleşmiyor (boyut veya sağlama toplamı farklı), bu yüzden hiçbir şey içe aktarılmadı.</string>
+    <string name="voice_pack_import_busy">Bu ses paketi zaten indiriliyor veya içe aktarılıyor. Bitince yeniden deneyin.</string>
+    <string name="voice_pack_import_failed">İçe aktarılamadı: dosyalar okunamadı veya telefona kaydedilemedi.</string>
+    <string name="voice_pack_delete_failed">Her şey silinemedi. Daha sonra yeniden deneyin.</string>
+    <string name="voice_pack_copied">İndirme bağlantıları kopyalandı.</string>
+    <string name="voice_pack_needs_download">İndirilmeli</string>
+    <string name="voice_pack_corrupt_error">Ses paketi bozuk. Lütfen yeniden indirin.</string>
+    <string name="voice_on_device_failed">Çevrimdışı tanıma başarısız oldu. Tekrar deneyin.</string>
+    <string name="voice_go_voice_packs">Çevrimdışı ses paketi indir</string>
+</resources>

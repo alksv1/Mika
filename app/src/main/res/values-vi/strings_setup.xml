@@ -44,7 +44,7 @@
     <string name="model_need_url">Nhập URL cơ sở</string>
     <string name="model_url_scheme">URL cơ sở phải bắt đầu bằng http:// hoặc https://</string>
     <string name="model_url_account_id">Thay {account_id} bằng Cloudflare Account ID của bạn</string>
-    <string name="model_setup_account_id">Account ID</string>
+    <string name="model_setup_account_id">ID tài khoản</string>
     <string name="model_setup_account_id_placeholder">Nhập Cloudflare Account ID của bạn</string>
     <string name="model_url_unencrypted">Địa chỉ này không được mã hóa; API key và các cuộc trò chuyện của bạn có thể bị người khác trên mạng nhìn thấy.</string>
     <string name="model_probe_failed">Yêu cầu %1$s gọi công cụ kiểm tra đã thất bại: %2$s</string>

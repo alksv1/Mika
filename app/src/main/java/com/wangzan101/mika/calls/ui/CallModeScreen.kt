@@ -46,17 +46,33 @@ import com.wangzan101.mika.voice.model.VoiceCatalogSnapshot
 import com.wangzan101.mika.voice.model.VoiceModelEnvironment
 import com.wangzan101.mika.voice.model.VoiceSelections
 import com.wangzan101.mika.voice.model.VoiceVoices
+import com.wangzan101.mika.voice.model.VoiceCapability
+import com.wangzan101.mika.voice.model.VoiceModelRef
+import com.wangzan101.mika.voice.ondevice.OnDeviceCatalog
+import com.wangzan101.mika.voice.ui.VoiceOption
+import com.wangzan101.mika.voice.ui.voiceOptions
+import com.wangzan101.mika.settings.Provider
 import java.util.Locale
 import kotlin.math.roundToInt
 import com.wangzan101.mika.settings.ui.models.Page
 import com.wangzan101.mika.settings.ui.models.use
 import com.wangzan101.mika.voice.ui.nameOf
 
-/** True when a call could not hear with this listen choice: device recognition only hears the microphone. */
+/**
+ * True when a call could not hear with this listen choice: device recognition only hears the microphone, and
+ * offline voice packs are too slow for a call (calls use cloud speech-to-text only).
+ */
 internal fun VoiceSelections.listenUnusableForCalls(): Boolean = when (val s = stt) {
-    is SttSelection.Model -> s.ref == SttSelectionController.SYSTEM_STT_REF
+    is SttSelection.Model -> !s.ref.usableForCalls()
     else -> true
 }
+
+/** A listen model a call can use: not the phone's own recognition and not an offline voice pack. */
+internal fun VoiceModelRef.usableForCalls(): Boolean = this != SttSelectionController.SYSTEM_STT_REF && !OnDeviceCatalog.isOnDevice(this)
+
+/** The listen choices a call picker offers: cloud speech-to-text only. */
+internal fun callListenOptions(snapshot: VoiceCatalogSnapshot, providers: List<Provider>): List<VoiceOption> =
+    voiceOptions(VoiceCapability.STT, snapshot, providers).filter { it.ref.usableForCalls() }
 
 /** One line for the hub row and the phone page: which engine calls use. */
 @Composable

@@ -15,6 +15,7 @@ import com.wangzan101.mika.core.model.Role
 import com.wangzan101.mika.core.model.StopReason
 import com.wangzan101.mika.core.model.ToolSpec
 import com.wangzan101.mika.core.model.Usage
+import com.wangzan101.mika.core.net.RateLimitGovernor
 import com.wangzan101.mika.core.testing.FakeChatModel
 import com.wangzan101.mika.core.tool.FakeScreen
 import com.wangzan101.mika.core.assembly.toolDispatcher
@@ -269,6 +270,38 @@ class ModelCallerGroupTest {
         caller.ask(emptyList(), emptyList(), 2)
         assertEquals(1, a.requests.size)
         assertEquals(2, b.requests.size)
+    }
+
+    @Test
+    fun rateLimitedMemberIsRetriedOnceBeforeTheNextMember() = runTest {
+        RateLimitGovernor.reset()
+        var aCalls = 0
+        val a = object : ChatModel {
+            override val name = "group-rate-limit-a"
+            override val capabilities = caps()
+            override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
+                aCalls++
+                throw ModelError.RateLimited(1L)
+            }
+        }
+        val b = answering("group-rate-limit-b", "from b")
+        val pool = GroupPool(
+            group(GroupMember("a", priority = 0), GroupMember("b", priority = 1)),
+            listOf(poolMember("a", a, 0), poolMember("b", b, 1)),
+            ModelHealthRegistry(), StickyTable(), "g/s",
+        )
+        // 策略允许重试 3 次;组里还有下一个成员时,限流和别的一时故障一样只在同一成员上重试一次
+        val caller = ModelCaller(pool, toolDispatcher(FakeScreen()), null, SpeedFlags.OFF,
+            RetryPolicy(maxRetries = 3, jitter = { 0.0 }), {}, { 0 })
+        caller.reset("system")
+        try {
+            val answer = caller.ask(emptyList(), emptyList(), 1)
+            assertEquals(listOf(Part.Text("from b")), answer.parts)
+            assertEquals(2, aCalls)
+            assertEquals(1, b.requests.size)
+        } finally {
+            RateLimitGovernor.reset()
+        }
     }
 
     @Test

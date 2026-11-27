@@ -1,9 +1,11 @@
 package com.wangzan101.mika
 
 import android.app.Application
+import android.content.ComponentCallbacks2
 import android.net.Uri
 import android.util.Log
 import com.wangzan101.mika.R
+import com.wangzan101.mika.voice.ondevice.OnDeviceEngines
 import com.wangzan101.mika.cap.phone.PhoneServices
 import com.wangzan101.mika.cap.sandbox.AndroidSandbox
 import com.wangzan101.mika.cap.sandbox.AttachmentLimits
@@ -680,6 +682,17 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         )
     }
 
+    /**
+     * 系统内存紧张时释放本机识别模型(几百 MB),下次用到再加载。界面刚退到后台(UI_HIDDEN)不算紧张:
+     * 悬浮胶囊里的语音输入还在用。
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW && level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            OnDeviceEngines.shared.release()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         // One-time legacy voice migration before any migrated consumer is initialized; a failure retains legacy behavior.
@@ -690,6 +703,18 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             runCatching { updateMirrors.ensureLoaded() }
             runCatching { com.wangzan101.mika.task.AndroidDeviceFiles.cleanupStaging(SandboxDirs(this@MikaApp)) }
                 .onFailure { Log.w("MikaImport", "Could not clean device import staging", it) }
+            // 离线语音包:上次没下完的 staging、旧版本、清单里已没有的包
+            runCatching {
+                // 和语音目录用同一份存放和清单(见 VoiceModelEnvironment)
+                val voice = com.wangzan101.mika.voice.model.VoiceModelEnvironment.get(this@MikaApp)
+                val packs = voice.voicePacks
+                if (packs != null) {
+                    val catalog = voice.voicePackCatalog!!()
+                    packs.cleanup(catalog)
+                    // 上次在提交和写进语音目录之间被杀:文件装着、目录里没有模型,补上
+                    com.wangzan101.mika.voice.ondevice.VoicePackInstaller.restoreInstalled(catalog, packs, voice.catalog)
+                }
+            }.onFailure { Log.w("MikaVoice", "Could not clean voice packs", it) }
         }
         // 界面以外的文字(通知、服务、悬浮胶囊)按 App 语言取
         AppLanguage.applyDefaultLocale(this)

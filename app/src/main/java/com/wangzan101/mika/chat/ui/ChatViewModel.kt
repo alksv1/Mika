@@ -152,7 +152,7 @@ class ChatViewModel(
     val keptPage: StateFlow<KeptPage?> = MutableStateFlow(null),
     /** 关掉留着的那一页(用户点了那一行上的「关闭」)。 */
     private val closeKept: () -> Unit = {},
-    /** 分支时复制源对话工作区的 inbox/(附件);没注入就只复制轮次。 */
+    /** 分支时复制源对话工作区的 inbox/(附件)和生成的音频、图片、视频(out/audio、out/images、out/video);没注入就只复制轮次。 */
     internal val branchWorkspace: BranchWorkspace? = null,
     /** 分支标题:在源标题或第一句话后面加本地化后缀(太长时截断);默认原样。 */
     internal val branchTitle: (String) -> String = { it },

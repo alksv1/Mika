@@ -557,6 +557,42 @@ class DeskChatOpsTest {
         assertEquals(listOf("帮我订明天的日料"), brain.replies)
     }
 
+    // 两个 150 MiB 的附件各自不超过单个文件的上限,合计超过分支复制默认的总量:复制进子会话时两个都要收下,任务照样派出
+    @Test fun attachmentsLargerInTotalThanTheBranchCopyDefaultStillBecomeATask() = runTest {
+        val brain = ScriptBrain({ _, ctx -> ctx.say("好。") })
+        val files = listOf("/workspace/inbox/上半场.mp4" to (150L shl 20), "/workspace/inbox/下半场.mp4" to (150L shl 20))
+        val copies = mutableListOf<Pair<String, List<RetryAttachmentResult>>>()
+        // 按收到的总量算:请求的文件按顺序复制,放不下的记超限
+        val workspace = object : BranchWorkspace {
+            override suspend fun copyInbox(sourceId: String, targetId: String, maxBytes: Long): BranchCopyResult? = null
+            override suspend fun copyInboxForRetry(sourceId: String, targetId: String, paths: List<String>, maxBytes: Long): List<RetryAttachmentResult> {
+                var remaining = maxBytes
+                return paths.map { path ->
+                    val size = files.first { it.first == path }.second
+                    if (size > remaining) RetryAttachmentResult(path, RetryAttachmentStatus.OVER_LIMIT)
+                    else RetryAttachmentResult(path, RetryAttachmentStatus.COPIED, size).also { remaining -= size }
+                }.also { copies += targetId to it }
+            }
+        }
+        val h = harness(brain, importAttachments = { _, _ -> ImportResult(files, emptyList()) }, branchWorkspace = workspace)
+        h.vm.openConversation("c")
+        runCurrent()
+
+        h.vm.attach(listOf("content://x/上半场.mp4", "content://x/下半场.mp4"))
+        runCurrent()
+        h.vm.input("把这两段剪到一起")
+        assertTrue(h.vm.send(h.vm.ui.value.input, ok))
+        runCurrent()
+
+        assertEquals(1, h.port.dispatched.size)
+        assertEquals(listOf("child-1" to files.map { RetryAttachmentResult(it.first, RetryAttachmentStatus.COPIED, it.second) }), copies)
+        assertTrue(h.port.dispatched.single(), files.all { it.first in h.port.dispatched.single() })
+        assertEquals(listOf("child-1"), h.vm.ui.value.exchanges.last().deskTasks)
+        val saved = h.store.turns("c").last()
+        assertEquals(listOf("child-1"), saved.deskTasks)
+        assertNull(saved.note)
+    }
+
     // 通话里写进这条会话的轮次,下一次在聊天页发话时前台就知道(和通话打开时用同一份会话记录),通话里说过的话也认作用户的原话
     @Test fun nextSendKnowsTheTurnsACallWrote() = runTest {
         val made = mutableListOf<ScriptBrain>()

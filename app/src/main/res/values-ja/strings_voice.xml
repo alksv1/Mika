@@ -8,6 +8,7 @@
     <string name="voice_steer_to">「%1$s」に伝える</string>
     <string name="voice_engine_phone">スマホ</string>
     <string name="voice_engine_phone_offline">スマホ · オフライン</string>
+    <string name="voice_engine_on_device">端末内 · オフライン</string>
     <string name="voice_say_now">どうぞ、聞いています…</string>
     <string name="voice_recording">録音中です。指を離すとテキストに変換されます…</string>
     <string name="voice_foot_live">指を離す · 言葉が入力欄に入り、編集できます</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">「%1$s」の設定ページを開けませんでした。システムのアプリ一覧から探して、マイクをオンにしてください。</string>
     <string name="voice_unavailable_provider_gone">選んだ音声モデルのプロバイダーは削除されました。「設定 › モデル › 音声文字変換」で別のものを選んでください。</string>
     <string name="voice_unavailable_off">音声文字変換がオフです。「設定 › モデル › 音声文字変換」で選んでください。</string>
+    <string name="voice_unavailable_pack_missing">音声パックのダウンロードが必要です。選んだオフライン音声パックがこのスマホにありません。「設定 › モデル › 音声文字変換」でダウンロードすれば、選び直さずにそのまま使えます。</string>
+    <string name="voice_unavailable_on_device_unsupported">このデバイスはオフライン認識に対応していません。「設定 › モデル › 音声文字変換」で別の認識方法を選んでください。</string>
     <string name="voice_go_pick">選ぶ</string>
     <string name="voice_permission_title">Mika にマイクが必要です</string>
     <string name="voice_permission_body">長押しして話している間あなたの声を聞くために、Mika は録音が必要です。以前に拒否されたため、スマホは再度確認しません。システム設定の Mika の権限ページで、マイクをオンにしてください。</string>

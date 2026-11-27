@@ -59,6 +59,7 @@ import com.wangzan101.mika.voice.model.VoiceCapability
 import com.wangzan101.mika.voice.model.VoiceCatalogSnapshot
 import com.wangzan101.mika.voice.model.VoiceModel
 import com.wangzan101.mika.voice.model.VoiceModelEnvironment
+import com.wangzan101.mika.voice.model.VoiceModelError
 import com.wangzan101.mika.voice.model.VoiceModelProbe
 import com.wangzan101.mika.voice.model.VoiceModelRef
 import com.wangzan101.mika.voice.model.VoiceVoices
@@ -136,6 +137,7 @@ internal fun VoiceCatalogViewModel.tryChoice(choice: VoiceOption, sample: String
 @Composable
 internal fun voiceSourceLabel(source: VoiceSource): String = when (source) {
     VoiceSource.Device -> stringResource(R.string.voice_source_device)
+    VoiceSource.OnDevice -> stringResource(R.string.voice_engine_on_device)
     is VoiceSource.ChatAccount -> stringResource(R.string.voice_source_account, source.name)
     is VoiceSource.Service -> stringResource(R.string.voice_source_service, source.name)
 }
@@ -168,6 +170,8 @@ internal fun VoiceOptionList(
     onTest: (VoiceOption) -> Unit,
     pickable: (VoiceOption) -> Boolean = { true },
     extraTop: (@Composable () -> Unit)? = null,
+    /** 名字下面额外的一个提醒标签(比如本机语音包的「需要下载」);null 是没有。 */
+    badge: (VoiceOption) -> String? = { null },
 ) {
     val probes by viewModel.probes.collectAsState()
     val c = MikaTheme.colors
@@ -187,8 +191,10 @@ internal fun VoiceOptionList(
                 modifier = Modifier.testTag("voice-choice-${choice.ref.serviceId}-${choice.ref.modelId}"),
                 below = {
                     Column {
-                        if (choice.traits.isNotEmpty()) {
+                        val note = badge(choice)
+                        if (choice.traits.isNotEmpty() || note != null) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                note?.let { StatusPill(it, PillTone.Warn, Modifier.testTag("voice-badge-${choice.ref.serviceId}-${choice.ref.modelId}")) }
                                 choice.traits.forEach { trait ->
                                     CapabilityTag(voiceTraitLabel(trait), if (trait == VoiceTrait.Live || trait == VoiceTrait.StreamingRead || trait == VoiceTrait.Interruptible) TagTone.Accent else TagTone.Neutral)
                                 }
@@ -198,7 +204,7 @@ internal fun VoiceOptionList(
                             VoiceProbeUi.Idle -> if (choice.verified) Text(stringResource(R.string.voice_catalog_verified), Modifier.padding(top = 4.dp), style = MikaType.Hint, color = c.ok)
                             VoiceProbeUi.Running -> Text(stringResource(R.string.voice_catalog_testing), Modifier.padding(top = 4.dp), style = MikaType.Hint, color = c.ink3)
                             is VoiceProbeUi.Listening -> Text(probe.transcript.ifBlank { stringResource(R.string.voice_catalog_listening) }, Modifier.padding(top = 4.dp), style = MikaType.Hint, color = c.ink2)
-                            is VoiceProbeUi.Failed -> Text(probe.error.detail, Modifier.padding(top = 4.dp), style = MikaType.Hint, color = c.bad)
+                            is VoiceProbeUi.Failed -> Text(voiceErrorText(probe.error), Modifier.padding(top = 4.dp), style = MikaType.Hint, color = c.bad)
                             VoiceProbeUi.Verified -> Text(stringResource(R.string.voice_catalog_verified), Modifier.padding(top = 4.dp), style = MikaType.Hint, color = c.ok)
                         }
                     }
@@ -247,6 +253,17 @@ internal fun VoicePickerSheet(
         SheetAction(stringResource(R.string.voice_enter_voice_id), MikaIcons.Edit, searchable = false) { typing = true }
     // 选「手动输入」时面板会顺手关掉,这里拦下,让输入框接着出来
     ActionSheet(stringResource(R.string.voice_voice), actions, searchHint = stringResource(R.string.search)) { if (!typing) onDismiss() }
+}
+
+/**
+ * 试转失败时给用户看的一句:本机语音包的失败换成该怎么办(没装是「需要下载」,文件坏了是「已损坏,请重新下载」,其余是「请重试」),
+ * 不露英文的原因;别的照旧是服务商的原话。
+ */
+@Composable
+internal fun voiceErrorText(error: VoiceModelError): String = when (error) {
+    is VoiceModelError.PackMissing -> stringResource(R.string.voice_pack_needs_download)
+    is VoiceModelError.OnDeviceFailed -> stringResource(onDeviceFailureText(error))
+    else -> error.detail
 }
 
 /** Shown under each use page: where to connect more services. */

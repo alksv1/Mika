@@ -8,6 +8,7 @@
     <string name="voice_steer_to">\“%1$s\”e söyleniyor</string>
     <string name="voice_engine_phone">Telefon</string>
     <string name="voice_engine_phone_offline">Telefon · çevrimdışı</string>
+    <string name="voice_engine_on_device">Cihazda · çevrimdışı</string>
     <string name="voice_say_now">Buyurun, dinliyorum…</string>
     <string name="voice_recording">Kaydediliyor. Bırakın, metne dönüşsün…</string>
     <string name="voice_foot_live">Bırakın · kelimeler düzenlemek için kutuya girer</string>
@@ -37,6 +38,8 @@
     <string name="voice_service_settings_failed">\“%1$s\” için ayarlar sayfası açılamadı. Sistemin uygulama listesinde bulun ve mikrofonu açın.</string>
     <string name="voice_unavailable_provider_gone">Seçilen konuşma modelinin sağlayıcısı kaldırıldı. Ayarlar › Modeller › Konuşmadan yazıya\'da başka bir tane seçin.</string>
     <string name="voice_unavailable_off">Konuşmadan yazıya kapalı. Ayarlar › Modeller › Konuşmadan yazıya\'da bir tane seçin.</string>
+    <string name="voice_unavailable_pack_missing">Ses paketinin indirilmesi gerekiyor. Seçtiğiniz çevrimdışı ses paketi bu telefonda yok; Ayarlar › Modeller › Konuşmadan yazıya\'dan indirin, yeniden seçmenize gerek kalmadan hemen çalışır.</string>
+    <string name="voice_unavailable_on_device_unsupported">Bu cihaz çevrimdışı tanımayı desteklemiyor. Ayarlar › Modeller › Konuşmadan yazıya\'da başka bir tanıma yöntemi seçin.</string>
     <string name="voice_go_pick">Bir tane seç</string>
     <string name="voice_permission_title">Mika\'nın mikrofona ihtiyacı var</string>
     <string name="voice_permission_body">Konuşmak için basılı tutarken sizi duymak için Mika\'nın ses kaydetmesi gerekir. Daha önce reddedildi, bu yüzden telefon bir daha sormayacak. Sistem ayarlarındaki Mika izin sayfasında mikrofonu açın.</string>

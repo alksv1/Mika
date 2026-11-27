@@ -55,6 +55,8 @@ enum class SttProtocol {
     TencentSentence,
     /** iFlytek dictation WebSocket (signed URL). */
     XfyunDictation,
+    /** 本机离线识别(已安装的语音包,`endpoint` 是包 id);整段录音转写,不联网。 */
+    OnDevice,
 }
 
 @Serializable

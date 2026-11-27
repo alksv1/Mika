@@ -76,6 +76,11 @@ object Licenses {
         Entry("Shizuku API", "Apache-2.0", "版本 13.1.5(api 与 provider),仅在设备已安装、启动并授权 Shizuku 时按官方 API 绑定本地助手服务。https://github.com/RikkaApps/Shizuku-API"),
         Entry("MCP 服务品牌 logo（mcp/mcp-logos.json）", "CC0 1.0", "服务目录/列表/管理页的品牌轮廓图标字形本体为 CC0 1.0;各品牌标志仍归各自品牌所有,仅用于「可连接的服务」标识。"),
         Entry("MCP 服务品牌 logo 补充集（mcp/mcp-logos.json）", "MIT", "Lobe Icons 版本 1.106.0,补上前一项没有的 AI/搜索服务单色标志。Copyright (c) 2023 LobeHub. https://github.com/lobehub/lobe-icons"),
+        Entry("sherpa-onnx", "Apache-2.0", "版本 2.0.3(静态链接 ONNX Runtime 的 AAR,只带 arm64-v8a),本机离线语音识别。https://github.com/k2-fsa/sherpa-onnx"),
+        Entry("ONNX Runtime", "MIT", "由 sherpa-onnx 静态链接,离线识别的推理引擎。Copyright (c) Microsoft Corporation. https://github.com/microsoft/onnxruntime"),
+        Entry("SenseVoice Small(离线识别语音包)", "FunASR Model License 1.1", "不随安装包发布,下载语音包后存在手机上。FunAudioLLM(阿里巴巴集团通义实验室)。https://github.com/FunAudioLLM/SenseVoice"),
+        Entry("Dolphin Base(离线识别语音包)", "Apache-2.0", "不随安装包发布,下载语音包后存在手机上。Copyright 2025 DataoceanAI. https://github.com/DataoceanAI/Dolphin"),
+        Entry("Whisper(离线识别语音包)", "MIT", "不随安装包发布,下载语音包后存在手机上。Copyright (c) 2022 OpenAI. https://github.com/openai/whisper"),
     )
 }
 

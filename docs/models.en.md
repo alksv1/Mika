@@ -44,7 +44,21 @@ Missing candidates, ambiguous parameters, low probabilities, errors and timeouts
 
 ## Speech to text
 
-The fourth role, used when you hold to talk; pick it under Settings › Models › Speech to text. By default it uses the phone's built-in speech recognition, which shows words as you speak and costs nothing. If the phone has none, or it is not accurate enough, pick a provider's speech model: it transcribes after you finish speaking and uses your quota. The list only shows models whose names look like speech models; for anything else, type the model name in by hand under that provider. Picking runs a short test transcription of silence and only selects the model if it works; otherwise you see why right away. If the phone's recognizer never responds when you hold to talk, Mika tells you and points you here; it never switches to a paid model by itself.
+The fourth role, used when you hold to talk; pick it under Settings › Models › Voice input. By default it uses the phone's built-in speech recognition, which shows words as you speak and costs nothing. If the phone has none, or it is not accurate enough, pick a provider's speech model: it transcribes after you finish speaking and uses your quota. The list only shows models whose names look like speech models; for anything else, type the model name in by hand under that provider. Picking runs a short test transcription of silence and only selects the model if it works; otherwise you see why right away. If the phone's recognizer never responds when you hold to talk, Mika tells you and points you here; it never switches to a paid model by itself.
+
+### Offline voice packs
+
+If the phone has no usable built-in recognition and you don't want to use a provider's speech model, download an offline voice pack: recognition runs on the phone, hold to talk works without a network, your voice never leaves the phone and no quota is used.
+
+- **Where**: Settings › Models › Voice input › Offline voice packs. Each pack has a card with the languages it recognizes, its size and license; the one recommended for your app language comes first, marked “Recommended”. Only 64-bit ARM (arm64) phones are supported; other phones say so.
+- **Download**: tap “Download”. Sources are tried in order: your GitHub mirrors from About (when turned on), Mika's release page, then the model's original repository (HuggingFace, at a fixed version); downloads go through Settings › Network proxy. On mobile data or a hotspot you are asked first, with the size. You can cancel at any time and download again later.
+- **Import from files**: if the phone can't download, or is fully offline, tap “Copy download links”, download the files on a computer (as one zip, or as separate files), copy them to the phone and tap “Import from files”.
+- **Downloaded or imported, every file must match the size and checksum built into the app** before the pack is installed; if one doesn't, you're told which.
+- **Space**: SenseVoice Small about 240 MB, Dolphin Base about 104 MB, Whisper Base about 161 MB, Whisper Small about 375 MB; keep about 50 MB extra free when downloading or importing. Voice packs are not backed up: after a new phone or a restore, download again. Your selection is kept and marked “Needs download”, and works as soon as the pack is back.
+- **How it's used**: with speech to text on Auto, the phone's built-in recognition is still used whenever it works; only when it can't be used does Mika use an installed pack, preferring the one recommended for the recognition language, otherwise any installed pack. You can also pick a pack directly in the list (marked “On-device · offline”), or put it last in the fallback chain so it takes over when cloud models can't be reached. Offline recognition shows the text after you finish speaking, not as you speak.
+- **Calls don't use voice packs**: in-app calls and AI phone calls keep their own recognition, and their lists don't show voice packs.
+- **Traditional Chinese**: when the language is Traditional Chinese, the recognized text currently comes out in Simplified Chinese.
+- Deleting a pack that voice input is using switches it back to Auto.
 
 ## Sign in with an account (no key needed)
 

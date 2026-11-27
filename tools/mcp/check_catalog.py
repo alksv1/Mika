@@ -21,7 +21,9 @@ was not actually observed.
 Usage:
   check_catalog.py CATALOG.json [--online [--require-online]] [--timeout SECONDS] [--output REPORT.json]
 
---require-online exits 1 unless every remote preset is "verified" or "auth_required".
+--require-online exits 1 unless every remote preset is "verified" or "auth_required". It judges the
+online probe, so it needs --online: an offline run carries no per-preset status at all, and the gate
+would otherwise pass having verified nothing.
 """
 
 import argparse
@@ -397,10 +399,15 @@ def main(argv=None):
     ap.add_argument("catalog")
     ap.add_argument("--online", action="store_true", help="also perform a secret-free MCP handshake per remote preset")
     ap.add_argument("--require-online", action="store_true",
-                    help="exit 1 unless every remote preset is verified or auth_required")
+                    help="exit 1 unless every remote preset is verified or auth_required (needs --online)")
     ap.add_argument("--timeout", type=float, default=10)
     ap.add_argument("--output", help="write the report to this path instead of stdout")
     a = ap.parse_args(argv)
+    # The gate judges the probe's per-preset status, and an offline run produces none: `report["online"]`
+    # is absent, `any(...)` over nothing is False, and the gate exits 0 having verified nothing. Refuse
+    # the combination rather than pass unseen.
+    if a.require_online and not a.online:
+        ap.error("--require-online needs --online")
 
     with open(a.catalog, encoding="utf-8") as fh:
         text = fh.read()
